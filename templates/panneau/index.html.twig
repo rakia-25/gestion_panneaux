@@ -1,0 +1,78 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Liste des panneaux{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="bi bi-grid"></i> Gestion des panneaux</h1>
+        <a href="{{ path('app_panneau_new') }}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Nouveau panneau
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            {% if panneaux|length > 0 %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Référence</th>
+                                <th>Emplacement</th>
+                                <th>Taille</th>
+                                <th>Type</th>
+                                <th>Prix mensuel</th>
+                                <th>Faces</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for panneau in panneaux %}
+                                <tr>
+                                    <td><strong>{{ panneau.reference }}</strong></td>
+                                    <td>{{ panneau.emplacement }}</td>
+                                    <td>{{ panneau.taille }}</td>
+                                    <td>
+                                        {% if panneau.type == 'double' %}
+                                            <span class="badge bg-info">Double</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Simple</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ panneau.prixMensuel|number_format(0, ',', ' ') }} FCFA</td>
+                                    <td>
+                                        {% for face in panneau.faces %}
+                                            <span class="badge bg-{{ face.getLocationActive() ? 'warning' : 'success' }}">
+                                                {{ face.lettre }} {{ face.getLocationActive() ? '(Occupée)' : '(Disponible)' }}
+                                            </span>
+                                        {% endfor %}
+                                    </td>
+                                    <td>
+                                        <a href="{{ path('app_panneau_show', {id: panneau.id}) }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a href="{{ path('app_panneau_edit', {id: panneau.id}) }}" class="btn btn-sm btn-outline-secondary">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <form method="post" action="{{ path('app_panneau_delete', {id: panneau.id}) }}" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce panneau ?');">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ panneau.id) }}">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> Aucun panneau enregistré. <a href="{{ path('app_panneau_new') }}">Créer le premier panneau</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
