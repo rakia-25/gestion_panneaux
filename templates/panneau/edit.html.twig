@@ -1,0 +1,43 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Modifier panneau{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="bi bi-pencil"></i> Modifier panneau {{ panneau.reference }}</h3>
+                </div>
+                <div class="card-body">
+                    {{ form_start(form) }}
+                        {{ form_row(form.reference) }}
+                        {{ form_row(form.emplacement) }}
+                        <div class="row">
+                            <div class="col-md-6">
+                                {{ form_row(form.taille) }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form_row(form.type) }}
+                            </div>
+                        </div>
+                        {{ form_row(form.prixMensuel) }}
+                        {{ form_row(form.photo) }}
+                        {{ form_row(form.description) }}
+                        
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{{ path('app_panneau_index') }}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Retour
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check"></i> Enregistrer
+                            </button>
+                        </div>
+                    {{ form_end(form) }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

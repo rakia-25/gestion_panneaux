@@ -1,0 +1,47 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nouvelle location{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="bi bi-plus-circle"></i> Nouvelle location</h3>
+                </div>
+                <div class="card-body">
+                    {{ form_start(form) }}
+                        {{ form_row(form.face) }}
+                        {{ form_row(form.client) }}
+                        <div class="row">
+                            <div class="col-md-6">
+                                {{ form_row(form.dateDebut) }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form_row(form.dateFin) }}
+                            </div>
+                        </div>
+                        {{ form_row(form.montantMensuel) }}
+                        {{ form_row(form.estPaye) }}
+                        {{ form_row(form.notes) }}
+                        
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i> Le système vérifiera automatiquement que la face est disponible pour la période sélectionnée.
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{{ path('app_location_index') }}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Retour
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check"></i> Créer
+                            </button>
+                        </div>
+                    {{ form_end(form) }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

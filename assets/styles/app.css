@@ -1,3 +1,92 @@
+/* Styles personnalisés pour l'application de gestion de panneaux */
+
+:root {
+    --primary-color: #0d6efd;
+    --success-color: #198754;
+    --danger-color: #dc3545;
+    --warning-color: #ffc107;
+    --info-color: #0dcaf0;
+}
+
 body {
-    background-color: skyblue;
+    background-color: #f8f9fa;
+}
+
+.card {
+    border: none;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    margin-bottom: 1.5rem;
+}
+
+.card-header {
+    background-color: #fff;
+    border-bottom: 1px solid #dee2e6;
+    font-weight: 600;
+}
+
+.navbar-brand {
+    font-weight: 600;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+.badge {
+    font-weight: 500;
+}
+
+.btn {
+    font-weight: 500;
+}
+
+.alert {
+    border: none;
+    border-radius: 0.5rem;
+}
+
+/* Amélioration des formulaires */
+.form-label {
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* Statistiques dashboard */
+.card.text-white {
+    border-radius: 0.75rem;
+}
+
+.card.text-white .card-body {
+    padding: 1.5rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .container-fluid {
+        padding: 0.5rem;
+    }
+    
+    .card-body {
+        padding: 1rem;
+    }
+    
+    .table-responsive {
+        font-size: 0.875rem;
+    }
+}
+
+/* Animation pour les badges de statut */
+.badge {
+    transition: all 0.3s ease;
+}
+
+/* Amélioration des icônes */
+.bi {
+    vertical-align: -0.125em;
 }

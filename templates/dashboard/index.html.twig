@@ -1,0 +1,202 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Tableau de bord{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <h1 class="mb-4"><i class="bi bi-speedometer2"></i> Tableau de bord</h1>
+
+    {# Statistiques globales #}
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-white bg-primary mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title">Panneaux</h6>
+                            <h2 class="mb-0">{{ totalPanneaux }}</h2>
+                        </div>
+                        <i class="bi bi-grid fs-1 opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-success mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title">Faces disponibles</h6>
+                            <h2 class="mb-0">{{ facesDisponibles }}</h2>
+                        </div>
+                        <i class="bi bi-check-circle fs-1 opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-warning mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title">Faces occupées</h6>
+                            <h2 class="mb-0">{{ facesOccupees }}</h2>
+                        </div>
+                        <i class="bi bi-x-circle fs-1 opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-info mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title">Revenu mensuel</h6>
+                            <h2 class="mb-0">{{ revenuMensuel|number_format(0, ',', ' ') }} FCFA</h2>
+                        </div>
+                        <i class="bi bi-currency-exchange fs-1 opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        {# Alertes - Locations finissant bientôt #}
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Locations finissant bientôt (30 jours)</h5>
+                </div>
+                <div class="card-body">
+                    {% if locationsFinissantBientot|length > 0 %}
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Face</th>
+                                        <th>Client</th>
+                                        <th>Date fin</th>
+                                        <th>Statut</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for location in locationsFinissantBientot %}
+                                        <tr>
+                                            <td>{{ location.face.nomComplet }}</td>
+                                            <td>{{ location.client.nom }}</td>
+                                            <td>{{ location.dateFin|date('d/m/Y') }}</td>
+                                            <td>
+                                                {% if location.estPaye %}
+                                                    <span class="badge bg-success">Payé</span>
+                                                {% else %}
+                                                    <span class="badge bg-danger">Impayé</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted mb-0">Aucune location ne se termine bientôt.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        {# Alertes - Locations impayées #}
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="bi bi-exclamation-circle"></i> Locations impayées</h5>
+                </div>
+                <div class="card-body">
+                    {% if locationsImpayees|length > 0 %}
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Face</th>
+                                        <th>Client</th>
+                                        <th>Montant</th>
+                                        <th>Période</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for location in locationsImpayees %}
+                                        <tr>
+                                            <td>{{ location.face.nomComplet }}</td>
+                                            <td>{{ location.client.nom }}</td>
+                                            <td>{{ location.montantMensuel|number_format(0, ',', ' ') }} FCFA</td>
+                                            <td>{{ location.dateDebut|date('d/m/Y') }} - {{ location.dateFin|date('d/m/Y') }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted mb-0">Aucune location impayée.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# Dernières locations #}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-clock-history"></i> Dernières locations</h5>
+                </div>
+                <div class="card-body">
+                    {% if dernieresLocations|length > 0 %}
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Face</th>
+                                        <th>Client</th>
+                                        <th>Date début</th>
+                                        <th>Date fin</th>
+                                        <th>Montant mensuel</th>
+                                        <th>Statut</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for location in dernieresLocations %}
+                                        <tr>
+                                            <td>{{ location.face.nomComplet }}</td>
+                                            <td>{{ location.client.nom }}</td>
+                                            <td>{{ location.dateDebut|date('d/m/Y') }}</td>
+                                            <td>{{ location.dateFin|date('d/m/Y') }}</td>
+                                            <td>{{ location.montantMensuel|number_format(0, ',', ' ') }} FCFA</td>
+                                            <td>
+                                                {% if location.estPaye %}
+                                                    <span class="badge bg-success">Payé</span>
+                                                {% else %}
+                                                    <span class="badge bg-danger">Impayé</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <a href="{{ path('app_location_show', {id: location.id}) }}" class="btn btn-sm btn-outline-primary">
+                                                    <i class="bi bi-eye"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted mb-0">Aucune location enregistrée.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,142 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Panneau {{ panneau.reference }}{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="bi bi-grid"></i> Panneau {{ panneau.reference }}</h1>
+        <div>
+            <a href="{{ path('app_panneau_edit', {id: panneau.id}) }}" class="btn btn-secondary">
+                <i class="bi bi-pencil"></i> Modifier
+            </a>
+            <a href="{{ path('app_panneau_index') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Retour
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Informations générales</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table">
+                        <tr>
+                            <th width="200">Référence</th>
+                            <td><strong>{{ panneau.reference }}</strong></td>
+                        </tr>
+                        <tr>
+                            <th>Emplacement</th>
+                            <td>{{ panneau.emplacement }}</td>
+                        </tr>
+                        <tr>
+                            <th>Taille</th>
+                            <td>{{ panneau.taille }}</td>
+                        </tr>
+                        <tr>
+                            <th>Type</th>
+                            <td>
+                                {% if panneau.type == 'double' %}
+                                    <span class="badge bg-info">Double</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Simple</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Prix mensuel</th>
+                            <td><strong>{{ panneau.prixMensuel|number_format(0, ',', ' ') }} FCFA</strong></td>
+                        </tr>
+                        {% if panneau.description %}
+                        <tr>
+                            <th>Description</th>
+                            <td>{{ panneau.description }}</td>
+                        </tr>
+                        {% endif %}
+                    </table>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Faces du panneau</h5>
+                </div>
+                <div class="card-body">
+                    {% if panneau.faces|length > 0 %}
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Face</th>
+                                        <th>Nom complet</th>
+                                        <th>Statut</th>
+                                        <th>Location active</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for face in panneau.faces %}
+                                        {% set locationActive = face.getLocationActive() %}
+                                        <tr>
+                                            <td><span class="badge bg-primary fs-6">{{ face.lettre }}</span></td>
+                                            <td><strong>{{ face.nomComplet }}</strong></td>
+                                            <td>
+                                                {% if locationActive %}
+                                                    <span class="badge bg-warning">Occupée</span>
+                                                {% else %}
+                                                    <span class="badge bg-success">Disponible</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if locationActive %}
+                                                    <div>
+                                                        <strong>{{ locationActive.client.nom }}</strong><br>
+                                                        <small class="text-muted">
+                                                            {{ locationActive.dateDebut|date('d/m/Y') }} - {{ locationActive.dateFin|date('d/m/Y') }}
+                                                        </small>
+                                                    </div>
+                                                {% else %}
+                                                    <span class="text-muted">Aucune</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if locationActive %}
+                                                    <a href="{{ path('app_location_show', {id: locationActive.id}) }}" class="btn btn-sm btn-outline-primary">
+                                                        <i class="bi bi-eye"></i> Voir location
+                                                    </a>
+                                                {% else %}
+                                                    <a href="{{ path('app_location_new', {face_id: face.id}) }}" class="btn btn-sm btn-success">
+                                                        <i class="bi bi-plus"></i> Créer location
+                                                    </a>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted">Aucune face définie pour ce panneau.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        {% if panneau.photo %}
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Photo</h5>
+                </div>
+                <div class="card-body text-center">
+                    <img src="{{ asset('uploads/panneaux/' ~ panneau.photo) }}" alt="{{ panneau.reference }}" class="img-fluid rounded">
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
