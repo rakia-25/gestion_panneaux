@@ -16,10 +16,23 @@ use Symfony\Component\Routing\Attribute\Route;
 class PanneauController extends AbstractController
 {
     #[Route('/', name: 'app_panneau_index', methods: ['GET'])]
-    public function index(PanneauRepository $panneauRepository): Response
+    public function index(Request $request, PanneauRepository $panneauRepository): Response
     {
+        $type = $request->query->get('type');
+        $etat = $request->query->get('etat');
+        $eclairage = $request->query->get('eclairage');
+        $recherche = $request->query->get('recherche');
+
+        $panneaux = $panneauRepository->findWithFilters($type, $etat, $eclairage, $recherche);
+
         return $this->render('panneau/index.html.twig', [
-            'panneaux' => $panneauRepository->findAll(),
+            'panneaux' => $panneaux,
+            'filters' => [
+                'type' => $type,
+                'etat' => $etat,
+                'eclairage' => $eclairage,
+                'recherche' => $recherche,
+            ],
         ]);
     }
 

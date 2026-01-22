@@ -18,10 +18,26 @@ use Symfony\Component\Routing\Attribute\Route;
 class LocationController extends AbstractController
 {
     #[Route('/', name: 'app_location_index', methods: ['GET'])]
-    public function index(LocationRepository $locationRepository): Response
+    public function index(Request $request, LocationRepository $locationRepository, ClientRepository $clientRepository): Response
     {
+        $statut = $request->query->get('statut');
+        $estPaye = $request->query->get('estPaye');
+        $clientId = $request->query->get('client');
+        $recherche = $request->query->get('recherche');
+
+        $clientIdInt = $clientId ? (int) $clientId : null;
+        $locations = $locationRepository->findWithFilters($statut, $estPaye, $clientIdInt, $recherche);
+        $clients = $clientRepository->findAll();
+
         return $this->render('location/index.html.twig', [
-            'locations' => $locationRepository->findBy([], ['dateDebut' => 'DESC']),
+            'locations' => $locations,
+            'clients' => $clients,
+            'filters' => [
+                'statut' => $statut,
+                'estPaye' => $estPaye,
+                'client' => $clientId,
+                'recherche' => $recherche,
+            ],
         ]);
     }
 

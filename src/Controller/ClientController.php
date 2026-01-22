@@ -15,10 +15,21 @@ use Symfony\Component\Routing\Attribute\Route;
 class ClientController extends AbstractController
 {
     #[Route('/', name: 'app_client_index', methods: ['GET'])]
-    public function index(ClientRepository $clientRepository): Response
+    public function index(Request $request, ClientRepository $clientRepository): Response
     {
+        $type = $request->query->get('type');
+        $ville = $request->query->get('ville');
+        $recherche = $request->query->get('recherche');
+
+        $clients = $clientRepository->findWithFilters($type, $ville, $recherche);
+
         return $this->render('client/index.html.twig', [
-            'clients' => $clientRepository->findAll(),
+            'clients' => $clients,
+            'filters' => [
+                'type' => $type,
+                'ville' => $ville,
+                'recherche' => $recherche,
+            ],
         ]);
     }
 
