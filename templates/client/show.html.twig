@@ -7,6 +7,9 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1><i class="bi bi-people"></i> Client : {{ client.nom }}</h1>
         <div>
+            <a href="{{ path('app_location_new', {client_id: client.id}) }}" class="btn btn-success">
+                <i class="bi bi-plus-circle"></i> Nouvelle location
+            </a>
             <a href="{{ path('app_client_edit', {id: client.id}) }}" class="btn btn-secondary">
                 <i class="bi bi-pencil"></i> Modifier
             </a>
@@ -124,10 +127,12 @@
                             </table>
                         </div>
                     {% else %}
-                        <p class="text-muted mb-0">Aucune location pour ce client.</p>
-                        <a href="{{ path('app_location_new') }}" class="btn btn-sm btn-primary mt-2">
-                            <i class="bi bi-plus"></i> Créer une location
-                        </a>
+                        <div class="text-center py-4">
+                            <p class="text-muted mb-3">Aucune location pour ce client.</p>
+                            <a href="{{ path('app_location_new', {client_id: client.id}) }}" class="btn btn-primary">
+                                <i class="bi bi-plus-circle"></i> Créer une location
+                            </a>
+                        </div>
                     {% endif %}
                 </div>
             </div>
