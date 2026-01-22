@@ -38,6 +38,9 @@ class Location
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $notes = null;
 
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $raisonModificationPrix = null;
+
     #[ORM\Column]
     private ?\DateTimeImmutable $createdAt = null;
 
@@ -136,6 +139,18 @@ class Location
     public function setNotes(?string $notes): static
     {
         $this->notes = $notes;
+
+        return $this;
+    }
+
+    public function getRaisonModificationPrix(): ?string
+    {
+        return $this->raisonModificationPrix;
+    }
+
+    public function setRaisonModificationPrix(?string $raisonModificationPrix): static
+    {
+        $this->raisonModificationPrix = $raisonModificationPrix;
 
         return $this;
     }

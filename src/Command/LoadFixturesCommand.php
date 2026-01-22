@@ -84,24 +84,117 @@ class LoadFixturesCommand extends Command
         $panneaux = [];
         
         $panneauData = [
-            ['reference' => 'PAN-001', 'emplacement' => 'Avenue de la République, près du rond-point', 'taille' => '4x3m', 'type' => 'double', 'prix' => '150000'],
-            ['reference' => 'PAN-002', 'emplacement' => 'Boulevard de la Liberté, face au marché', 'taille' => '3x2m', 'type' => 'simple', 'prix' => '100000'],
-            ['reference' => 'PAN-003', 'emplacement' => 'Route de l\'Aéroport, entrée ville', 'taille' => '6x4m', 'type' => 'double', 'prix' => '200000'],
-            ['reference' => 'PAN-004', 'emplacement' => 'Place de la Concorde, centre-ville', 'taille' => '4x3m', 'type' => 'double', 'prix' => '180000'],
-            ['reference' => 'PAN-005', 'emplacement' => 'Quartier Plateau, route principale', 'taille' => '3x2m', 'type' => 'simple', 'prix' => '90000'],
-            ['reference' => 'PAN-006', 'emplacement' => 'Quartier Terminus, sortie ville', 'taille' => '5x3m', 'type' => 'double', 'prix' => '170000'],
-            ['reference' => 'PAN-007', 'emplacement' => 'Avenue du Général de Gaulle', 'taille' => '4x3m', 'type' => 'simple', 'prix' => '110000'],
-            ['reference' => 'PAN-008', 'emplacement' => 'Boulevard Mali Bero, près du stade', 'taille' => '6x4m', 'type' => 'double', 'prix' => '220000'],
+            [
+                'reference' => 'PAN-001', 
+                'emplacement' => 'Avenue de la République, près du rond-point', 
+                'quartier' => 'Plateau', 
+                'rue' => 'Avenue de la République', 
+                'coordonneesGps' => '13.5123,2.1098',
+                'taille' => '12.00', 
+                'type' => 'double', 
+                'eclairage' => true,
+                'etat' => 'excellent',
+                'prix' => '150000'
+            ],
+            [
+                'reference' => 'PAN-002', 
+                'emplacement' => 'Boulevard de la Liberté, face au marché', 
+                'quartier' => 'Terminus', 
+                'rue' => 'Boulevard de la Liberté', 
+                'coordonneesGps' => '13.5089,2.1156',
+                'taille' => '6.00', 
+                'type' => 'simple', 
+                'eclairage' => false,
+                'etat' => 'bon',
+                'prix' => '100000'
+            ],
+            [
+                'reference' => 'PAN-003', 
+                'emplacement' => 'Route de l\'Aéroport, entrée ville', 
+                'quartier' => 'Aéroport', 
+                'rue' => 'Route de l\'Aéroport', 
+                'coordonneesGps' => '13.4815,2.1689',
+                'taille' => '24.00', 
+                'type' => 'double', 
+                'eclairage' => true,
+                'etat' => 'excellent',
+                'prix' => '200000'
+            ],
+            [
+                'reference' => 'PAN-004', 
+                'emplacement' => 'Place de la Concorde, centre-ville', 
+                'quartier' => 'Centre-ville', 
+                'rue' => 'Place de la Concorde', 
+                'coordonneesGps' => '13.5156,2.1089',
+                'taille' => '12.00', 
+                'type' => 'double', 
+                'eclairage' => true,
+                'etat' => 'bon',
+                'prix' => '180000'
+            ],
+            [
+                'reference' => 'PAN-005', 
+                'emplacement' => 'Quartier Plateau, route principale', 
+                'quartier' => 'Plateau', 
+                'rue' => 'Route principale', 
+                'coordonneesGps' => '13.5100,2.1100',
+                'taille' => '6.00', 
+                'type' => 'simple', 
+                'eclairage' => false,
+                'etat' => 'moyen',
+                'prix' => '90000'
+            ],
+            [
+                'reference' => 'PAN-006', 
+                'emplacement' => 'Quartier Terminus, sortie ville', 
+                'quartier' => 'Terminus', 
+                'rue' => 'Route de sortie', 
+                'coordonneesGps' => '13.5056,2.1189',
+                'taille' => '15.00', 
+                'type' => 'double', 
+                'eclairage' => true,
+                'etat' => 'bon',
+                'prix' => '170000'
+            ],
+            [
+                'reference' => 'PAN-007', 
+                'emplacement' => 'Avenue du Général de Gaulle', 
+                'quartier' => 'Plateau', 
+                'rue' => 'Avenue du Général de Gaulle', 
+                'coordonneesGps' => '13.5120,2.1095',
+                'taille' => '12.00', 
+                'type' => 'simple', 
+                'eclairage' => false,
+                'etat' => 'moyen',
+                'prix' => '110000'
+            ],
+            [
+                'reference' => 'PAN-008', 
+                'emplacement' => 'Boulevard Mali Bero, près du stade', 
+                'quartier' => 'Mali Bero', 
+                'rue' => 'Boulevard Mali Bero', 
+                'coordonneesGps' => '13.5200,2.1200',
+                'taille' => '24.00', 
+                'type' => 'double', 
+                'eclairage' => true,
+                'etat' => 'excellent',
+                'prix' => '220000'
+            ],
         ];
 
         foreach ($panneauData as $data) {
             $panneau = new Panneau();
             $panneau->setReference($data['reference']);
             $panneau->setEmplacement($data['emplacement']);
+            $panneau->setQuartier($data['quartier']);
+            $panneau->setRue($data['rue']);
+            $panneau->setCoordonneesGps($data['coordonneesGps']);
             $panneau->setTaille($data['taille']);
             $panneau->setType($data['type']);
+            $panneau->setEclairage($data['eclairage']);
+            $panneau->setEtat($data['etat']);
             $panneau->setPrixMensuel($data['prix']);
-            $panneau->setDescription('Panneau publicitaire situé à ' . $data['emplacement']);
+            $panneau->setDescription('Panneau publicitaire situé à ' . $data['emplacement'] . ' dans le quartier ' . $data['quartier']);
             $this->entityManager->persist($panneau);
             $panneaux[] = $panneau;
             
@@ -146,14 +239,15 @@ class LoadFixturesCommand extends Command
             $locations[] = $location1;
         }
 
-        // Location 2 : En cours, impayée
+        // Location 2 : En cours, impayée, avec prix modifié (réduction)
         if (isset($faces[2])) {
             $location2 = new Location();
             $location2->setFace($faces[2]);
             $location2->setClient($clients[1]);
             $location2->setDateDebut(new \DateTime('-1 month'));
             $location2->setDateFin(new \DateTime('+2 months'));
-            $location2->setMontantMensuel('200000');
+            // Prix réduit de 200000 à 180000 (réduction de 10%)
+            $location2->setMontantMensuel('180000');
             $location2->setEstPaye(false);
             $location2->setNotes('Paiement en attente');
             $this->entityManager->persist($location2);
@@ -186,27 +280,29 @@ class LoadFixturesCommand extends Command
             $locations[] = $location4;
         }
 
-        // Location 5 : À venir
+        // Location 5 : À venir, avec remise
         if (isset($faces[6])) {
             $location5 = new Location();
             $location5->setFace($faces[6]);
             $location5->setClient($clients[4]);
             $location5->setDateDebut(new \DateTime('+1 month'));
             $location5->setDateFin(new \DateTime('+4 months'));
-            $location5->setMontantMensuel('110000');
+            // Prix réduit de 110000 à 95000 (remise de 15%)
+            $location5->setMontantMensuel('95000');
             $location5->setEstPaye(false);
             $this->entityManager->persist($location5);
             $locations[] = $location5;
         }
 
-        // Location 6 : Terminée, impayée
+        // Location 6 : Terminée, impayée, avec prix majoré
         if (isset($faces[7])) {
             $location6 = new Location();
             $location6->setFace($faces[7]);
             $location6->setClient($clients[5]);
             $location6->setDateDebut(new \DateTime('-4 months'));
             $location6->setDateFin(new \DateTime('-1 week'));
-            $location6->setMontantMensuel('220000');
+            // Prix majoré de 220000 à 250000
+            $location6->setMontantMensuel('250000');
             $location6->setEstPaye(false);
             $location6->setNotes('Location terminée mais impayée');
             $this->entityManager->persist($location6);

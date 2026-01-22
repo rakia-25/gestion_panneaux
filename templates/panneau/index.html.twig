@@ -32,7 +32,7 @@
                                 <tr>
                                     <td><strong>{{ panneau.reference }}</strong></td>
                                     <td>{{ panneau.emplacement }}</td>
-                                    <td>{{ panneau.taille }}</td>
+                                    <td>{{ panneau.getTailleFormatee() }}</td>
                                     <td>
                                         {% if panneau.type == 'double' %}
                                             <span class="badge bg-info">Double</span>

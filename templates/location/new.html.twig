@@ -23,6 +23,12 @@
                         </div>
                     {% endif %}
 
+                    {% if not form.vars.valid %}
+                        <div class="alert alert-danger mb-3">
+                            <i class="bi bi-exclamation-triangle"></i> <strong>Erreur :</strong> Veuillez corriger les erreurs ci-dessous.
+                        </div>
+                    {% endif %}
+
                     {{ form_start(form) }}
                         {{ form_row(form.face) }}
                         {{ form_row(form.client) }}
@@ -30,6 +36,11 @@
                             <div class="col-md-6">
                                 {{ form_row(form.dateDebut) }}
                             </div>
+                            <div class="col-md-6">
+                                {{ form_row(form.dureeMois) }}
+                            </div>
+                        </div>
+                        <div class="row">
                             <div class="col-md-6">
                                 {{ form_row(form.dateFin) }}
                             </div>
@@ -62,6 +73,7 @@
                                 <i class="bi bi-check"></i> Créer
                             </button>
                         </div>
+                        {{ form_rest(form) }}
                     {{ form_end(form) }}
                 </div>
             </div>
@@ -75,41 +87,179 @@
 document.addEventListener('DOMContentLoaded', function() {
     const faceSelect = document.getElementById('location_face');
     const montantInput = document.getElementById('location_montantMensuel');
+    const notesSelect = document.getElementById('location_notes');
+    const dateDebutInput = document.getElementById('location_dateDebut');
+    const dureeMoisInput = document.getElementById('location_dureeMois');
+    const dateFinInput = document.getElementById('location_dateFin');
 
-    if (faceSelect && montantInput) {
-        // Stocker les prix des panneaux dans un objet
-        // Les prix sont dans le texte des options au format "PAN-001-A - Emplacement (Disponible)"
-        // On va extraire le prix depuis les attributs data ou utiliser une approche différente
+    if (faceSelect && montantInput && notesSelect) {
+        let prixOriginal = null;
 
-        // Créer un objet pour stocker les prix par face_id
-        const prixParFace = {};
+        // Fonction pour récupérer et définir le prix d'une face
+        function chargerPrixFace(faceId) {
+            if (!faceId || montantInput.dataset.manualEdit === 'true') {
+                return;
+            }
 
-        // Récupérer les prix depuis les options (si disponibles dans data attributes)
-        // Sinon, on utilisera une requête AJAX simple
+            fetch(`/location/get-prix-face/${faceId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.prix) {
+                        // Le prix vient comme string, on le convertit en nombre puis on le remet en string pour l'input
+                        const prixNum = parseFloat(data.prix);
+                        // Formater sans décimales pour un montant en FCFA
+                        const prixFormate = Math.round(prixNum).toString();
+                        montantInput.value = prixFormate;
+                        montantInput.dataset.prixOriginal = prixNum;
+                        prixOriginal = prixNum;
+                        montantInput.dataset.autoFilled = 'true';
+
+                        // Vérifier si le prix a été modifié
+                        verifierModificationPrix();
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur lors de la récupération du prix:', error);
+                });
+        }
+
+        // Vérifier si le prix a été modifié et rendre le champ notes requis si nécessaire
+        function verifierModificationPrix() {
+            if (!prixOriginal && montantInput.dataset.prixOriginal) {
+                prixOriginal = parseFloat(montantInput.dataset.prixOriginal);
+            }
+
+            if (prixOriginal) {
+                const prixActuelStr = montantInput.value.toString().replace(/\s/g, '').replace(/,/g, '.').replace(/[^\d.]/g, '');
+                const prixActuel = parseFloat(prixActuelStr) || 0;
+                const difference = Math.abs(prixActuel - prixOriginal);
+
+                // Si le prix a été modifié (différence > 0.01 pour éviter les erreurs d'arrondi)
+                if (difference > 0.01 && prixActuel > 0) {
+                    notesSelect.setAttribute('required', 'required');
+                    notesSelect.classList.add('is-invalid');
+                    // Ajouter un message d'aide visuel
+                    const formGroup = notesSelect.closest('.mb-3');
+                    if (formGroup) {
+                        let helpText = formGroup.querySelector('.form-text');
+                        if (!helpText) {
+                            helpText = document.createElement('div');
+                            helpText.className = 'form-text text-danger';
+                            formGroup.appendChild(helpText);
+                        }
+                        helpText.textContent = 'Ce champ est obligatoire car le prix a été modifié.';
+                    }
+                } else {
+                    notesSelect.removeAttribute('required');
+                    notesSelect.classList.remove('is-invalid');
+                    // Retirer le message d'aide
+                    const formGroup = notesSelect.closest('.mb-3');
+                    if (formGroup) {
+                        const helpText = formGroup.querySelector('.form-text.text-danger');
+                        if (helpText) {
+                            helpText.remove();
+                        }
+                    }
+                }
+            }
+        }
+
+        // Charger le prix si une face est déjà sélectionnée au chargement
+        setTimeout(() => {
+            if (faceSelect.value) {
+                chargerPrixFace(faceSelect.value);
+            } else {
+                // Si pas de face sélectionnée, vérifier si le champ a déjà une valeur
+                let valeurActuelle = montantInput.value || '';
+                valeurActuelle = valeurActuelle.toString().replace(/\s/g, '').replace(/,/g, '.').replace(/[^\d.]/g, '');
+                const prixExistant = parseFloat(valeurActuelle) || 0;
+
+                if (prixExistant > 0) {
+                    prixOriginal = prixExistant;
+                    montantInput.dataset.prixOriginal = prixOriginal;
+                    verifierModificationPrix();
+                }
+            }
+        }, 300);
 
         // Écouter les changements de sélection de face
         faceSelect.addEventListener('change', function() {
-            const selectedOption = this.options[this.selectedIndex];
-            if (selectedOption && selectedOption.value && !montantInput.dataset.manualEdit) {
-                // Récupérer le prix via une requête AJAX
-                fetch(`/location/get-prix-face/${selectedOption.value}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.prix) {
-                            montantInput.value = data.prix;
-                            montantInput.dataset.autoFilled = 'true';
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Erreur lors de la récupération du prix:', error);
-                    });
+            montantInput.dataset.manualEdit = 'false';
+            if (this.value) {
+                chargerPrixFace(this.value);
             }
         });
 
-        // Marquer comme modifié manuellement si l'utilisateur tape dedans
+        // Écouter les changements du montant
         montantInput.addEventListener('input', function() {
             this.dataset.manualEdit = 'true';
+            verifierModificationPrix();
         });
+
+        // Vérifier au chargement de la page
+        setTimeout(() => verifierModificationPrix(), 500);
+    }
+
+    // Calcul automatique de la date de fin
+    if (dateDebutInput && dureeMoisInput && dateFinInput) {
+        function calculerDateFin() {
+            const dateDebut = dateDebutInput.value;
+            const dureeMois = parseInt(dureeMoisInput.value) || 0;
+
+            if (dateDebut && dureeMois > 0) {
+                const date = new Date(dateDebut);
+                // Ajouter le nombre de mois
+                date.setMonth(date.getMonth() + dureeMois);
+
+                // Formater la date au format YYYY-MM-DD
+                const annee = date.getFullYear();
+                const mois = String(date.getMonth() + 1).padStart(2, '0');
+                const jour = String(date.getDate()).padStart(2, '0');
+                const dateFinFormatee = `${annee}-${mois}-${jour}`;
+
+                dateFinInput.value = dateFinFormatee;
+                dateFinInput.setAttribute('readonly', 'readonly');
+                dateFinInput.dataset.autoCalculated = 'true';
+            } else {
+                // Toujours garder le champ en readonly
+                dateFinInput.setAttribute('readonly', 'readonly');
+                dateFinInput.value = '';
+            }
+        }
+
+        // Écouter les changements de la date de début
+        dateDebutInput.addEventListener('change', function() {
+            calculerDateFin();
+        });
+
+        // Écouter les changements de la durée
+        dureeMoisInput.addEventListener('input', function() {
+            calculerDateFin();
+        });
+
+        // Empêcher la modification manuelle de la date de fin
+        dateFinInput.addEventListener('focus', function(e) {
+            e.preventDefault();
+            this.blur();
+        });
+
+        // Empêcher la saisie dans le champ date de fin
+        dateFinInput.addEventListener('keydown', function(e) {
+            e.preventDefault();
+        });
+
+        // Empêcher le clic pour ouvrir le calendrier
+        dateFinInput.addEventListener('click', function(e) {
+            e.preventDefault();
+            this.blur();
+        });
+
+        // Calculer au chargement si les valeurs existent
+        setTimeout(() => {
+            if (dateDebutInput.value && dureeMoisInput.value) {
+                calculerDateFin();
+            }
+        }, 100);
     }
 });
 </script>
