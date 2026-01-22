@@ -11,6 +11,55 @@
         </a>
     </div>
 
+    <!-- Filtres -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-funnel"></i> Filtres</h5>
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{{ path('app_panneau_index') }}" class="row g-3" onsubmit="return false;">
+                <div class="col-md-3">
+                    <label for="recherche" class="form-label">Recherche</label>
+                    <input type="text" class="form-control" id="recherche" name="recherche" 
+                           value="{{ filters.recherche ?? '' }}" 
+                           placeholder="Référence, emplacement, quartier...">
+                </div>
+                <div class="col-md-2">
+                    <label for="type" class="form-label">Type</label>
+                    <select class="form-select" id="type" name="type">
+                        <option value="">Tous</option>
+                        <option value="simple" {{ filters.type == 'simple' ? 'selected' : '' }}>Simple</option>
+                        <option value="double" {{ filters.type == 'double' ? 'selected' : '' }}>Double</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="etat" class="form-label">État</label>
+                    <select class="form-select" id="etat" name="etat">
+                        <option value="">Tous</option>
+                        <option value="excellent" {{ filters.etat == 'excellent' ? 'selected' : '' }}>Excellent</option>
+                        <option value="bon" {{ filters.etat == 'bon' ? 'selected' : '' }}>Bon</option>
+                        <option value="moyen" {{ filters.etat == 'moyen' ? 'selected' : '' }}>Moyen</option>
+                        <option value="mauvais" {{ filters.etat == 'mauvais' ? 'selected' : '' }}>Mauvais</option>
+                        <option value="hors_service" {{ filters.etat == 'hors_service' ? 'selected' : '' }}>Hors service</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="eclairage" class="form-label">Éclairage</label>
+                    <select class="form-select" id="eclairage" name="eclairage">
+                        <option value="">Tous</option>
+                        <option value="1" {{ filters.eclairage == '1' ? 'selected' : '' }}>Avec éclairage</option>
+                        <option value="0" {{ filters.eclairage == '0' ? 'selected' : '' }}>Sans éclairage</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end gap-2">
+                    <a href="{{ path('app_panneau_index') }}" class="btn btn-secondary">
+                        <i class="bi bi-x-circle"></i> Réinitialiser
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div class="card">
         <div class="card-body">
             {% if panneaux|length > 0 %}
@@ -29,7 +78,13 @@
                         </thead>
                         <tbody>
                             {% for panneau in panneaux %}
-                                <tr>
+                                <tr data-type="{{ panneau.type }}" 
+                                    data-etat="{{ panneau.etat }}" 
+                                    data-eclairage="{{ panneau.eclairage ? '1' : '0' }}"
+                                    data-reference="{{ panneau.reference|lower }}"
+                                    data-emplacement="{{ panneau.emplacement|lower }}"
+                                    data-quartier="{{ (panneau.quartier ?? '')|lower }}"
+                                    data-rue="{{ (panneau.rue ?? '')|lower }}">
                                     <td><strong>{{ panneau.reference }}</strong></td>
                                     <td>{{ panneau.emplacement }}</td>
                                     <td>{{ panneau.getTailleFormatee() }}</td>
@@ -75,4 +130,90 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const rechercheInput = document.getElementById('recherche');
+    const typeSelect = document.getElementById('type');
+    const etatSelect = document.getElementById('etat');
+    const eclairageSelect = document.getElementById('eclairage');
+    const tableRows = document.querySelectorAll('tbody tr');
+    
+    let searchTimeout;
+
+    // Fonction pour filtrer les lignes sans recharger la page
+    function filterRows() {
+        const recherche = (rechercheInput?.value || '').toLowerCase();
+        const type = typeSelect?.value || '';
+        const etat = etatSelect?.value || '';
+        const eclairage = eclairageSelect?.value || '';
+
+        let visibleCount = 0;
+
+        tableRows.forEach(row => {
+            const rowType = row.dataset.type || '';
+            const rowEtat = row.dataset.etat || '';
+            const rowEclairage = row.dataset.eclairage || '';
+            const rowReference = row.dataset.reference || '';
+            const rowEmplacement = row.dataset.emplacement || '';
+            const rowQuartier = row.dataset.quartier || '';
+            const rowRue = row.dataset.rue || '';
+
+            // Vérifier les filtres
+            const typeMatch = !type || rowType === type;
+            const etatMatch = !etat || rowEtat === etat;
+            const eclairageMatch = !eclairage || rowEclairage === eclairage;
+            const rechercheMatch = !recherche || 
+                rowReference.includes(recherche) || 
+                rowEmplacement.includes(recherche) ||
+                rowQuartier.includes(recherche) ||
+                rowRue.includes(recherche);
+
+            // Afficher ou cacher la ligne
+            if (typeMatch && etatMatch && eclairageMatch && rechercheMatch) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        // Afficher un message si aucun résultat
+        const tbody = document.querySelector('tbody');
+        let noResultsMsg = document.getElementById('no-results-message');
+        if (visibleCount === 0 && tableRows.length > 0) {
+            if (!noResultsMsg) {
+                noResultsMsg = document.createElement('tr');
+                noResultsMsg.id = 'no-results-message';
+                noResultsMsg.innerHTML = '<td colspan="7" class="text-center py-4"><em>Aucun résultat trouvé</em></td>';
+                tbody.appendChild(noResultsMsg);
+            }
+            noResultsMsg.style.display = '';
+        } else if (noResultsMsg) {
+            noResultsMsg.style.display = 'none';
+        }
+    }
+
+    // Écouter les changements dans les selects (filtrage immédiat)
+    if (typeSelect) {
+        typeSelect.addEventListener('change', filterRows);
+    }
+    if (etatSelect) {
+        etatSelect.addEventListener('change', filterRows);
+    }
+    if (eclairageSelect) {
+        eclairageSelect.addEventListener('change', filterRows);
+    }
+
+    // Écouter les changements dans le champ de recherche avec debounce (300ms)
+    if (rechercheInput) {
+        rechercheInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(filterRows, 300);
+        });
+    }
+});
+</script>
 {% endblock %}

@@ -11,6 +11,56 @@
         </a>
     </div>
 
+    <!-- Filtres -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-funnel"></i> Filtres</h5>
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{{ path('app_location_index') }}" class="row g-3" onsubmit="return false;">
+                <div class="col-md-3">
+                    <label for="recherche" class="form-label">Recherche</label>
+                    <input type="text" class="form-control" id="recherche" name="recherche" 
+                           value="{{ filters.recherche ?? '' }}" 
+                           placeholder="Client, face, panneau...">
+                </div>
+                <div class="col-md-2">
+                    <label for="statut" class="form-label">Statut</label>
+                    <select class="form-select" id="statut" name="statut">
+                        <option value="">Tous</option>
+                        <option value="active" {{ filters.statut == 'active' ? 'selected' : '' }}>En cours</option>
+                        <option value="terminee" {{ filters.statut == 'terminee' ? 'selected' : '' }}>Terminée</option>
+                        <option value="avenir" {{ filters.statut == 'avenir' ? 'selected' : '' }}>À venir</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="estPaye" class="form-label">Paiement</label>
+                    <select class="form-select" id="estPaye" name="estPaye">
+                        <option value="">Tous</option>
+                        <option value="1" {{ filters.estPaye == '1' ? 'selected' : '' }}>Payé</option>
+                        <option value="0" {{ filters.estPaye == '0' ? 'selected' : '' }}>Impayé</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="client" class="form-label">Client</label>
+                    <select class="form-select" id="client" name="client">
+                        <option value="">Tous les clients</option>
+                        {% for client in clients %}
+                            <option value="{{ client.id }}" {{ filters.client|default('') == (client.id ~ '') ? 'selected' : '' }}>
+                                {{ client.nom }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end gap-2">
+                    <a href="{{ path('app_location_index') }}" class="btn btn-secondary">
+                        <i class="bi bi-x-circle"></i> Réinitialiser
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div class="card">
         <div class="card-body">
             {% if locations|length > 0 %}
@@ -31,7 +81,14 @@
                         </thead>
                         <tbody>
                             {% for location in locations %}
-                                <tr class="{% if location.isActive() %}table-success{% elseif location.isTerminee() %}table-secondary{% endif %}">
+                                <tr class="{% if location.isActive() %}table-success{% elseif location.isTerminee() %}table-secondary{% endif %}"
+                                    data-statut="{% if location.isActive() %}active{% elseif location.isTerminee() %}terminee{% else %}avenir{% endif %}"
+                                    data-est-paye="{{ location.estPaye ? '1' : '0' }}"
+                                    data-client-id="{{ location.client.id }}"
+                                    data-face="{{ location.face.nomComplet|lower }}"
+                                    data-client="{{ location.client.nom|lower }}"
+                                    data-panneau="{{ location.face.panneau.reference|lower }}"
+                                    data-emplacement="{{ location.face.panneau.emplacement|lower }}">
                                     <td><strong>{{ location.face.nomComplet }}</strong></td>
                                     <td>{{ location.client.nom }}</td>
                                     <td>{{ location.dateDebut|date('d/m/Y') }}</td>
@@ -81,4 +138,90 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const rechercheInput = document.getElementById('recherche');
+    const statutSelect = document.getElementById('statut');
+    const estPayeSelect = document.getElementById('estPaye');
+    const clientSelect = document.getElementById('client');
+    const tableRows = document.querySelectorAll('tbody tr');
+    
+    let searchTimeout;
+
+    // Fonction pour filtrer les lignes sans recharger la page
+    function filterRows() {
+        const recherche = (rechercheInput?.value || '').toLowerCase();
+        const statut = statutSelect?.value || '';
+        const estPaye = estPayeSelect?.value || '';
+        const clientId = clientSelect?.value || '';
+
+        let visibleCount = 0;
+
+        tableRows.forEach(row => {
+            const rowStatut = row.dataset.statut || '';
+            const rowEstPaye = row.dataset.estPaye || '';
+            const rowClientId = row.dataset.clientId || '';
+            const rowFace = row.dataset.face || '';
+            const rowClient = row.dataset.client || '';
+            const rowPanneau = row.dataset.panneau || '';
+            const rowEmplacement = row.dataset.emplacement || '';
+
+            // Vérifier les filtres
+            const statutMatch = !statut || rowStatut === statut;
+            const estPayeMatch = !estPaye || rowEstPaye === estPaye;
+            const clientMatch = !clientId || rowClientId === clientId;
+            const rechercheMatch = !recherche || 
+                rowFace.includes(recherche) || 
+                rowClient.includes(recherche) ||
+                rowPanneau.includes(recherche) ||
+                rowEmplacement.includes(recherche);
+
+            // Afficher ou cacher la ligne
+            if (statutMatch && estPayeMatch && clientMatch && rechercheMatch) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        // Afficher un message si aucun résultat
+        const tbody = document.querySelector('tbody');
+        let noResultsMsg = document.getElementById('no-results-message');
+        if (visibleCount === 0 && tableRows.length > 0) {
+            if (!noResultsMsg) {
+                noResultsMsg = document.createElement('tr');
+                noResultsMsg.id = 'no-results-message';
+                noResultsMsg.innerHTML = '<td colspan="9" class="text-center py-4"><em>Aucun résultat trouvé</em></td>';
+                tbody.appendChild(noResultsMsg);
+            }
+            noResultsMsg.style.display = '';
+        } else if (noResultsMsg) {
+            noResultsMsg.style.display = 'none';
+        }
+    }
+
+    // Écouter les changements dans les selects (filtrage immédiat)
+    if (statutSelect) {
+        statutSelect.addEventListener('change', filterRows);
+    }
+    if (estPayeSelect) {
+        estPayeSelect.addEventListener('change', filterRows);
+    }
+    if (clientSelect) {
+        clientSelect.addEventListener('change', filterRows);
+    }
+
+    // Écouter les changements dans le champ de recherche avec debounce (300ms)
+    if (rechercheInput) {
+        rechercheInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(filterRows, 300);
+        });
+    }
+});
+</script>
 {% endblock %}

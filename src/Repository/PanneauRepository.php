@@ -16,6 +16,38 @@ class PanneauRepository extends ServiceEntityRepository
         parent::__construct($registry, Panneau::class);
     }
 
+    /**
+     * Recherche avec filtres
+     */
+    public function findWithFilters(?string $type = null, ?string $etat = null, ?string $eclairage = null, ?string $recherche = null): array
+    {
+        $qb = $this->createQueryBuilder('p');
+
+        if ($type) {
+            $qb->andWhere('p.type = :type')
+               ->setParameter('type', $type);
+        }
+
+        if ($etat) {
+            $qb->andWhere('p.etat = :etat')
+               ->setParameter('etat', $etat);
+        }
+
+        if ($eclairage !== null && $eclairage !== '') {
+            $qb->andWhere('p.eclairage = :eclairage')
+               ->setParameter('eclairage', $eclairage === '1' || $eclairage === 'true');
+        }
+
+        if ($recherche) {
+            $qb->andWhere('p.reference LIKE :recherche OR p.emplacement LIKE :recherche OR p.quartier LIKE :recherche OR p.rue LIKE :recherche')
+               ->setParameter('recherche', '%' . $recherche . '%');
+        }
+
+        return $qb->orderBy('p.reference', 'ASC')
+                  ->getQuery()
+                  ->getResult();
+    }
+
     //    /**
     //     * @return Panneau[] Returns an array of Panneau objects
     //     */

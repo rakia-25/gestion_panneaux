@@ -63,6 +63,52 @@ class LocationRepository extends ServiceEntityRepository
             ->getResult();
     }
 
+    /**
+     * Recherche avec filtres
+     */
+    public function findWithFilters(?string $statut = null, ?string $estPaye = null, ?int $clientId = null, ?string $recherche = null): array
+    {
+        $qb = $this->createQueryBuilder('l')
+            ->leftJoin('l.client', 'c')
+            ->leftJoin('l.face', 'f')
+            ->leftJoin('f.panneau', 'p');
+
+        $now = new \DateTime();
+
+        if ($statut) {
+            if ($statut === 'active') {
+                $qb->andWhere('l.dateDebut <= :now')
+                   ->andWhere('l.dateFin >= :now')
+                   ->setParameter('now', $now);
+            } elseif ($statut === 'terminee') {
+                $qb->andWhere('l.dateFin < :now')
+                   ->setParameter('now', $now);
+            } elseif ($statut === 'avenir') {
+                $qb->andWhere('l.dateDebut > :now')
+                   ->setParameter('now', $now);
+            }
+        }
+
+        if ($estPaye !== null && $estPaye !== '') {
+            $qb->andWhere('l.estPaye = :estPaye')
+               ->setParameter('estPaye', $estPaye === '1' || $estPaye === 'true');
+        }
+
+        if ($clientId) {
+            $qb->andWhere('c.id = :clientId')
+               ->setParameter('clientId', $clientId);
+        }
+
+        if ($recherche) {
+            $qb->andWhere('c.nom LIKE :recherche OR f.lettre LIKE :recherche OR p.reference LIKE :recherche OR p.emplacement LIKE :recherche')
+               ->setParameter('recherche', '%' . $recherche . '%');
+        }
+
+        return $qb->orderBy('l.dateDebut', 'DESC')
+                  ->getQuery()
+                  ->getResult();
+    }
+
     //    /**
     //     * @return Location[] Returns an array of Location objects
     //     */

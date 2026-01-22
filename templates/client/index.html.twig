@@ -11,6 +11,42 @@
         </a>
     </div>
 
+    <!-- Filtres -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-funnel"></i> Filtres</h5>
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{{ path('app_client_index') }}" class="row g-3" onsubmit="return false;">
+                <div class="col-md-4">
+                    <label for="recherche" class="form-label">Recherche</label>
+                    <input type="text" class="form-control" id="recherche" name="recherche" 
+                           value="{{ filters.recherche ?? '' }}" 
+                           placeholder="Nom, email, téléphone, adresse...">
+                </div>
+                <div class="col-md-3">
+                    <label for="type" class="form-label">Type</label>
+                    <select class="form-select" id="type" name="type">
+                        <option value="">Tous</option>
+                        <option value="entreprise" {{ filters.type == 'entreprise' ? 'selected' : '' }}>Entreprise</option>
+                        <option value="personne" {{ filters.type == 'personne' ? 'selected' : '' }}>Personne</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="ville" class="form-label">Ville</label>
+                    <input type="text" class="form-control" id="ville" name="ville" 
+                           value="{{ filters.ville ?? '' }}" 
+                           placeholder="Ex: Niamey">
+                </div>
+                <div class="col-md-2 d-flex align-items-end gap-2">
+                    <a href="{{ path('app_client_index') }}" class="btn btn-secondary">
+                        <i class="bi bi-x-circle"></i> Réinitialiser
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div class="card">
         <div class="card-body">
             {% if clients|length > 0 %}
@@ -29,7 +65,12 @@
                         </thead>
                         <tbody>
                             {% for client in clients %}
-                                <tr>
+                                <tr data-type="{{ client.type }}"
+                                    data-ville="{{ (client.ville ?? '')|lower }}"
+                                    data-nom="{{ client.nom|lower }}"
+                                    data-email="{{ (client.email ?? '')|lower }}"
+                                    data-telephone="{{ (client.telephone ?? '')|lower }}"
+                                    data-adresse="{{ (client.adresse ?? '')|lower }}">
                                     <td><strong>{{ client.nom }}</strong></td>
                                     <td>
                                         {% if client.type == 'entreprise' %}
@@ -71,4 +112,86 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const rechercheInput = document.getElementById('recherche');
+    const typeSelect = document.getElementById('type');
+    const villeInput = document.getElementById('ville');
+    const tableRows = document.querySelectorAll('tbody tr');
+    
+    let searchTimeout;
+
+    // Fonction pour filtrer les lignes sans recharger la page
+    function filterRows() {
+        const recherche = (rechercheInput?.value || '').toLowerCase();
+        const type = typeSelect?.value || '';
+        const ville = (villeInput?.value || '').toLowerCase();
+
+        let visibleCount = 0;
+
+        tableRows.forEach(row => {
+            const rowType = row.dataset.type || '';
+            const rowVille = row.dataset.ville || '';
+            const rowNom = row.dataset.nom || '';
+            const rowEmail = row.dataset.email || '';
+            const rowTelephone = row.dataset.telephone || '';
+            const rowAdresse = row.dataset.adresse || '';
+
+            // Vérifier les filtres
+            const typeMatch = !type || rowType === type;
+            const villeMatch = !ville || rowVille.includes(ville);
+            const rechercheMatch = !recherche || 
+                rowNom.includes(recherche) || 
+                rowEmail.includes(recherche) ||
+                rowTelephone.includes(recherche) ||
+                rowAdresse.includes(recherche);
+
+            // Afficher ou cacher la ligne
+            if (typeMatch && villeMatch && rechercheMatch) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        // Afficher un message si aucun résultat
+        const tbody = document.querySelector('tbody');
+        let noResultsMsg = document.getElementById('no-results-message');
+        if (visibleCount === 0 && tableRows.length > 0) {
+            if (!noResultsMsg) {
+                noResultsMsg = document.createElement('tr');
+                noResultsMsg.id = 'no-results-message';
+                noResultsMsg.innerHTML = '<td colspan="7" class="text-center py-4"><em>Aucun résultat trouvé</em></td>';
+                tbody.appendChild(noResultsMsg);
+            }
+            noResultsMsg.style.display = '';
+        } else if (noResultsMsg) {
+            noResultsMsg.style.display = 'none';
+        }
+    }
+
+    // Écouter les changements dans les selects (filtrage immédiat)
+    if (typeSelect) {
+        typeSelect.addEventListener('change', filterRows);
+    }
+
+    // Écouter les changements dans les champs de texte avec debounce (300ms)
+    if (rechercheInput) {
+        rechercheInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(filterRows, 300);
+        });
+    }
+    if (villeInput) {
+        villeInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(filterRows, 300);
+        });
+    }
+});
+</script>
 {% endblock %}
