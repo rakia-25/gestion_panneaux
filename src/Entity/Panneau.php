@@ -23,11 +23,26 @@ class Panneau
     #[ORM\Column(length: 255)]
     private ?string $emplacement = null;
 
-    #[ORM\Column(length: 100)]
-    private ?string $taille = null;
+    #[ORM\Column(length: 100, nullable: true)]
+    private ?string $quartier = null;
+
+    #[ORM\Column(length: 100, nullable: true)]
+    private ?string $rue = null;
+
+    #[ORM\Column(length: 50, nullable: true)]
+    private ?string $coordonneesGps = null; // Format: "latitude,longitude"
+
+    #[ORM\Column(type: Types::DECIMAL, precision: 8, scale: 2)]
+    private ?string $taille = null; // En mètres carrés (ex: 12.00)
 
     #[ORM\Column(length: 20)]
     private ?string $type = null; // 'simple' ou 'double'
+
+    #[ORM\Column]
+    private ?bool $eclairage = false;
+
+    #[ORM\Column(length: 50)]
+    private ?string $etat = null; // 'excellent', 'bon', 'moyen', 'mauvais', 'hors_service'
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
     private ?string $prixMensuel = null;
@@ -93,6 +108,11 @@ class Panneau
         $this->taille = $taille;
 
         return $this;
+    }
+
+    public function getTailleFormatee(): string
+    {
+        return $this->taille ? number_format((float)$this->taille, 2, ',', ' ') . ' m²' : '';
     }
 
     public function getType(): ?string
@@ -201,5 +221,65 @@ class Panneau
     public function setUpdatedAtValue(): void
     {
         $this->updatedAt = new \DateTimeImmutable();
+    }
+
+    public function isEclairage(): ?bool
+    {
+        return $this->eclairage;
+    }
+
+    public function setEclairage(bool $eclairage): static
+    {
+        $this->eclairage = $eclairage;
+
+        return $this;
+    }
+
+    public function getEtat(): ?string
+    {
+        return $this->etat;
+    }
+
+    public function setEtat(string $etat): static
+    {
+        $this->etat = $etat;
+
+        return $this;
+    }
+
+    public function getQuartier(): ?string
+    {
+        return $this->quartier;
+    }
+
+    public function setQuartier(?string $quartier): static
+    {
+        $this->quartier = $quartier;
+
+        return $this;
+    }
+
+    public function getRue(): ?string
+    {
+        return $this->rue;
+    }
+
+    public function setRue(?string $rue): static
+    {
+        $this->rue = $rue;
+
+        return $this;
+    }
+
+    public function getCoordonneesGps(): ?string
+    {
+        return $this->coordonneesGps;
+    }
+
+    public function setCoordonneesGps(?string $coordonneesGps): static
+    {
+        $this->coordonneesGps = $coordonneesGps;
+
+        return $this;
     }
 }

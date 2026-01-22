@@ -16,10 +16,27 @@
                         {{ form_row(form.emplacement) }}
                         <div class="row">
                             <div class="col-md-6">
+                                {{ form_row(form.quartier) }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form_row(form.rue) }}
+                            </div>
+                        </div>
+                        {{ form_row(form.coordonneesGps) }}
+                        <div class="row">
+                            <div class="col-md-6">
                                 {{ form_row(form.taille) }}
                             </div>
                             <div class="col-md-6">
                                 {{ form_row(form.type) }}
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                {{ form_row(form.eclairage) }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form_row(form.etat) }}
                             </div>
                         </div>
                         {{ form_row(form.prixMensuel) }}

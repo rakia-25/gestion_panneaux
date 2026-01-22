@@ -19,6 +19,11 @@
                                 {{ form_row(form.dateDebut) }}
                             </div>
                             <div class="col-md-6">
+                                {{ form_row(form.dureeMois) }}
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
                                 {{ form_row(form.dateFin) }}
                             </div>
                         </div>
@@ -46,4 +51,178 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const faceSelect = document.getElementById('location_face');
+    const montantInput = document.getElementById('location_montantMensuel');
+    const notesSelect = document.getElementById('location_notes');
+
+    if (faceSelect && montantInput && notesSelect) {
+        let prixOriginal = null;
+
+        // Fonction pour récupérer le prix du panneau
+        function getPrixPanneau(faceId) {
+            return fetch(`/location/get-prix-face/${faceId}`)
+                .then(response => response.json())
+                .then(data => parseFloat(data.prix) || 0)
+                .catch(() => 0);
+        }
+
+        // Vérifier si le prix a été modifié et rendre le champ notes requis si nécessaire
+        async function verifierModificationPrix() {
+            if (!prixOriginal && faceSelect.value) {
+                prixOriginal = await getPrixPanneau(faceSelect.value);
+                if (!prixOriginal && montantInput.dataset.prixOriginal) {
+                    prixOriginal = parseFloat(montantInput.dataset.prixOriginal);
+                }
+            }
+
+            if (prixOriginal) {
+                const prixActuelStr = montantInput.value.toString().replace(/\s/g, '').replace(/,/g, '.').replace(/[^\d.]/g, '');
+                const prixActuel = parseFloat(prixActuelStr) || 0;
+                const difference = Math.abs(prixActuel - prixOriginal);
+
+                // Si le prix a été modifié (différence > 0.01 pour éviter les erreurs d'arrondi)
+                if (difference > 0.01 && prixActuel > 0) {
+                    notesSelect.setAttribute('required', 'required');
+                    notesSelect.classList.add('is-invalid');
+                    // Ajouter un message d'aide visuel
+                    const formGroup = notesSelect.closest('.mb-3');
+                    if (formGroup) {
+                        let helpText = formGroup.querySelector('.form-text.text-danger');
+                        if (!helpText) {
+                            helpText = document.createElement('div');
+                            helpText.className = 'form-text text-danger';
+                            formGroup.appendChild(helpText);
+                        }
+                        helpText.textContent = 'Ce champ est obligatoire car le prix a été modifié.';
+                    }
+                } else {
+                    notesSelect.removeAttribute('required');
+                    notesSelect.classList.remove('is-invalid');
+                    // Retirer le message d'aide
+                    const formGroup = notesSelect.closest('.mb-3');
+                    if (formGroup) {
+                        const helpText = formGroup.querySelector('.form-text.text-danger');
+                        if (helpText) {
+                            helpText.remove();
+                        }
+                    }
+                }
+            }
+        }
+
+        // Initialiser le prix original
+        if (faceSelect.value) {
+            getPrixPanneau(faceSelect.value).then(prix => {
+                prixOriginal = prix;
+                verifierModificationPrix();
+            });
+        } else if (montantInput.value) {
+            let valeurActuelle = montantInput.value.toString().replace(/\s/g, '').replace(/,/g, '.').replace(/[^\d.]/g, '');
+            prixOriginal = parseFloat(valeurActuelle) || 0;
+            if (prixOriginal > 0) {
+                montantInput.dataset.prixOriginal = prixOriginal;
+                verifierModificationPrix();
+            }
+        }
+
+        // Écouter les changements de sélection de face
+        faceSelect.addEventListener('change', function() {
+            if (this.value) {
+                getPrixPanneau(this.value).then(prix => {
+                    prixOriginal = prix;
+                    verifierModificationPrix();
+                });
+            }
+        });
+
+        // Écouter les changements du montant
+        montantInput.addEventListener('input', function() {
+            verifierModificationPrix();
+        });
+
+        // Vérifier au chargement de la page
+        setTimeout(() => verifierModificationPrix(), 500);
+    }
+
+    // Calcul automatique de la date de fin
+    if (dateDebutInput && dureeMoisInput && dateFinInput) {
+        // Calculer la durée initiale à partir des dates existantes
+        function calculerDureeInitiale() {
+            if (dateDebutInput.value && dateFinInput.value && !dureeMoisInput.value) {
+                const dateDebut = new Date(dateDebutInput.value);
+                const dateFin = new Date(dateFinInput.value);
+                
+                // Calculer la différence en mois
+                const diffTime = Math.abs(dateFin - dateDebut);
+                const diffMonths = Math.round(diffTime / (1000 * 60 * 60 * 24 * 30.44)); // Moyenne de jours par mois
+                
+                if (diffMonths > 0) {
+                    dureeMoisInput.value = diffMonths;
+                }
+            }
+        }
+
+        function calculerDateFin() {
+            const dateDebut = dateDebutInput.value;
+            const dureeMois = parseInt(dureeMoisInput.value) || 0;
+
+            if (dateDebut && dureeMois > 0) {
+                const date = new Date(dateDebut);
+                // Ajouter le nombre de mois
+                date.setMonth(date.getMonth() + dureeMois);
+                
+                // Formater la date au format YYYY-MM-DD
+                const annee = date.getFullYear();
+                const mois = String(date.getMonth() + 1).padStart(2, '0');
+                const jour = String(date.getDate()).padStart(2, '0');
+                const dateFinFormatee = `${annee}-${mois}-${jour}`;
+                
+                dateFinInput.value = dateFinFormatee;
+                dateFinInput.setAttribute('readonly', 'readonly');
+                dateFinInput.dataset.autoCalculated = 'true';
+            } else {
+                // Toujours garder le champ en readonly
+                dateFinInput.setAttribute('readonly', 'readonly');
+            }
+        }
+
+        // Calculer la durée initiale au chargement
+        setTimeout(() => {
+            calculerDureeInitiale();
+        }, 100);
+
+        // Écouter les changements de la date de début
+        dateDebutInput.addEventListener('change', function() {
+            calculerDateFin();
+        });
+
+        // Écouter les changements de la durée
+        dureeMoisInput.addEventListener('input', function() {
+            calculerDateFin();
+        });
+
+        // Empêcher la modification manuelle de la date de fin
+        dateFinInput.addEventListener('focus', function(e) {
+            e.preventDefault();
+            this.blur();
+        });
+
+        // Empêcher la saisie dans le champ date de fin
+        dateFinInput.addEventListener('keydown', function(e) {
+            e.preventDefault();
+        });
+
+        // Empêcher le clic pour ouvrir le calendrier
+        dateFinInput.addEventListener('click', function(e) {
+            e.preventDefault();
+            this.blur();
+        });
+    }
+});
+</script>
 {% endblock %}
