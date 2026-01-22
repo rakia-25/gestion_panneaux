@@ -61,7 +61,12 @@ class LocationType extends AbstractType
                 'label' => 'Montant mensuel (FCFA)',
                 'currency' => 'XOF',
                 'divisor' => 1,
-                'attr' => ['placeholder' => '150000']
+                'attr' => [
+                    'placeholder' => '150000',
+                    'id' => 'location_montantMensuel',
+                    'data-prix-panneau' => ''
+                ],
+                'help' => 'Le montant sera pré-rempli automatiquement depuis le panneau sélectionné. Vous pouvez le modifier si nécessaire.'
             ])
             ->add('estPaye', CheckboxType::class, [
                 'label' => 'Paiement effectué',

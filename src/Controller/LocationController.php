@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\Face;
 use App\Entity\Location;
 use App\Form\LocationType;
+use App\Repository\ClientRepository;
 use App\Repository\FaceRepository;
 use App\Repository\LocationRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -25,7 +26,7 @@ class LocationController extends AbstractController
     }
 
     #[Route('/new', name: 'app_location_new', methods: ['GET', 'POST'])]
-    public function new(Request $request, EntityManagerInterface $entityManager, FaceRepository $faceRepository): Response
+    public function new(Request $request, EntityManagerInterface $entityManager, FaceRepository $faceRepository, ClientRepository $clientRepository): Response
     {
         $location = new Location();
         
@@ -35,6 +36,17 @@ class LocationController extends AbstractController
             $face = $faceRepository->find($faceId);
             if ($face) {
                 $location->setFace($face);
+                // Pré-remplir le montant mensuel avec le prix du panneau
+                $location->setMontantMensuel($face->getPanneau()->getPrixMensuel());
+            }
+        }
+        
+        // Si un client_id est passée en paramètre, pré-sélectionner le client
+        $clientId = $request->query->get('client_id');
+        if ($clientId) {
+            $client = $clientRepository->find($clientId);
+            if ($client) {
+                $location->setClient($client);
             }
         }
         
@@ -49,6 +61,10 @@ class LocationController extends AbstractController
                 return $this->render('location/new.html.twig', [
                     'location' => $location,
                     'form' => $form,
+                    'face_id' => $faceId,
+                    'client_id' => $clientId,
+                    'face_obj' => $location->getFace(),
+                    'client_obj' => $location->getClient(),
                 ]);
             }
 
@@ -58,6 +74,10 @@ class LocationController extends AbstractController
                 return $this->render('location/new.html.twig', [
                     'location' => $location,
                     'form' => $form,
+                    'face_id' => $faceId,
+                    'client_id' => $clientId,
+                    'face_obj' => $location->getFace(),
+                    'client_obj' => $location->getClient(),
                 ]);
             }
 
@@ -65,12 +85,29 @@ class LocationController extends AbstractController
             $entityManager->flush();
 
             $this->addFlash('success', 'Location créée avec succès.');
+            
+            // Rediriger vers la page d'origine si on vient d'un panneau ou d'un client
+            if ($faceId) {
+                $face = $location->getFace();
+                return $this->redirectToRoute('app_panneau_show', ['id' => $face->getPanneau()->getId()], Response::HTTP_SEE_OTHER);
+            } elseif ($clientId) {
+                return $this->redirectToRoute('app_client_show', ['id' => $clientId], Response::HTTP_SEE_OTHER);
+            }
+            
             return $this->redirectToRoute('app_location_index', [], Response::HTTP_SEE_OTHER);
         }
 
+        // Récupérer les objets pour l'affichage dans le template
+        $face = $location->getFace();
+        $client = $location->getClient();
+        
         return $this->render('location/new.html.twig', [
             'location' => $location,
             'form' => $form,
+            'face_id' => $faceId,
+            'client_id' => $clientId,
+            'face_obj' => $face,
+            'client_obj' => $client,
         ]);
     }
 
@@ -157,5 +194,13 @@ class LocationController extends AbstractController
         }
 
         return $this->redirectToRoute('app_location_show', ['id' => $location->getId()], Response::HTTP_SEE_OTHER);
+    }
+
+    #[Route('/get-prix-face/{id}', name: 'app_location_get_prix_face', methods: ['GET'])]
+    public function getPrixFace(Face $face): Response
+    {
+        return $this->json([
+            'prix' => $face->getPanneau()->getPrixMensuel()
+        ]);
     }
 }
