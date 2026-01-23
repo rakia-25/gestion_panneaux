@@ -45,14 +45,29 @@ class DashboardController extends AbstractController
             $revenuMensuel += (float) $location->getMontantMensuel();
         }
         
-        // Locations finissant bientôt (dans 30 jours)
-        $locationsFinissantBientot = $locationRepository->findFinissantBientot(30);
+        // Locations finissant bientôt (dans 30 jours) - charger avec paiements
+        $locationsFinissantBientot = $locationRepository->createQueryBuilder('l')
+            ->leftJoin('l.paiements', 'p')
+            ->addSelect('p')
+            ->where('l.dateFin >= :now')
+            ->andWhere('l.dateFin <= :dateLimite')
+            ->setParameter('now', new \DateTime())
+            ->setParameter('dateLimite', (new \DateTime())->modify('+30 days'))
+            ->orderBy('l.dateFin', 'ASC')
+            ->getQuery()
+            ->getResult();
         
         // Locations impayées
         $locationsImpayees = $locationRepository->findImpayees();
         
-        // Dernières locations
-        $dernieresLocations = $locationRepository->findBy([], ['createdAt' => 'DESC'], 5);
+        // Dernières locations - charger avec paiements
+        $dernieresLocations = $locationRepository->createQueryBuilder('l')
+            ->leftJoin('l.paiements', 'p')
+            ->addSelect('p')
+            ->orderBy('l.createdAt', 'DESC')
+            ->setMaxResults(5)
+            ->getQuery()
+            ->getResult();
         
         return $this->render('dashboard/index.html.twig', [
             'totalPanneaux' => $totalPanneaux,

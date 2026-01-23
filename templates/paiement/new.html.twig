@@ -1,0 +1,62 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nouveau paiement{% endblock %}
+
+{% block body %}
+<div class="page-header">
+    <h1 class="page-title">Nouveau paiement</h1>
+    <p class="page-description">Enregistrez un nouveau paiement</p>
+</div>
+
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="section-card">
+            <div class="section-header">
+                <h3 class="section-title"><i class="bi bi-plus-circle"></i> Informations du paiement</h3>
+            </div>
+            <div>
+                {% if location_obj %}
+                    <div class="alert alert-info mb-3">
+                        <i class="bi bi-info-circle"></i> <strong>Location pré-sélectionnée :</strong>
+                        {{ location_obj.face.nomComplet }} - {{ location_obj.client.nom }}
+                        <br>
+                        <small>Montant total: {{ location_obj.montantTotal|number_format(0, ',', ' ') }} FCFA |
+                        Déjà payé: {{ location_obj.montantTotalPaye|number_format(0, ',', ' ') }} FCFA |
+                        Restant: {{ location_obj.montantRestant|number_format(0, ',', ' ') }} FCFA</small>
+                    </div>
+                {% endif %}
+
+                {{ form_start(form) }}
+                    {{ form_row(form.location) }}
+                    {{ form_row(form.montant) }}
+                    <div class="row">
+                        <div class="col-md-6">
+                            {{ form_row(form.datePaiement) }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form_row(form.type) }}
+                        </div>
+                    </div>
+                    {{ form_row(form.notes) }}
+
+                    <div style="display: flex; justify-content: space-between; margin-top: 2rem;">
+                        {% if location_id and location_obj %}
+                            <a href="{{ path('app_location_show', {id: location_obj.id}) }}" class="btn-secondary-modern">
+                                <i class="bi bi-arrow-left"></i> Retour à la location
+                            </a>
+                        {% else %}
+                            <a href="{{ path('app_paiement_index') }}" class="btn-secondary-modern">
+                                <i class="bi bi-arrow-left"></i> Retour
+                            </a>
+                        {% endif %}
+                        <button type="submit" class="btn-primary-modern">
+                            <i class="bi bi-check"></i> Enregistrer
+                        </button>
+                    </div>
+                    {{ form_rest(form) }}
+                {{ form_end(form) }}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

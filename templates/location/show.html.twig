@@ -3,138 +3,200 @@
 {% block title %}Location #{{ location.id }}{% endblock %}
 
 {% block body %}
-<div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1><i class="bi bi-calendar-check"></i> Location #{{ location.id }}</h1>
+<div class="page-header">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
         <div>
-            <a href="{{ path('app_location_edit', {id: location.id}) }}" class="btn btn-secondary">
+            <h1 class="page-title">Location #{{ location.id }}</h1>
+            <p class="page-description">{{ location.face.nomComplet }} - {{ location.client.nom }}</p>
+        </div>
+        <div style="display: flex; gap: 0.75rem;">
+            <a href="{{ path('app_location_edit', {id: location.id}) }}" class="btn-secondary-modern">
                 <i class="bi bi-pencil"></i> Modifier
             </a>
-            <a href="{{ path('app_location_index') }}" class="btn btn-outline-secondary">
+            <a href="{{ path('app_location_index') }}" class="btn-secondary-modern">
                 <i class="bi bi-arrow-left"></i> Retour
             </a>
         </div>
     </div>
+</div>
 
-    <div class="row">
-        <div class="col-md-8">
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0">Informations de la location</h5>
-                </div>
-                <div class="card-body">
-                    <table class="table">
-                        <tr>
-                            <th width="200">Face</th>
-                            <td>
-                                <strong>{{ location.face.nomComplet }}</strong><br>
-                                <small class="text-muted">{{ location.face.panneau.emplacement }}</small>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th>Client</th>
-                            <td>
-                                <strong>{{ location.client.nom }}</strong><br>
-                                {% if location.client.email %}
-                                    <small class="text-muted">{{ location.client.email }}</small>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        <tr>
-                            <th>Période</th>
-                            <td>
-                                <strong>{{ location.dateDebut|date('d/m/Y') }}</strong> - 
-                                <strong>{{ location.dateFin|date('d/m/Y') }}</strong><br>
-                                <small class="text-muted">{{ location.nombreMois }} mois</small>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th>Montant mensuel</th>
-                            <td><strong>{{ location.montantMensuel|number_format(0, ',', ' ') }} FCFA</strong></td>
-                        </tr>
-                        <tr>
-                            <th>Montant total</th>
-                            <td><strong class="text-primary fs-5">{{ location.montantTotal|number_format(0, ',', ' ') }} FCFA</strong></td>
-                        </tr>
-                        <tr>
-                            <th>Statut de paiement</th>
-                            <td>
-                                {% if location.estPaye %}
-                                    <span class="badge bg-success fs-6">Payé</span>
-                                {% else %}
-                                    <span class="badge bg-danger fs-6">Impayé</span>
-                                {% endif %}
-                                <form method="post" action="{{ path('app_location_toggle_payment', {id: location.id}) }}" class="d-inline ms-2">
-                                    <input type="hidden" name="_token" value="{{ csrf_token('toggle_payment' ~ location.id) }}">
-                                    <button type="submit" class="btn btn-sm btn-outline-{{ location.estPaye ? 'danger' : 'success' }}">
-                                        <i class="bi bi-{{ location.estPaye ? 'x' : 'check' }}-circle"></i> 
-                                        Marquer comme {{ location.estPaye ? 'impayé' : 'payé' }}
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th>Statut</th>
-                            <td>
-                                {% if location.isActive() %}
-                                    <span class="badge bg-success">En cours</span>
-                                {% elseif location.isTerminee() %}
-                                    <span class="badge bg-secondary">Terminée</span>
-                                {% else %}
-                                    <span class="badge bg-info">À venir</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% if location.notes %}
-                        <tr>
-                            <th>Notes</th>
-                            <td>{{ location.notes }}</td>
-                        </tr>
-                        {% endif %}
-                    </table>
-                </div>
+<div class="row">
+    <div class="col-md-8">
+        <div class="section-card" style="margin-bottom: 1.5rem;">
+            <div class="section-header">
+                <h3 class="section-title">Informations de la location</h3>
+            </div>
+            <table class="modern-table" style="margin: 0;">
+                <tbody>
+                    <tr>
+                        <th width="200" style="font-weight: 600; color: var(--text-gray);">Face</th>
+                        <td>
+                            <strong>{{ location.face.nomComplet }}</strong><br>
+                            <small style="color: var(--text-gray); font-size: 0.75rem;">{{ location.face.panneau.emplacement }}</small>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Client</th>
+                        <td>
+                            <strong>{{ location.client.nom }}</strong><br>
+                            {% if location.client.email %}
+                                <small style="color: var(--text-gray); font-size: 0.75rem;">{{ location.client.email }}</small>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Période</th>
+                        <td>
+                            <strong>{{ location.dateDebut|date('d/m/Y') }}</strong> - 
+                            <strong>{{ location.dateFin|date('d/m/Y') }}</strong><br>
+                            <small style="color: var(--text-gray); font-size: 0.75rem;">{{ location.nombreMois }} mois</small>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Montant mensuel</th>
+                        <td><strong>{{ location.montantMensuel|number_format(0, ',', ' ') }} FCFA</strong></td>
+                    </tr>
+                    <tr>
+                        <th>Montant total</th>
+                        <td><strong style="color: var(--primary-color); font-size: 1.25rem;">{{ location.montantTotal|number_format(0, ',', ' ') }} FCFA</strong></td>
+                    </tr>
+                    <tr>
+                        <th>Statut de paiement</th>
+                        <td>
+                            {% set statutPaiement = location.statutPaiement %}
+                            {% if statutPaiement == 'paye' %}
+                                <span class="table-badge success" style="font-size: 0.875rem;">Payé</span>
+                            {% elseif statutPaiement == 'partiellement_paye' %}
+                                <span class="table-badge warning" style="font-size: 0.875rem;">Partiellement payé</span>
+                            {% else %}
+                                <span class="table-badge pending" style="font-size: 0.875rem;">Impayé</span>
+                            {% endif %}
+                            <br>
+                            <small style="color: var(--text-gray); margin-top: 0.5rem; display: block;">
+                                Payé: <strong>{{ location.montantTotalPaye|number_format(0, ',', ' ') }} FCFA</strong> | 
+                                Restant: <strong>{{ location.montantRestant|number_format(0, ',', ' ') }} FCFA</strong>
+                            </small>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Montant payé</th>
+                        <td><strong style="color: var(--success-color);">{{ location.montantTotalPaye|number_format(0, ',', ' ') }} FCFA</strong></td>
+                    </tr>
+                    <tr>
+                        <th>Montant restant</th>
+                        <td><strong style="color: var(--danger-color);">{{ location.montantRestant|number_format(0, ',', ' ') }} FCFA</strong></td>
+                    </tr>
+                    <tr>
+                        <th>Statut</th>
+                        <td>
+                            {% if location.isActive() %}
+                                <span class="table-badge success">En cours</span>
+                            {% elseif location.isTerminee() %}
+                                <span class="table-badge warning">Terminée</span>
+                            {% else %}
+                                <span class="table-badge info">À venir</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% if location.notes %}
+                    <tr>
+                        <th>Notes</th>
+                        <td>{{ location.notes }}</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="section-card" style="margin-bottom: 1.5rem;">
+            <div class="section-header">
+                <h3 class="section-title">Informations du panneau</h3>
+            </div>
+            <div>
+                <p><strong>Référence:</strong> {{ location.face.panneau.reference }}</p>
+                <p><strong>Type:</strong> 
+                    {% if location.face.panneau.type == 'double' %}
+                        <span class="table-badge info">Double</span>
+                    {% else %}
+                        <span class="table-badge warning">Simple</span>
+                    {% endif %}
+                </p>
+                <p><strong>Taille:</strong> {{ location.face.panneau.taille }}</p>
+                <p><strong>Prix mensuel:</strong> {{ location.face.panneau.prixMensuel|number_format(0, ',', ' ') }} FCFA</p>
+                <a href="{{ path('app_panneau_show', {id: location.face.panneau.id}) }}" class="btn-secondary-modern" style="width: 100%; margin-top: 1rem;">
+                    <i class="bi bi-eye"></i> Voir le panneau
+                </a>
             </div>
         </div>
 
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">Informations du panneau</h5>
-                </div>
-                <div class="card-body">
-                    <p><strong>Référence:</strong> {{ location.face.panneau.reference }}</p>
-                    <p><strong>Type:</strong> 
-                        {% if location.face.panneau.type == 'double' %}
-                            <span class="badge bg-info">Double</span>
-                        {% else %}
-                            <span class="badge bg-secondary">Simple</span>
-                        {% endif %}
-                    </p>
-                    <p><strong>Taille:</strong> {{ location.face.panneau.taille }}</p>
-                    <p><strong>Prix mensuel:</strong> {{ location.face.panneau.prixMensuel|number_format(0, ',', ' ') }} FCFA</p>
-                    <a href="{{ path('app_panneau_show', {id: location.face.panneau.id}) }}" class="btn btn-sm btn-outline-primary">
-                        <i class="bi bi-eye"></i> Voir le panneau
-                    </a>
-                </div>
+        <div class="section-card" style="margin-bottom: 1.5rem;">
+            <div class="section-header">
+                <h3 class="section-title">Informations du client</h3>
             </div>
+            <div>
+                <p><strong>Nom:</strong> {{ location.client.nom }}</p>
+                {% if location.client.telephone %}
+                    <p><strong>Téléphone:</strong> {{ location.client.telephone }}</p>
+                {% endif %}
+                {% if location.client.email %}
+                    <p><strong>Email:</strong> {{ location.client.email }}</p>
+                {% endif %}
+                <a href="{{ path('app_client_show', {id: location.client.id}) }}" class="btn-secondary-modern" style="width: 100%; margin-top: 1rem;">
+                    <i class="bi bi-eye"></i> Voir le client
+                </a>
+            </div>
+        </div>
 
-            <div class="card mt-3">
-                <div class="card-header">
-                    <h5 class="mb-0">Informations du client</h5>
-                </div>
-                <div class="card-body">
-                    <p><strong>Nom:</strong> {{ location.client.nom }}</p>
-                    {% if location.client.telephone %}
-                        <p><strong>Téléphone:</strong> {{ location.client.telephone }}</p>
-                    {% endif %}
-                    {% if location.client.email %}
-                        <p><strong>Email:</strong> {{ location.client.email }}</p>
-                    {% endif %}
-                    <a href="{{ path('app_client_show', {id: location.client.id}) }}" class="btn btn-sm btn-outline-primary">
-                        <i class="bi bi-eye"></i> Voir le client
-                    </a>
-                </div>
+        <div class="table-card">
+            <div class="table-header">
+                <h3 class="table-title">Paiements</h3>
+                <a href="{{ path('app_paiement_new', {location_id: location.id}) }}" class="btn-primary-modern" style="padding: 0.5rem 1rem; font-size: 0.8125rem;">
+                    <i class="bi bi-plus-circle"></i> Ajouter
+                </a>
             </div>
+            {% if location.paiements|length > 0 %}
+                <table class="modern-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Montant</th>
+                            <th>Type</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for paiement in location.paiements %}
+                            <tr>
+                                <td>{{ paiement.datePaiement|date('d/m/Y') }}</td>
+                                <td><strong>{{ paiement.montant|number_format(0, ',', ' ') }} FCFA</strong></td>
+                                <td><span class="table-badge info">{{ paiement.typeLibelle }}</span></td>
+                                <td>
+                                    <div class="action-menu">
+                                        <a href="{{ path('app_paiement_show', {id: paiement.id}) }}" class="action-btn" title="Voir">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a href="{{ path('app_paiement_edit', {id: paiement.id}) }}" class="action-btn" title="Modifier">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr style="background: var(--bg-light);">
+                            <th>Total payé</th>
+                            <th colspan="3"><strong>{{ location.montantTotalPaye|number_format(0, ',', ' ') }} FCFA</strong></th>
+                        </tr>
+                    </tfoot>
+                </table>
+            {% else %}
+                <div style="text-align: center; padding: 2rem; color: var(--text-gray);">
+                    <i class="bi bi-info-circle"></i> Aucun paiement enregistré pour cette location.
+                </div>
+            {% endif %}
         </div>
     </div>
 </div>

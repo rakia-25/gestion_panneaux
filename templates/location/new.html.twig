@@ -3,79 +3,91 @@
 {% block title %}Nouvelle location{% endblock %}
 
 {% block body %}
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-md-8 offset-md-2">
-            <div class="card">
-                <div class="card-header">
-                    <h3><i class="bi bi-plus-circle"></i> Nouvelle location</h3>
-                </div>
-                <div class="card-body">
-                    {% if face_obj %}
-                        <div class="alert alert-info mb-3">
-                            <i class="bi bi-info-circle"></i> <strong>Face pré-sélectionnée :</strong> {{ face_obj.nomComplet }}
-                            ({{ face_obj.panneau.emplacement }})
-                        </div>
-                    {% endif %}
-                    {% if client_obj %}
-                        <div class="alert alert-info mb-3">
-                            <i class="bi bi-info-circle"></i> <strong>Client pré-sélectionné :</strong> {{ client_obj.nom }}
-                        </div>
-                    {% endif %}
+<div class="page-header">
+    <h1 class="page-title">Nouvelle location</h1>
+    <p class="page-description">Créez une nouvelle location de panneau publicitaire</p>
+</div>
 
-                    {% if not form.vars.valid %}
-                        <div class="alert alert-danger mb-3">
-                            <i class="bi bi-exclamation-triangle"></i> <strong>Erreur :</strong> Veuillez corriger les erreurs ci-dessous.
-                        </div>
-                    {% endif %}
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="section-card">
+            <div class="section-header">
+                <h3 class="section-title"><i class="bi bi-plus-circle"></i> Informations de la location</h3>
+            </div>
+            <div>
+                {% if face_obj %}
+                    {% set locationActive = face_obj.getLocationActive() %}
+                    {% set locationsFutures = face_obj.getLocationsActivesOuFutures() %}
+                    <div class="alert alert-{{ locationActive ? 'warning' : (locationsFutures|length > 0 ? 'info' : 'info') }} mb-3">
+                        <i class="bi bi-info-circle"></i> <strong>Face pré-sélectionnée :</strong> {{ face_obj.nomComplet }}
+                        ({{ face_obj.panneau.emplacement }})
+                        {% if locationActive %}
+                            <br><small><i class="bi bi-exclamation-triangle"></i> Cette face est actuellement occupée jusqu'au <strong>{{ locationActive.dateFin|date('d/m/Y') }}</strong>.
+                            Vous pouvez réserver à partir du lendemain de cette date.</small>
+                        {% elseif locationsFutures|length > 0 %}
+                            {% set prochaineLocation = locationsFutures[0] %}
+                            <br><small><i class="bi bi-calendar-check"></i> Cette face est réservée du <strong>{{ prochaineLocation.dateDebut|date('d/m/Y') }}</strong> au <strong>{{ prochaineLocation.dateFin|date('d/m/Y') }}</strong>.
+                            Vous pouvez réserver à partir du lendemain de cette date.</small>
+                        {% endif %}
+                    </div>
+                {% endif %}
+                {% if client_obj %}
+                    <div class="alert alert-info mb-3">
+                        <i class="bi bi-info-circle"></i> <strong>Client pré-sélectionné :</strong> {{ client_obj.nom }}
+                    </div>
+                {% endif %}
 
-                    {{ form_start(form) }}
-                        {{ form_row(form.face) }}
-                        {{ form_row(form.client) }}
-                        <div class="row">
-                            <div class="col-md-6">
-                                {{ form_row(form.dateDebut) }}
-                            </div>
-                            <div class="col-md-6">
-                                {{ form_row(form.dureeMois) }}
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                {{ form_row(form.dateFin) }}
-                            </div>
-                        </div>
-                        {{ form_row(form.montantMensuel) }}
-                        {{ form_row(form.estPaye) }}
-                        {{ form_row(form.notes) }}
+                {% if not form.vars.valid %}
+                    <div class="alert alert-danger mb-3">
+                        <i class="bi bi-exclamation-triangle"></i> <strong>Erreur :</strong> Veuillez corriger les erreurs ci-dessous.
+                    </div>
+                {% endif %}
 
-                        <div class="alert alert-info">
-                            <i class="bi bi-info-circle"></i> Le montant mensuel est pré-rempli automatiquement depuis le prix du panneau. Vous pouvez le modifier pour appliquer une remise ou un tarif spécial.
-                            <br>
-                            <i class="bi bi-info-circle"></i> Le système vérifiera automatiquement que la face est disponible pour la période sélectionnée.
+                {{ form_start(form) }}
+                    {{ form_row(form.face) }}
+                    {{ form_row(form.client) }}
+                    <div class="row">
+                        <div class="col-md-6">
+                            {{ form_row(form.dateDebut) }}
                         </div>
+                        <div class="col-md-6">
+                            {{ form_row(form.dureeMois) }}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            {{ form_row(form.dateFin) }}
+                        </div>
+                    </div>
+                    {{ form_row(form.montantMensuel) }}
+                    {{ form_row(form.notes) }}
 
-                        <div class="d-flex justify-content-between mt-4">
-                            {% if face_id and face_obj %}
-                                <a href="{{ path('app_panneau_show', {id: face_obj.panneau.id}) }}" class="btn btn-secondary">
-                                    <i class="bi bi-arrow-left"></i> Retour au panneau
-                                </a>
-                            {% elseif client_id and client_obj %}
-                                <a href="{{ path('app_client_show', {id: client_obj.id}) }}" class="btn btn-secondary">
-                                    <i class="bi bi-arrow-left"></i> Retour au client
-                                </a>
-                            {% else %}
-                                <a href="{{ path('app_location_index') }}" class="btn btn-secondary">
-                                    <i class="bi bi-arrow-left"></i> Retour
-                                </a>
-                            {% endif %}
-                            <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-check"></i> Créer
-                            </button>
-                        </div>
-                        {{ form_rest(form) }}
-                    {{ form_end(form) }}
-                </div>
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> Le montant mensuel est pré-rempli automatiquement depuis le prix du panneau. Vous pouvez le modifier pour appliquer une remise ou un tarif spécial.
+                        <br>
+                        <i class="bi bi-info-circle"></i> Le système vérifiera automatiquement que la face est disponible pour la période sélectionnée.
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; margin-top: 2rem;">
+                        {% if face_id and face_obj %}
+                            <a href="{{ path('app_panneau_show', {id: face_obj.panneau.id}) }}" class="btn-secondary-modern">
+                                <i class="bi bi-arrow-left"></i> Retour au panneau
+                            </a>
+                        {% elseif client_id and client_obj %}
+                            <a href="{{ path('app_client_show', {id: client_obj.id}) }}" class="btn-secondary-modern">
+                                <i class="bi bi-arrow-left"></i> Retour au client
+                            </a>
+                        {% else %}
+                            <a href="{{ path('app_location_index') }}" class="btn-secondary-modern">
+                                <i class="bi bi-arrow-left"></i> Retour
+                            </a>
+                        {% endif %}
+                        <button type="submit" class="btn-primary-modern">
+                            <i class="bi bi-check"></i> Créer
+                        </button>
+                    </div>
+                    {{ form_rest(form) }}
+                {{ form_end(form) }}
             </div>
         </div>
     </div>

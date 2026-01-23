@@ -1,0 +1,149 @@
+{% use "form_div_layout.html.twig" %}
+
+{% block form_row %}
+    {% set widget_attr = {} %}
+    {% if help is not empty %}
+        {% set widget_attr = {attr: {'aria-describedby': id ~"_help"}} %}
+    {% endif %}
+    <div class="mb-3">
+        {{- form_label(form) -}}
+        {{- form_widget(form, widget_attr) -}}
+        {{- form_help(form) -}}
+        {{- form_errors(form) -}}
+    </div>
+{% endblock form_row %}
+
+{% block form_label %}
+    {% if label is not same as(false) -%}
+        {% if not compound -%}
+            {% set label_attr = label_attr|merge({'for': id}) %}
+        {%- endif -%}
+        {% if required -%}
+            {% set label_attr = label_attr|merge({'class': (label_attr.class|default('') ~ ' form-label')|trim}) %}
+        {%- else -%}
+            {% set label_attr = label_attr|merge({'class': (label_attr.class|default('') ~ ' form-label')|trim}) %}
+        {%- endif -%}
+        <label{% if label_attr %}{% with { attr: label_attr } %}{{ block('attributes') }}{% endwith %}{% endif %}>
+            {%- if translation_domain is same as(false) -%}
+                {{- label -}}
+            {%- else -%}
+                {{- label|trans(label_translation_parameters|default({}), translation_domain) -}}
+            {%- endif -%}
+            {%- if required -%}
+                <span class="text-danger">*</span>
+            {%- endif -%}
+        </label>
+    {%- endif -%}
+{% endblock form_label %}
+
+{% block form_widget_simple %}
+    {% set input_type = attr.type|default(type|default('text')) %}
+    {% set attr_without_type = attr|filter((v, k) => k != 'type') %}
+    {% set attr = attr_without_type|merge({'class': (attr_without_type.class|default('') ~ ' form-control')|trim}) %}
+    {% if input_type == 'number' %}
+        {% if not attr.inputmode is defined %}
+            {% set attr = attr|merge({'inputmode': 'numeric'}) %}
+        {% endif %}
+        {% if not attr.pattern is defined %}
+            {% set attr = attr|merge({'pattern': '[0-9]*'}) %}
+        {% endif %}
+    {% endif %}
+    <input type="{{ input_type }}" {{ block('widget_attributes') }} {% if value is not empty %}value="{{ value }}" {% endif %}/>
+{% endblock form_widget_simple %}
+
+{% block textarea_widget %}
+    {% set attr = attr|merge({'class': (attr.class|default('') ~ ' form-control')|trim}) %}
+    <textarea {{ block('widget_attributes') }}>{{ value }}</textarea>
+{% endblock textarea_widget %}
+
+{% block choice_widget_collapsed %}
+    {% if attr.class is defined and 'form-select' in attr.class %}
+        {% set attr = attr|merge({'class': attr.class|trim}) %}
+    {% else %}
+        {% set attr = attr|merge({'class': (attr.class|default('') ~ ' form-select')|trim}) %}
+    {% endif %}
+    <select {{ block('widget_attributes') }}{% if multiple %} multiple="multiple"{% endif %}>
+        {% if placeholder is not none %}
+            <option value=""{% if required and value is empty %} selected="selected"{% endif %}>
+                {%- if placeholder != '' -%}
+                    {%- if translation_domain is same as(false) -%}
+                        {{- placeholder -}}
+                    {%- else -%}
+                        {{- placeholder|trans(placeholder_translation_parameters|default({}), translation_domain) -}}
+                    {%- endif -%}
+                {%- endif -%}
+            </option>
+        {% endif %}
+        {% if preferred_choices|length > 0 %}
+            {% set options = preferred_choices %}
+            {% set render_preferred_choices = true %}
+            {{- block('choice_widget_options') -}}
+            {% if choices|length > 0 and separator is not none %}
+                <option disabled="disabled">{{ separator }}</option>
+            {% endif %}
+        {% endif %}
+        {% set options = choices %}
+        {% set render_preferred_choices = false %}
+        {{- block('choice_widget_options') -}}
+    </select>
+{% endblock choice_widget_collapsed %}
+
+{% block checkbox_widget %}
+    {% set attr = attr|merge({'class': (attr.class|default('') ~ ' form-check-input')|trim}) %}
+    <div class="form-check">
+        <input type="checkbox" {{ block('widget_attributes') }}{% if value is defined %} value="{{ value }}"{% endif %}{% if checked %} checked="checked"{% endif %} />
+        {% if label is not same as(false) -%}
+            <label class="form-check-label"{% if label_attr %}{% with { attr: label_attr } %}{{ block('attributes') }}{% endwith %}{% endif %}>
+                {%- if translation_domain is same as(false) -%}
+                    {{- label -}}
+                {%- else -%}
+                    {{- label|trans(label_translation_parameters|default({}), translation_domain) -}}
+                {%- endif -%}
+            </label>
+        {%- endif -%}
+    </div>
+{% endblock checkbox_widget %}
+
+{% block form_errors %}
+    {%- if errors|length > 0 -%}
+        <div class="invalid-feedback d-block">
+            {%- for error in errors -%}
+                <div>{{ error.message }}</div>
+            {%- endfor -%}
+        </div>
+    {%- endif -%}
+{% endblock form_errors %}
+
+{% block form_help %}
+    {%- if help is not empty -%}
+        <div id="{{ id }}_help" class="form-text">
+            {%- if translation_domain is same as(false) -%}
+                {{- help -}}
+            {%- else -%}
+                {{- help|trans(help_translation_parameters|default({}), translation_domain) -}}
+            {%- endif -%}
+        </div>
+    {%- endif -%}
+{% endblock form_help %}
+
+{% block money_widget %}
+    {% set input_type = attr.type|default('number') %}
+    {% set attr_without_type = attr|filter((v, k) => k != 'type') %}
+    {% set attr = attr_without_type|merge({'class': (attr_without_type.class|default('') ~ ' form-control')|trim}) %}
+    {% if not attr.inputmode is defined %}
+        {% set attr = attr|merge({'inputmode': 'numeric'}) %}
+    {% endif %}
+    {% if not attr.pattern is defined %}
+        {% set attr = attr|merge({'pattern': '[0-9]*'}) %}
+    {% endif %}
+    {% if not attr.min is defined %}
+        {% set attr = attr|merge({'min': '0'}) %}
+    {% endif %}
+    {% if not attr.step is defined %}
+        {% set attr = attr|merge({'step': '1'}) %}
+    {% endif %}
+    <div class="input-group">
+        <input type="{{ input_type }}" {{ block('widget_attributes') }} {% if value is not empty %}value="{{ value }}" {% endif %}/>
+        <span class="input-group-text">{{ money_pattern|replace({ '{{ widget }}': ''})|trim }}</span>
+    </div>
+{% endblock money_widget %}

@@ -1,0 +1,70 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Liste des paiements{% endblock %}
+
+{% block body %}
+<div class="page-header">
+    <h1 class="page-title">Gestion des Paiements</h1>
+    <p class="page-description">Gérez tous les paiements des locations</p>
+</div>
+
+{# Boutons d'action #}
+<div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
+    <a href="{{ path('app_paiement_new') }}" class="btn-primary-modern">
+        <i class="bi bi-plus"></i> Nouveau Paiement
+    </a>
+</div>
+
+<div class="table-card">
+    <div class="table-header">
+        <h3 class="table-title">Paiements</h3>
+    </div>
+    {% if paiements|length > 0 %}
+        <table class="modern-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Location</th>
+                    <th>Client</th>
+                    <th>Montant</th>
+                    <th>Type</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for paiement in paiements %}
+                    <tr>
+                        <td>{{ paiement.datePaiement|date('d/m/Y') }}</td>
+                        <td><strong>{{ paiement.location.face.nomComplet }}</strong></td>
+                        <td>{{ paiement.location.client.nom }}</td>
+                        <td><strong>{{ paiement.montant|number_format(0, ',', ' ') }} FCFA</strong></td>
+                        <td>
+                            <span class="table-badge info">{{ paiement.typeLibelle }}</span>
+                        </td>
+                        <td>
+                            <div class="action-menu">
+                                <a href="{{ path('app_paiement_show', {id: paiement.id}) }}" class="action-btn" title="Voir">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a href="{{ path('app_paiement_edit', {id: paiement.id}) }}" class="action-btn" title="Modifier">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form method="post" action="{{ path('app_paiement_delete', {id: paiement.id}) }}" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce paiement ?');">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ paiement.id) }}">
+                                    <button type="submit" class="action-btn" title="Supprimer" style="color: var(--danger-color);">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div style="text-align: center; padding: 2rem; color: var(--text-gray);">
+            <i class="bi bi-info-circle"></i> Aucun paiement enregistré.
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -3,25 +3,29 @@
 {% block title %}Liste des locations{% endblock %}
 
 {% block body %}
-<div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1><i class="bi bi-calendar-check"></i> Gestion des locations</h1>
-        <a href="{{ path('app_location_new') }}" class="btn btn-primary">
-            <i class="bi bi-plus-circle"></i> Nouvelle location
-        </a>
-    </div>
+<div class="page-header">
+    <h1 class="page-title">Gestion des Locations</h1>
+    <p class="page-description">Gérez les locations de panneaux publicitaires et suivez les paiements</p>
+</div>
 
-    <!-- Filtres -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5 class="mb-0"><i class="bi bi-funnel"></i> Filtres</h5>
-        </div>
-        <div class="card-body">
+{# Boutons d'action #}
+<div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
+    <a href="{{ path('app_location_new') }}" class="btn-primary-modern">
+        <i class="bi bi-plus"></i> Nouvelle Location
+    </a>
+</div>
+
+<!-- Filtres -->
+<div class="section-card" style="margin-bottom: 1.5rem;">
+    <div class="section-header">
+        <h3 class="section-title"><i class="bi bi-funnel"></i> Filtres</h3>
+    </div>
+    <div>
             <form method="GET" action="{{ path('app_location_index') }}" class="row g-3" onsubmit="return false;">
                 <div class="col-md-3">
                     <label for="recherche" class="form-label">Recherche</label>
-                    <input type="text" class="form-control" id="recherche" name="recherche" 
-                           value="{{ filters.recherche ?? '' }}" 
+                    <input type="text" class="form-control" id="recherche" name="recherche"
+                           value="{{ filters.recherche ?? '' }}"
                            placeholder="Client, face, panneau...">
                 </div>
                 <div class="col-md-2">
@@ -38,6 +42,7 @@
                     <select class="form-select" id="estPaye" name="estPaye">
                         <option value="">Tous</option>
                         <option value="1" {{ filters.estPaye == '1' ? 'selected' : '' }}>Payé</option>
+                        <option value="2" {{ filters.estPaye == '2' ? 'selected' : '' }}>Partiellement payé</option>
                         <option value="0" {{ filters.estPaye == '0' ? 'selected' : '' }}>Impayé</option>
                     </select>
                 </div>
@@ -53,90 +58,94 @@
                     </select>
                 </div>
                 <div class="col-md-2 d-flex align-items-end gap-2">
-                    <a href="{{ path('app_location_index') }}" class="btn btn-secondary">
+                    <a href="{{ path('app_location_index') }}" class="btn-secondary-modern">
                         <i class="bi bi-x-circle"></i> Réinitialiser
                     </a>
                 </div>
             </form>
-        </div>
     </div>
+</div>
 
-    <div class="card">
-        <div class="card-body">
-            {% if locations|length > 0 %}
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Face</th>
-                                <th>Client</th>
-                                <th>Date début</th>
-                                <th>Date fin</th>
-                                <th>Montant mensuel</th>
-                                <th>Montant total</th>
-                                <th>Statut</th>
-                                <th>Paiement</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for location in locations %}
-                                <tr class="{% if location.isActive() %}table-success{% elseif location.isTerminee() %}table-secondary{% endif %}"
-                                    data-statut="{% if location.isActive() %}active{% elseif location.isTerminee() %}terminee{% else %}avenir{% endif %}"
-                                    data-est-paye="{{ location.estPaye ? '1' : '0' }}"
-                                    data-client-id="{{ location.client.id }}"
-                                    data-face="{{ location.face.nomComplet|lower }}"
-                                    data-client="{{ location.client.nom|lower }}"
-                                    data-panneau="{{ location.face.panneau.reference|lower }}"
-                                    data-emplacement="{{ location.face.panneau.emplacement|lower }}">
-                                    <td><strong>{{ location.face.nomComplet }}</strong></td>
-                                    <td>{{ location.client.nom }}</td>
-                                    <td>{{ location.dateDebut|date('d/m/Y') }}</td>
-                                    <td>{{ location.dateFin|date('d/m/Y') }}</td>
-                                    <td>{{ location.montantMensuel|number_format(0, ',', ' ') }} FCFA</td>
-                                    <td><strong>{{ location.montantTotal|number_format(0, ',', ' ') }} FCFA</strong></td>
-                                    <td>
-                                        {% if location.isActive() %}
-                                            <span class="badge bg-success">En cours</span>
-                                        {% elseif location.isTerminee() %}
-                                            <span class="badge bg-secondary">Terminée</span>
-                                        {% else %}
-                                            <span class="badge bg-info">À venir</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {% if location.estPaye %}
-                                            <span class="badge bg-success">Payé</span>
-                                        {% else %}
-                                            <span class="badge bg-danger">Impayé</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <a href="{{ path('app_location_show', {id: location.id}) }}" class="btn btn-sm btn-outline-primary">
-                                            <i class="bi bi-eye"></i>
-                                        </a>
-                                        <a href="{{ path('app_location_edit', {id: location.id}) }}" class="btn btn-sm btn-outline-secondary">
-                                            <i class="bi bi-pencil"></i>
-                                        </a>
-                                        <form method="post" action="{{ path('app_location_delete', {id: location.id}) }}" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette location ?');">
-                                            <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ location.id) }}">
-                                            <button type="submit" class="btn btn-sm btn-outline-danger">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </form>
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            {% else %}
-                <div class="alert alert-info">
-                    <i class="bi bi-info-circle"></i> Aucune location enregistrée. <a href="{{ path('app_location_new') }}">Créer la première location</a>
-                </div>
-            {% endif %}
-        </div>
+<div class="table-card">
+    <div class="table-header">
+        <h3 class="table-title">Locations</h3>
     </div>
+    {% if locations|length > 0 %}
+        <table class="modern-table">
+            <thead>
+                <tr>
+                    <th>Face</th>
+                    <th>Client</th>
+                    <th>Date début</th>
+                    <th>Date fin</th>
+                    <th>Montant mensuel</th>
+                    <th>Montant total</th>
+                    <th>Statut</th>
+                    <th>Paiement</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for location in locations %}
+                    <tr data-statut="{% if location.isActive() %}active{% elseif location.isTerminee() %}terminee{% else %}avenir{% endif %}"
+                        data-est-paye="{% if location.isCompletementPaye() %}1{% elseif location.isPartiellementPaye() %}2{% else %}0{% endif %}"
+                        data-client-id="{{ location.client.id }}"
+                        data-face="{{ location.face.nomComplet|lower }}"
+                        data-client="{{ location.client.nom|lower }}"
+                        data-panneau="{{ location.face.panneau.reference|lower }}"
+                        data-emplacement="{{ location.face.panneau.emplacement|lower }}">
+                        <td><strong>{{ location.face.nomComplet }}</strong></td>
+                        <td>{{ location.client.nom }}</td>
+                        <td>{{ location.dateDebut|date('d/m/Y') }}</td>
+                        <td>{{ location.dateFin|date('d/m/Y') }}</td>
+                        <td>{{ location.montantMensuel|number_format(0, ',', ' ') }} FCFA</td>
+                        <td><strong>{{ location.montantTotal|number_format(0, ',', ' ') }} FCFA</strong></td>
+                        <td>
+                            {% if location.isActive() %}
+                                <span class="table-badge success">En cours</span>
+                            {% elseif location.isTerminee() %}
+                                <span class="table-badge warning">Terminée</span>
+                            {% else %}
+                                <span class="table-badge info">À venir</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% set statutPaiement = location.statutPaiement %}
+                            {% if statutPaiement == 'paye' %}
+                                <span class="table-badge success">Payé</span>
+                            {% elseif statutPaiement == 'partiellement_paye' %}
+                                <span class="table-badge warning">Partiellement payé</span>
+                            {% else %}
+                                <span class="table-badge pending">Impayé</span>
+                            {% endif %}
+                            <br>
+                            <small style="color: var(--text-gray); font-size: 0.75rem;">{{ location.montantTotalPaye|number_format(0, ',', ' ') }} / {{ location.montantTotal|number_format(0, ',', ' ') }} FCFA</small>
+                        </td>
+                        <td>
+                            <div class="action-menu">
+                                <a href="{{ path('app_location_show', {id: location.id}) }}" class="action-btn" title="Voir">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a href="{{ path('app_location_edit', {id: location.id}) }}" class="action-btn" title="Modifier">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form method="post" action="{{ path('app_location_delete', {id: location.id}) }}" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette location ?');">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ location.id) }}">
+                                    <button type="submit" class="action-btn" title="Supprimer" style="color: var(--danger-color);">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div style="text-align: center; padding: 2rem; color: var(--text-gray);">
+            <i class="bi bi-info-circle"></i> Aucune location enregistrée. <a href="{{ path('app_location_new') }}">Créer la première location</a>
+        </div>
+    {% endif %}
 </div>
 {% endblock %}
 
@@ -148,7 +157,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const estPayeSelect = document.getElementById('estPaye');
     const clientSelect = document.getElementById('client');
     const tableRows = document.querySelectorAll('tbody tr');
-    
+
     let searchTimeout;
 
     // Fonction pour filtrer les lignes sans recharger la page
@@ -171,10 +180,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Vérifier les filtres
             const statutMatch = !statut || rowStatut === statut;
+            // estPaye: 0=impayé, 1=payé, 2=partiellement payé
             const estPayeMatch = !estPaye || rowEstPaye === estPaye;
             const clientMatch = !clientId || rowClientId === clientId;
-            const rechercheMatch = !recherche || 
-                rowFace.includes(recherche) || 
+            const rechercheMatch = !recherche ||
+                rowFace.includes(recherche) ||
                 rowClient.includes(recherche) ||
                 rowPanneau.includes(recherche) ||
                 rowEmplacement.includes(recherche);

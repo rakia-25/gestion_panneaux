@@ -37,7 +37,11 @@ class ClientType extends AbstractType
             ->add('telephone', TelType::class, [
                 'label' => 'Téléphone',
                 'required' => false,
-                'attr' => ['placeholder' => '+227 XX XX XX XX']
+                'attr' => [
+                    'placeholder' => '+227 XX XX XX XX',
+                    'pattern' => '[0-9+\\s\\-\\(\\)]*',
+                    'inputmode' => 'tel',
+                ]
             ])
             ->add('adresse', TextType::class, [
                 'label' => 'Adresse',

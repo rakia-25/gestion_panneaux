@@ -3,25 +3,29 @@
 {% block title %}Liste des panneaux{% endblock %}
 
 {% block body %}
-<div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1><i class="bi bi-grid"></i> Gestion des panneaux</h1>
-        <a href="{{ path('app_panneau_new') }}" class="btn btn-primary">
-            <i class="bi bi-plus-circle"></i> Nouveau panneau
-        </a>
-    </div>
+<div class="page-header">
+    <h1 class="page-title">Gestion des Panneaux</h1>
+    <p class="page-description">Gérez vos panneaux publicitaires, leurs faces et leurs disponibilités</p>
+</div>
 
-    <!-- Filtres -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5 class="mb-0"><i class="bi bi-funnel"></i> Filtres</h5>
-        </div>
-        <div class="card-body">
+{# Boutons d'action #}
+<div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
+    <a href="{{ path('app_panneau_new') }}" class="btn-primary-modern">
+        <i class="bi bi-plus"></i> Nouveau Panneau
+    </a>
+</div>
+
+<!-- Filtres -->
+<div class="section-card" style="margin-bottom: 1.5rem;">
+    <div class="section-header">
+        <h3 class="section-title"><i class="bi bi-funnel"></i> Filtres</h3>
+    </div>
+    <div>
             <form method="GET" action="{{ path('app_panneau_index') }}" class="row g-3" onsubmit="return false;">
                 <div class="col-md-3">
                     <label for="recherche" class="form-label">Recherche</label>
-                    <input type="text" class="form-control" id="recherche" name="recherche" 
-                           value="{{ filters.recherche ?? '' }}" 
+                    <input type="text" class="form-control" id="recherche" name="recherche"
+                           value="{{ filters.recherche ?? '' }}"
                            placeholder="Référence, emplacement, quartier...">
                 </div>
                 <div class="col-md-2">
@@ -52,83 +56,95 @@
                     </select>
                 </div>
                 <div class="col-md-3 d-flex align-items-end gap-2">
-                    <a href="{{ path('app_panneau_index') }}" class="btn btn-secondary">
+                    <a href="{{ path('app_panneau_index') }}" class="btn-secondary-modern">
                         <i class="bi bi-x-circle"></i> Réinitialiser
                     </a>
                 </div>
             </form>
-        </div>
     </div>
+</div>
 
-    <div class="card">
-        <div class="card-body">
-            {% if panneaux|length > 0 %}
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Référence</th>
-                                <th>Emplacement</th>
-                                <th>Taille</th>
-                                <th>Type</th>
-                                <th>Prix mensuel</th>
-                                <th>Faces</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for panneau in panneaux %}
-                                <tr data-type="{{ panneau.type }}" 
-                                    data-etat="{{ panneau.etat }}" 
-                                    data-eclairage="{{ panneau.eclairage ? '1' : '0' }}"
-                                    data-reference="{{ panneau.reference|lower }}"
-                                    data-emplacement="{{ panneau.emplacement|lower }}"
-                                    data-quartier="{{ (panneau.quartier ?? '')|lower }}"
-                                    data-rue="{{ (panneau.rue ?? '')|lower }}">
-                                    <td><strong>{{ panneau.reference }}</strong></td>
-                                    <td>{{ panneau.emplacement }}</td>
-                                    <td>{{ panneau.getTailleFormatee() }}</td>
-                                    <td>
-                                        {% if panneau.type == 'double' %}
-                                            <span class="badge bg-info">Double</span>
-                                        {% else %}
-                                            <span class="badge bg-secondary">Simple</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>{{ panneau.prixMensuel|number_format(0, ',', ' ') }} FCFA</td>
-                                    <td>
-                                        {% for face in panneau.faces %}
-                                            <span class="badge bg-{{ face.getLocationActive() ? 'warning' : 'success' }}">
-                                                {{ face.lettre }} {{ face.getLocationActive() ? '(Occupée)' : '(Disponible)' }}
-                                            </span>
-                                        {% endfor %}
-                                    </td>
-                                    <td>
-                                        <a href="{{ path('app_panneau_show', {id: panneau.id}) }}" class="btn btn-sm btn-outline-primary">
-                                            <i class="bi bi-eye"></i>
-                                        </a>
-                                        <a href="{{ path('app_panneau_edit', {id: panneau.id}) }}" class="btn btn-sm btn-outline-secondary">
-                                            <i class="bi bi-pencil"></i>
-                                        </a>
-                                        <form method="post" action="{{ path('app_panneau_delete', {id: panneau.id}) }}" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce panneau ?');">
-                                            <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ panneau.id) }}">
-                                            <button type="submit" class="btn btn-sm btn-outline-danger">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </form>
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            {% else %}
-                <div class="alert alert-info">
-                    <i class="bi bi-info-circle"></i> Aucun panneau enregistré. <a href="{{ path('app_panneau_new') }}">Créer le premier panneau</a>
-                </div>
-            {% endif %}
-        </div>
+<div class="table-card">
+    <div class="table-header">
+        <h3 class="table-title">Panneaux</h3>
     </div>
+    {% if panneaux|length > 0 %}
+        <table class="modern-table">
+            <thead>
+                <tr>
+                    <th>Référence</th>
+                    <th>Emplacement</th>
+                    <th>Taille</th>
+                    <th>Type</th>
+                    <th>Prix mensuel</th>
+                    <th>Faces</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for panneau in panneaux %}
+                    <tr data-type="{{ panneau.type }}"
+                        data-etat="{{ panneau.etat }}"
+                        data-eclairage="{{ panneau.eclairage ? '1' : '0' }}"
+                        data-reference="{{ panneau.reference|lower }}"
+                        data-emplacement="{{ panneau.emplacement|lower }}"
+                        data-quartier="{{ (panneau.quartier ?? '')|lower }}"
+                        data-rue="{{ (panneau.rue ?? '')|lower }}">
+                        <td><strong>{{ panneau.reference }}</strong></td>
+                        <td>{{ panneau.emplacement }}</td>
+                        <td>{{ panneau.getTailleFormatee() }}</td>
+                        <td>
+                            {% if panneau.type == 'double' %}
+                                <span class="table-badge info">Double</span>
+                            {% else %}
+                                <span class="table-badge warning">Simple</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ panneau.prixMensuel|number_format(0, ',', ' ') }} FCFA</td>
+                        <td>
+                            {% for face in panneau.faces %}
+                                {% set locationActive = face.getLocationActive() %}
+                                {% set locationsFutures = face.getLocationsActivesOuFutures() %}
+                                {% if locationActive %}
+                                    <span class="table-badge warning" title="Occupée jusqu'au {{ locationActive.dateFin|date('d/m/Y') }}">
+                                        {{ face.lettre }} (Occupée)
+                                    </span>
+                                {% elseif locationsFutures|length > 0 %}
+                                    <span class="table-badge info" title="Réservée du {{ locationsFutures[0].dateDebut|date('d/m/Y') }} au {{ locationsFutures[0].dateFin|date('d/m/Y') }}">
+                                        {{ face.lettre }} (Réservée)
+                                    </span>
+                                {% else %}
+                                    <span class="table-badge success">
+                                        {{ face.lettre }} (Disponible)
+                                    </span>
+                                {% endif %}
+                            {% endfor %}
+                        </td>
+                        <td>
+                            <div class="action-menu">
+                                <a href="{{ path('app_panneau_show', {id: panneau.id}) }}" class="action-btn" title="Voir">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a href="{{ path('app_panneau_edit', {id: panneau.id}) }}" class="action-btn" title="Modifier">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form method="post" action="{{ path('app_panneau_delete', {id: panneau.id}) }}" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce panneau ?');">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ panneau.id) }}">
+                                    <button type="submit" class="action-btn" title="Supprimer" style="color: var(--danger-color);">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div style="text-align: center; padding: 2rem; color: var(--text-gray);">
+            <i class="bi bi-info-circle"></i> Aucun panneau enregistré. <a href="{{ path('app_panneau_new') }}">Créer le premier panneau</a>
+        </div>
+    {% endif %}
 </div>
 {% endblock %}
 
@@ -140,7 +156,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const etatSelect = document.getElementById('etat');
     const eclairageSelect = document.getElementById('eclairage');
     const tableRows = document.querySelectorAll('tbody tr');
-    
+
     let searchTimeout;
 
     // Fonction pour filtrer les lignes sans recharger la page
@@ -165,8 +181,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const typeMatch = !type || rowType === type;
             const etatMatch = !etat || rowEtat === etat;
             const eclairageMatch = !eclairage || rowEclairage === eclairage;
-            const rechercheMatch = !recherche || 
-                rowReference.includes(recherche) || 
+            const rechercheMatch = !recherche ||
+                rowReference.includes(recherche) ||
                 rowEmplacement.includes(recherche) ||
                 rowQuartier.includes(recherche) ||
                 rowRue.includes(recherche);

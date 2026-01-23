@@ -13,7 +13,9 @@ use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\Component\Validator\Constraints\Callback;
 use Symfony\Component\Validator\Constraints\File;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 class PanneauType extends AbstractType
 {
@@ -41,13 +43,49 @@ class PanneauType extends AbstractType
             ->add('coordonneesGps', TextType::class, [
                 'label' => 'Coordonnées GPS',
                 'required' => false,
-                'attr' => ['placeholder' => 'Ex: 13.5123,2.1098'],
-                'help' => 'Format: latitude,longitude'
+                'attr' => [
+                    'placeholder' => 'Ex: 13.5123,2.1098',
+                    'pattern' => '^-?([0-8]?[0-9](\.[0-9]{1,6})?|90(\.0{1,6})?),-?([0-1]?[0-7]?[0-9](\.[0-9]{1,6})?|180(\.0{1,6})?)$',
+                    'title' => 'Format requis: latitude,longitude (ex: 13.5123,2.1098). Latitude: -90 à 90, Longitude: -180 à 180',
+                    'data-format' => 'gps'
+                ],
+                'help' => 'Format: latitude,longitude (ex: 13.5123,2.1098). Latitude: -90 à 90, Longitude: -180 à 180',
+                'constraints' => [
+                    new Callback([
+                        'callback' => function ($value, ExecutionContextInterface $context) {
+                            if ($value && !empty(trim($value))) {
+                                $gpsPattern = '/^-?([0-8]?[0-9](\.[0-9]{1,6})?|90(\.0{1,6})?),-?([0-1]?[0-7]?[0-9](\.[0-9]{1,6})?|180(\.0{1,6})?)$/';
+                                if (!preg_match($gpsPattern, trim($value))) {
+                                    $context->buildViolation('Le format des coordonnées GPS est invalide. Format attendu: latitude,longitude (ex: 13.5123,2.1098)')
+                                        ->addViolation();
+                                } else {
+                                    // Vérifier les valeurs numériques
+                                    $parts = explode(',', trim($value));
+                                    if (count($parts) === 2) {
+                                        $lat = floatval(trim($parts[0]));
+                                        $lon = floatval(trim($parts[1]));
+                                        if ($lat < -90 || $lat > 90) {
+                                            $context->buildViolation('La latitude doit être entre -90 et 90.')
+                                                ->addViolation();
+                                        }
+                                        if ($lon < -180 || $lon > 180) {
+                                            $context->buildViolation('La longitude doit être entre -180 et 180.')
+                                                ->addViolation();
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    ])
+                ]
             ])
             ->add('taille', NumberType::class, [
                 'label' => 'Taille (m²)',
                 'scale' => 2,
                 'attr' => [
+                    'type' => 'number',
+                    'inputmode' => 'decimal',
+                    'pattern' => '[0-9]+(\.[0-9]{1,2})?',
                     'placeholder' => '12.00',
                     'step' => '0.01',
                     'min' => '0'
@@ -79,6 +117,17 @@ class PanneauType extends AbstractType
                 'placeholder' => 'Sélectionner un état'
             ])
             ->add('prixMensuel', MoneyType::class, [
+                'label' => 'Prix mensuel (FCFA)',
+                'currency' => 'XOF',
+                'divisor' => 1,
+                'attr' => [
+                    'placeholder' => '150000',
+                    'type' => 'number',
+                    'inputmode' => 'numeric',
+                    'pattern' => '[0-9]*',
+                    'min' => '0',
+                    'step' => '1',
+                ],
                 'label' => 'Prix mensuel (FCFA)',
                 'currency' => 'XOF',
                 'divisor' => 1,

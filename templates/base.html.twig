@@ -4,86 +4,1068 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>{% block title %}Gestion Panneaux Publicitaires - Niamey{% endblock %}</title>
-        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.2em%22 font-size=%2296%22>📢</text></svg>">
-        
+        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect x=%2210%22 y=%2210%22 width=%2280%22 height=%2260%22 fill=%22%236366f1%22 rx=%225%22/><rect x=%2215%22 y=%2215%22 width=%2270%22 height=%2250%22 fill=%22white%22 rx=%223%22/><text x=%2250%22 y=%2245%22 font-size=%2224%22 font-weight=%22bold%22 fill=%22%236366f1%22 text-anchor=%22middle%22>P%3C/text%3E</svg>">
+
         {# Bootstrap 5 CSS #}
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.css">
-        
+
+        {# Styles personnalisés pour le dashboard moderne #}
+        <style>
+            :root {
+                --primary-color: #6366f1;
+                --primary-light: #818cf8;
+                --primary-dark: #4f46e5;
+                --sidebar-width: 260px;
+                --header-height: 70px;
+                --bg-light: #f8fafc;
+                --text-dark: #1e293b;
+                --text-gray: #64748b;
+                --border-color: #e2e8f0;
+                --success-color: #10b981;
+                --warning-color: #f59e0b;
+                --danger-color: #ef4444;
+                --info-color: #3b82f6;
+            }
+
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                background-color: var(--bg-light);
+                color: var(--text-dark);
+                overflow-x: hidden;
+            }
+
+            .dashboard-layout {
+                display: flex;
+                flex-direction: column;
+                min-height: 100vh;
+            }
+
+            /* Sidebar */
+            .sidebar {
+                width: var(--sidebar-width);
+                background: white;
+                box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
+                position: fixed;
+                left: 0;
+                top: 0;
+                height: 100vh;
+                overflow-y: auto;
+                z-index: 1000;
+                transition: transform 0.3s ease;
+            }
+
+            .sidebar-header {
+                padding: 1.5rem;
+                border-bottom: 1px solid var(--border-color);
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+            }
+
+            .sidebar-logo {
+                width: 40px;
+                height: 40px;
+                background: var(--primary-color);
+                border-radius: 8px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: white;
+                font-weight: bold;
+                font-size: 1.25rem;
+            }
+
+            .sidebar-brand {
+                font-size: 1.25rem;
+                font-weight: 600;
+                color: var(--text-dark);
+            }
+
+            .sidebar-nav {
+                padding: 1rem 0;
+            }
+
+            .nav-section {
+                margin-bottom: 1.5rem;
+            }
+
+            .nav-section-title {
+                padding: 0.5rem 1.5rem;
+                font-size: 0.75rem;
+                font-weight: 600;
+                text-transform: uppercase;
+                color: var(--text-gray);
+                letter-spacing: 0.05em;
+            }
+
+            .nav-item {
+                display: flex;
+                align-items: center;
+                padding: 0.75rem 1.5rem;
+                color: var(--text-gray);
+                text-decoration: none;
+                transition: all 0.2s;
+                position: relative;
+            }
+
+            .nav-item:hover {
+                background: rgba(99, 102, 241, 0.05);
+                color: var(--primary-color);
+            }
+
+            .nav-item.active {
+                background: var(--primary-color);
+                color: white;
+            }
+
+            .nav-item i {
+                width: 20px;
+                margin-right: 0.75rem;
+                font-size: 1.1rem;
+            }
+
+            .nav-badge {
+                margin-left: auto;
+                padding: 0.25rem 0.5rem;
+                border-radius: 12px;
+                font-size: 0.7rem;
+                font-weight: 600;
+            }
+
+            .nav-badge.new {
+                background: #d1fae5;
+                color: #065f46;
+            }
+
+            .nav-badge.active {
+                background: rgba(255, 255, 255, 0.2);
+                color: white;
+            }
+
+            /* Header */
+            .main-content {
+                margin-left: var(--sidebar-width);
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                min-height: 100vh;
+            }
+
+            .top-header {
+                height: var(--header-height);
+                background: white;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                display: flex;
+                align-items: center;
+                padding: 0 2rem;
+                position: sticky;
+                top: 0;
+                z-index: 100;
+            }
+
+            .header-left {
+                display: flex;
+                align-items: center;
+                gap: 1rem;
+            }
+
+            .menu-toggle {
+                background: none;
+                border: none;
+                font-size: 1.5rem;
+                color: var(--text-gray);
+                cursor: pointer;
+                padding: 0.5rem;
+            }
+
+            .search-bar {
+                position: relative;
+                width: 400px;
+            }
+
+            .search-bar input {
+                width: 100%;
+                padding: 0.625rem 1rem 0.625rem 2.5rem;
+                border: 1px solid var(--border-color);
+                border-radius: 8px;
+                font-size: 0.875rem;
+                transition: all 0.2s;
+            }
+
+            .search-bar input:focus {
+                outline: none;
+                border-color: var(--primary-color);
+                box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+            }
+
+            .search-bar i {
+                position: absolute;
+                left: 0.875rem;
+                top: 50%;
+                transform: translateY(-50%);
+                color: var(--text-gray);
+            }
+
+            .header-right {
+                margin-left: auto;
+                display: flex;
+                align-items: center;
+                gap: 1rem;
+            }
+
+            .header-icon {
+                width: 40px;
+                height: 40px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 8px;
+                color: var(--text-gray);
+                cursor: pointer;
+                transition: all 0.2s;
+                position: relative;
+            }
+
+            .header-icon:hover {
+                background: var(--bg-light);
+                color: var(--text-dark);
+            }
+
+            .notification-badge {
+                position: absolute;
+                top: 6px;
+                right: 6px;
+                width: 8px;
+                height: 8px;
+                background: var(--danger-color);
+                border-radius: 50%;
+                border: 2px solid white;
+            }
+
+            .notification-count {
+                position: absolute;
+                top: -4px;
+                right: -4px;
+                background: var(--danger-color);
+                color: white;
+                font-size: 0.65rem;
+                font-weight: 600;
+                padding: 0.15rem 0.35rem;
+                border-radius: 10px;
+                min-width: 18px;
+                text-align: center;
+            }
+
+            .user-menu {
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+                padding: 0.5rem;
+                border-radius: 8px;
+                cursor: pointer;
+                transition: all 0.2s;
+            }
+
+            .user-menu:hover {
+                background: var(--bg-light);
+            }
+
+            .user-avatar {
+                width: 36px;
+                height: 36px;
+                border-radius: 50%;
+                background: var(--primary-color);
+                color: white;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: 600;
+                font-size: 0.875rem;
+            }
+
+            .user-info {
+                display: flex;
+                flex-direction: column;
+            }
+
+            .user-name {
+                font-size: 0.875rem;
+                font-weight: 600;
+                color: var(--text-dark);
+            }
+
+            /* Content Area */
+            .content-area {
+                padding: 2rem;
+                flex: 1;
+            }
+
+            .page-header {
+                margin-bottom: 2rem;
+            }
+
+            .page-title {
+                font-size: 2rem;
+                font-weight: 700;
+                color: var(--text-dark);
+                margin-bottom: 0.5rem;
+            }
+
+            .page-description {
+                color: var(--text-gray);
+                font-size: 0.9375rem;
+            }
+
+            /* Cards */
+            .metric-card {
+                background: white;
+                border-radius: 12px;
+                padding: 1.5rem;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                transition: all 0.2s;
+            }
+
+            .metric-card:hover {
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            }
+
+            .metric-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-bottom: 1rem;
+            }
+
+            .metric-icon {
+                width: 48px;
+                height: 48px;
+                border-radius: 10px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.5rem;
+            }
+
+            .metric-icon.primary {
+                background: rgba(99, 102, 241, 0.1);
+                color: var(--primary-color);
+            }
+
+            .metric-icon.warning {
+                background: rgba(245, 158, 11, 0.1);
+                color: var(--warning-color);
+            }
+
+            .metric-icon.info {
+                background: rgba(59, 130, 246, 0.1);
+                color: var(--info-color);
+            }
+
+            .metric-icon.success {
+                background: rgba(16, 185, 129, 0.1);
+                color: var(--success-color);
+            }
+
+            .metric-value {
+                font-size: 2rem;
+                font-weight: 700;
+                color: var(--text-dark);
+                margin-bottom: 0.5rem;
+            }
+
+            .metric-label {
+                font-size: 0.875rem;
+                color: var(--text-gray);
+                margin-bottom: 0.5rem;
+            }
+
+            .metric-change {
+                font-size: 0.8125rem;
+                display: flex;
+                align-items: center;
+                gap: 0.25rem;
+            }
+
+            .metric-change.positive {
+                color: var(--success-color);
+            }
+
+            .metric-change.warning {
+                color: var(--warning-color);
+            }
+
+            .metric-change.info {
+                color: var(--info-color);
+            }
+
+            /* Section Cards */
+            .section-card {
+                background: white;
+                border-radius: 12px;
+                padding: 1.5rem;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            }
+
+            .section-card.full-height {
+                height: 100%;
+            }
+
+            .section-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-bottom: 1rem;
+            }
+
+            .section-title {
+                font-size: 1.125rem;
+                font-weight: 600;
+                color: var(--text-dark);
+            }
+
+            .period-selector {
+                display: flex;
+                gap: 0.5rem;
+            }
+
+            .period-btn {
+                padding: 0.375rem 0.75rem;
+                border: 1px solid var(--border-color);
+                background: white;
+                border-radius: 6px;
+                font-size: 0.8125rem;
+                cursor: pointer;
+                transition: all 0.2s;
+            }
+
+            .period-btn:hover {
+                background: var(--bg-light);
+            }
+
+            .period-btn.active {
+                background: var(--text-dark);
+                color: white;
+                border-color: var(--text-dark);
+            }
+
+            .status-list {
+                list-style: none;
+                padding: 0;
+            }
+
+            .status-item {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 0.75rem 0;
+                border-bottom: 1px solid var(--border-color);
+            }
+
+            .status-item:last-child {
+                border-bottom: none;
+            }
+
+            .status-label {
+                font-size: 0.875rem;
+                color: var(--text-dark);
+            }
+
+            .status-value {
+                font-size: 0.875rem;
+                font-weight: 600;
+                color: var(--text-gray);
+            }
+
+            /* Table */
+            .table-card {
+                background: white;
+                border-radius: 12px;
+                padding: 1.5rem;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                margin-top: 2rem;
+            }
+
+            .table-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-bottom: 1.5rem;
+            }
+
+            .table-title {
+                font-size: 1.125rem;
+                font-weight: 600;
+                color: var(--text-dark);
+            }
+
+            .table-toolbar {
+                display: flex;
+                align-items: center;
+                gap: 1rem;
+            }
+
+            .table-search {
+                position: relative;
+                width: 250px;
+            }
+
+            .table-search input {
+                width: 100%;
+                padding: 0.5rem 1rem 0.5rem 2.25rem;
+                border: 1px solid var(--border-color);
+                border-radius: 6px;
+                font-size: 0.875rem;
+            }
+
+            .table-search i {
+                position: absolute;
+                left: 0.75rem;
+                top: 50%;
+                transform: translateY(-50%);
+                color: var(--text-gray);
+                font-size: 0.875rem;
+            }
+
+            .table-select {
+                padding: 0.5rem 1rem;
+                border: 1px solid var(--border-color);
+                border-radius: 6px;
+                font-size: 0.875rem;
+                background: white;
+                cursor: pointer;
+            }
+
+            .modern-table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+
+            .modern-table thead {
+                background: var(--bg-light);
+            }
+
+            .modern-table th {
+                padding: 1rem;
+                text-align: left;
+                font-size: 0.8125rem;
+                font-weight: 600;
+                color: var(--text-gray);
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+            }
+
+            .modern-table td {
+                padding: 1rem;
+                border-top: 1px solid var(--border-color);
+                font-size: 0.875rem;
+            }
+
+            .modern-table tbody tr:hover {
+                background: var(--bg-light);
+            }
+
+            .table-badge {
+                padding: 0.375rem 0.75rem;
+                border-radius: 20px;
+                font-size: 0.75rem;
+                font-weight: 600;
+                display: inline-block;
+            }
+
+            .table-badge.pending {
+                background: rgba(245, 158, 11, 0.1);
+                color: #b45309;
+            }
+
+            .table-badge.success {
+                background: rgba(16, 185, 129, 0.1);
+                color: #047857;
+            }
+
+            .table-badge.danger {
+                background: rgba(239, 68, 68, 0.1);
+                color: #b91c1c;
+            }
+
+            .table-badge.warning {
+                background: rgba(245, 158, 11, 0.1);
+                color: #b45309;
+            }
+
+            .table-badge.info {
+                background: rgba(59, 130, 246, 0.1);
+                color: #1e40af;
+            }
+
+            .action-menu {
+                position: relative;
+            }
+
+            .action-btn {
+                background: none;
+                border: none;
+                color: var(--text-gray);
+                cursor: pointer;
+                padding: 0.5rem;
+                border-radius: 6px;
+                transition: all 0.2s;
+            }
+
+            .action-btn:hover {
+                background: var(--bg-light);
+                color: var(--text-dark);
+            }
+
+            .customer-info {
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+            }
+
+            .customer-avatar {
+                width: 36px;
+                height: 36px;
+                border-radius: 50%;
+                background: var(--primary-color);
+                color: white;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: 600;
+                font-size: 0.875rem;
+            }
+
+            .customer-details {
+                display: flex;
+                flex-direction: column;
+            }
+
+            .customer-name {
+                font-weight: 600;
+                color: var(--text-dark);
+                font-size: 0.875rem;
+            }
+
+            .customer-email {
+                font-size: 0.75rem;
+                color: var(--text-gray);
+            }
+
+            /* Buttons */
+            .btn-primary-modern {
+                background: var(--primary-color);
+                color: white;
+                border: none;
+                padding: 0.625rem 1.25rem;
+                border-radius: 8px;
+                font-weight: 600;
+                font-size: 0.875rem;
+                cursor: pointer;
+                transition: all 0.2s;
+                display: inline-flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+
+            .btn-primary-modern:hover {
+                background: var(--primary-dark);
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+            }
+
+            .btn-secondary-modern {
+                background: white;
+                color: var(--text-dark);
+                border: 1px solid var(--border-color);
+                padding: 0.625rem 1.25rem;
+                border-radius: 8px;
+                font-weight: 600;
+                font-size: 0.875rem;
+                cursor: pointer;
+                transition: all 0.2s;
+                display: inline-flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+
+            .btn-secondary-modern:hover {
+                background: var(--bg-light);
+                border-color: var(--primary-color);
+                color: var(--primary-color);
+            }
+
+            /* Responsive */
+            @media (max-width: 768px) {
+                .sidebar {
+                    transform: translateX(-100%);
+                }
+
+                .sidebar.open {
+                    transform: translateX(0);
+                }
+
+                .main-content {
+                    margin-left: 0;
+                }
+
+                .search-bar {
+                    width: 200px;
+                }
+            }
+
+            /* Alert messages */
+            .alert-container {
+                position: fixed;
+                top: calc(var(--header-height) + 1rem);
+                right: 2rem;
+                z-index: 1000;
+                max-width: 400px;
+            }
+
+            /* Footer */
+            .app-footer {
+                background: white;
+                border-top: 1px solid var(--border-color);
+                padding: 1.5rem 2rem;
+                margin-top: auto;
+                text-align: center;
+                color: var(--text-gray);
+                font-size: 0.875rem;
+            }
+
+            .app-footer p {
+                margin: 0;
+            }
+
+            .app-footer-guest {
+                background: var(--bg-light);
+                border-top: 1px solid var(--border-color);
+                padding: 1.5rem;
+                text-align: center;
+                color: var(--text-gray);
+                font-size: 0.875rem;
+                margin-top: 2rem;
+            }
+
+            .app-footer-guest p {
+                margin: 0;
+            }
+        </style>
+
         {% block stylesheets %}{% endblock %}
     </head>
     <body>
         {% if app.user %}
-            {# Navigation #}
-            <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-                <div class="container-fluid">
-                    <a class="navbar-brand" href="{{ path('app_dashboard') }}">
-                        <i class="bi bi-megaphone"></i> Gestion Panneaux
-                    </a>
-                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                        <span class="navbar-toggler-icon"></span>
-                    </button>
-                    <div class="collapse navbar-collapse" id="navbarNav">
-                        <ul class="navbar-nav me-auto">
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ path('app_dashboard') }}">
-                                    <i class="bi bi-speedometer2"></i> Tableau de bord
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ path('app_panneau_index') }}">
-                                    <i class="bi bi-grid"></i> Panneaux
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ path('app_client_index') }}">
-                                    <i class="bi bi-people"></i> Clients
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ path('app_location_index') }}">
-                                    <i class="bi bi-calendar-check"></i> Locations
-                                </a>
-                            </li>
-                        </ul>
-                        <ul class="navbar-nav">
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="bi bi-person-circle"></i> {{ app.user.fullName }}
-                                </a>
-                                <ul class="dropdown-menu dropdown-menu-end">
-                                    <li><a class="dropdown-item" href="{{ path('app_logout') }}">
-                                        <i class="bi bi-box-arrow-right"></i> Déconnexion
-                                    </a></li>
-                                </ul>
-                            </li>
-                        </ul>
+            <div class="dashboard-layout">
+                {# Sidebar #}
+                <aside class="sidebar" id="sidebar">
+                    <div class="sidebar-header">
+                        <div class="sidebar-logo">GP</div>
+                        <div class="sidebar-brand">Gestion Panneaux</div>
+                    </div>
+                    <nav class="sidebar-nav">
+                        <div class="nav-section">
+                            <a href="{{ path('app_dashboard') }}" class="nav-item {% if app.request.attributes.get('_route') == 'app_dashboard' %}active{% endif %}">
+                                <i class="bi bi-speedometer2"></i>
+                                <span>Dashboard</span>
+                            </a>
+                            <a href="{{ path('app_panneau_index') }}" class="nav-item {% if 'panneau' in app.request.attributes.get('_route') %}active{% endif %}">
+                                <i class="bi bi-grid"></i>
+                                <span>Panneaux</span>
+                            </a>
+                            <a href="{{ path('app_client_index') }}" class="nav-item {% if 'client' in app.request.attributes.get('_route') %}active{% endif %}">
+                                <i class="bi bi-people"></i>
+                                <span>Clients</span>
+                            </a>
+                            <a href="{{ path('app_location_index') }}" class="nav-item {% if 'location' in app.request.attributes.get('_route') %}active{% endif %}">
+                                <i class="bi bi-calendar-check"></i>
+                                <span>Locations</span>
+                                {% if app.request.attributes.get('_route') == 'app_location_index' %}
+                                    <span class="nav-badge active">Active</span>
+                                {% endif %}
+                            </a>
+                        </div>
+                        <div class="nav-section">
+                            <div class="nav-section-title">Admin</div>
+                            <a href="{{ path('app_logout') }}" class="nav-item">
+                                <i class="bi bi-box-arrow-right"></i>
+                                <span>Déconnexion</span>
+                            </a>
+                        </div>
+                    </nav>
+                </aside>
+
+                {# Main Content #}
+                <div class="main-content">
+                    {# Top Header #}
+                    <header class="top-header">
+                        <div class="header-left">
+                            <button class="menu-toggle" id="menuToggle">
+                                <i class="bi bi-list"></i>
+                            </button>
+                            <div class="search-bar">
+                                <i class="bi bi-search"></i>
+                                <input type="text" placeholder="Search... (Ctrl+K)" />
+                            </div>
+                        </div>
+                        <div class="header-right">
+                            <div class="header-icon">
+                                <i class="bi bi-sun"></i>
+                            </div>
+                            <div class="header-icon">
+                                <i class="bi bi-grid"></i>
+                            </div>
+                            <div class="header-icon" style="position: relative;">
+                                <i class="bi bi-bell"></i>
+                                <span class="notification-count">3</span>
+                            </div>
+                            <div class="user-menu dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                <div class="user-avatar">{{ app.user.fullName|first|upper }}</div>
+                                <div class="user-info">
+                                    <span class="user-name">{{ app.user.fullName }}</span>
+                                </div>
+                                <i class="bi bi-chevron-down" style="font-size: 0.75rem;"></i>
+                            </div>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="{{ path('app_logout') }}">
+                                    <i class="bi bi-box-arrow-right"></i> Déconnexion
+                                </a></li>
+                            </ul>
+                        </div>
+                    </header>
+
+                    {# Content Area #}
+                    <div class="content-area">
+                        {# Alert Messages #}
+                        <div class="alert-container">
+                            {% for message in app.flashes('success') %}
+                                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                            {% endfor %}
+
+                            {% for message in app.flashes('error') %}
+                                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                            {% endfor %}
+                        </div>
+
+                        {% block body %}{% endblock %}
                     </div>
                 </div>
-            </nav>
-        {% endif %}
+            </div>
 
-        <div class="container-fluid mt-4">
+            {# Footer #}
+            <footer class="app-footer">
+                <p>&copy; {{ "now"|date("Y") }} Gestion Panneaux Publicitaires - Niamey. Tous droits réservés.</p>
+            </footer>
+        {% else %}
+            {# Pour les utilisateurs non connectés (ex: page de login) #}
             {% for message in app.flashes('success') %}
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <div class="alert alert-success alert-dismissible fade show" role="alert" style="position: fixed; top: 1rem; right: 1rem; z-index: 1000; max-width: 400px;">
                     {{ message }}
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
             {% endfor %}
 
             {% for message in app.flashes('error') %}
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <div class="alert alert-danger alert-dismissible fade show" role="alert" style="position: fixed; top: 1rem; right: 1rem; z-index: 1000; max-width: 400px;">
                     {{ message }}
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
             {% endfor %}
-
-            {% block body %}{% endblock %}
-        </div>
+            
+            {% block body_guest %}{% endblock %}
+            
+            {# Footer pour utilisateurs non connectés #}
+            <footer class="app-footer-guest">
+                <p>&copy; {{ "now"|date("Y") }} Gestion Panneaux Publicitaires - Niamey. Tous droits réservés.</p>
+            </footer>
+        {% endif %}
 
         {# Bootstrap 5 JS #}
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
-        
+
+        {# Script pour le toggle du menu sidebar #}
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Toggle sidebar sur mobile
+            const menuToggle = document.getElementById('menuToggle');
+            const sidebar = document.getElementById('sidebar');
+
+            if (menuToggle && sidebar) {
+                menuToggle.addEventListener('click', function() {
+                    sidebar.classList.toggle('open');
+                });
+            }
+        });
+        </script>
+
+        {# Script pour empêcher la saisie de texte dans les champs numériques et valider les téléphones #}
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Sélectionner tous les champs de type number
+            const numberInputs = document.querySelectorAll('input[type="number"]');
+
+            numberInputs.forEach(function(input) {
+                const pattern = input.getAttribute('pattern');
+                const step = input.getAttribute('step');
+                const allowDecimal = step && parseFloat(step) < 1;
+
+                // Empêcher la saisie de caractères non numériques
+                input.addEventListener('keypress', function(e) {
+                    // Autoriser : backspace, delete, tab, escape, enter
+                    if ([8, 9, 27, 13, 46].indexOf(e.keyCode) !== -1 ||
+                        // Autoriser : Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+                        (e.keyCode === 65 && e.ctrlKey === true) ||
+                        (e.keyCode === 67 && e.ctrlKey === true) ||
+                        (e.keyCode === 86 && e.ctrlKey === true) ||
+                        (e.keyCode === 88 && e.ctrlKey === true) ||
+                        // Autoriser : home, end, left, right
+                        (e.keyCode >= 35 && e.keyCode <= 39)) {
+                        return;
+                    }
+
+                    // Autoriser le point/virgule pour les nombres décimaux
+                    if (allowDecimal && (e.keyCode === 190 || e.keyCode === 110 || e.keyCode === 188)) {
+                        // Vérifier qu'il n'y a pas déjà un point/virgule
+                        if (this.value.indexOf('.') !== -1 || this.value.indexOf(',') !== -1) {
+                            e.preventDefault();
+                        }
+                        return;
+                    }
+
+                    // S'assurer que c'est un nombre
+                    if ((e.shiftKey || (e.keyCode < 48 || e.keyCode > 57)) && (e.keyCode < 96 || e.keyCode > 105)) {
+                        e.preventDefault();
+                    }
+                });
+
+                // Empêcher le collage de texte non numérique
+                input.addEventListener('paste', function(e) {
+                    const paste = (e.clipboardData || window.clipboardData).getData('text');
+                    if (allowDecimal) {
+                        // Autoriser les nombres avec décimales
+                        if (!/^\d+(\.\d+)?$/.test(paste.replace(',', '.'))) {
+                            e.preventDefault();
+                        }
+                    } else {
+                        // Autoriser uniquement les entiers
+                        if (!/^\d+$/.test(paste)) {
+                            e.preventDefault();
+                        }
+                    }
+                });
+
+                // Nettoyer la valeur si elle contient des caractères non numériques
+                input.addEventListener('input', function(e) {
+                    if (allowDecimal) {
+                        // Autoriser les nombres avec décimales
+                        this.value = this.value.replace(/[^0-9.,]/g, '').replace(',', '.');
+                        // S'assurer qu'il n'y a qu'un seul point
+                        const parts = this.value.split('.');
+                        if (parts.length > 2) {
+                            this.value = parts[0] + '.' + parts.slice(1).join('');
+                        }
+                    } else {
+                        // Autoriser uniquement les entiers
+                        this.value = this.value.replace(/[^0-9]/g, '');
+                    }
+                });
+            });
+
+            // Validation pour les champs téléphone (inputmode="tel")
+            const telInputs = document.querySelectorAll('input[inputmode="tel"]');
+            telInputs.forEach(function(input) {
+                // Nettoyer la valeur pour ne garder que les caractères valides pour un téléphone
+                input.addEventListener('input', function(e) {
+                    // Autoriser : chiffres, +, espaces, tirets, parenthèses
+                    this.value = this.value.replace(/[^0-9+\s\-\(\)]/g, '');
+                });
+            });
+
+            // Validation pour les champs coordonnées GPS
+            const gpsInputs = document.querySelectorAll('input[data-format="gps"]');
+            gpsInputs.forEach(function(input) {
+                // Format attendu: latitude,longitude (ex: 13.5123,2.1098)
+                // Latitude: -90 à 90, Longitude: -180 à 180
+                const gpsPattern = /^-?([0-8]?[0-9](\.[0-9]{1,6})?|90(\.0{1,6})?),-?([0-1]?[0-7]?[0-9](\.[0-9]{1,6})?|180(\.0{1,6})?)$/;
+
+                // Valider lors de la saisie
+                input.addEventListener('input', function(e) {
+                    const value = this.value.trim();
+
+                    // Autoriser la saisie en cours (même si incomplète)
+                    // Mais afficher un message d'aide
+                    const formGroup = this.closest('.mb-3');
+                    if (formGroup) {
+                        let helpMsg = formGroup.querySelector('.gps-validation-msg');
+                        if (!helpMsg) {
+                            helpMsg = document.createElement('div');
+                            helpMsg.className = 'gps-validation-msg form-text';
+                            formGroup.appendChild(helpMsg);
+                        }
+
+                        if (value === '') {
+                            helpMsg.textContent = '';
+                            helpMsg.className = 'gps-validation-msg form-text';
+                        } else if (gpsPattern.test(value)) {
+                            helpMsg.textContent = '✓ Format valide';
+                            helpMsg.className = 'gps-validation-msg form-text text-success';
+                            this.classList.remove('is-invalid');
+                            this.classList.add('is-valid');
+                        } else {
+                            helpMsg.textContent = 'Format attendu: latitude,longitude (ex: 13.5123,2.1098)';
+                            helpMsg.className = 'gps-validation-msg form-text text-danger';
+                            this.classList.remove('is-valid');
+                            this.classList.add('is-invalid');
+                        }
+                    }
+                });
+
+                // Valider lors de la perte de focus
+                input.addEventListener('blur', function(e) {
+                    const value = this.value.trim();
+                    if (value && !gpsPattern.test(value)) {
+                        this.classList.add('is-invalid');
+                        // Optionnel: réinitialiser si format invalide
+                        // this.value = '';
+                    }
+                });
+
+                // Empêcher la saisie de caractères invalides
+                input.addEventListener('keypress', function(e) {
+                    // Autoriser : chiffres, point, virgule, signe moins
+                    const allowedChars = /[0-9.,\-]/;
+                    const key = String.fromCharCode(e.keyCode || e.which);
+
+                    // Autoriser les touches de contrôle
+                    if ([8, 9, 27, 13, 46, 35, 36, 37, 38, 39, 40].indexOf(e.keyCode) !== -1 ||
+                        (e.keyCode === 65 && e.ctrlKey === true) ||
+                        (e.keyCode === 67 && e.ctrlKey === true) ||
+                        (e.keyCode === 86 && e.ctrlKey === true) ||
+                        (e.keyCode === 88 && e.ctrlKey === true)) {
+                        return;
+                    }
+
+                    if (!allowedChars.test(key)) {
+                        e.preventDefault();
+                    }
+                });
+            });
+        });
+        </script>
+
         {% block javascripts %}{% endblock %}
     </body>
 </html>
