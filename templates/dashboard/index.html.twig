@@ -3,200 +3,248 @@
 {% block title %}Tableau de bord{% endblock %}
 
 {% block body %}
-<div class="container-fluid">
-    <h1 class="mb-4"><i class="bi bi-speedometer2"></i> Tableau de bord</h1>
+<div class="page-header">
+    <h1 class="page-title">Gestion des Locations</h1>
+    <p class="page-description">Suivez les locations, gérez les panneaux et analysez les revenus</p>
+</div>
 
-    {# Statistiques globales #}
-    <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="card text-white bg-primary mb-3">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="card-title">Panneaux</h6>
-                            <h2 class="mb-0">{{ totalPanneaux }}</h2>
-                        </div>
-                        <i class="bi bi-grid fs-1 opacity-50"></i>
-                    </div>
+{# Boutons d'action #}
+<div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
+    <button class="btn-secondary-modern">
+        <i class="bi bi-download"></i> Export
+    </button>
+    <button class="btn-secondary-modern">
+        <i class="bi bi-arrow-repeat"></i> Mise à jour groupée
+    </button>
+    <a href="{{ path('app_location_new') }}" class="btn-primary-modern">
+        <i class="bi bi-plus"></i> Nouvelle Location
+    </a>
+</div>
+
+{# Cartes de métriques #}
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="metric-card">
+            <div class="metric-header">
+                <div class="metric-icon primary">
+                    <i class="bi bi-grid"></i>
                 </div>
             </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card text-white bg-success mb-3">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="card-title">Faces disponibles</h6>
-                            <h2 class="mb-0">{{ facesDisponibles }}</h2>
-                        </div>
-                        <i class="bi bi-check-circle fs-1 opacity-50"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card text-white bg-warning mb-3">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="card-title">Faces occupées</h6>
-                            <h2 class="mb-0">{{ facesOccupees }}</h2>
-                        </div>
-                        <i class="bi bi-x-circle fs-1 opacity-50"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card text-white bg-info mb-3">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="card-title">Revenu mensuel</h6>
-                            <h2 class="mb-0">{{ revenuMensuel|number_format(0, ',', ' ') }} FCFA</h2>
-                        </div>
-                        <i class="bi bi-currency-exchange fs-1 opacity-50"></i>
-                    </div>
-                </div>
+            <div class="metric-value">{{ totalPanneaux }}</div>
+            <div class="metric-label">Total Panneaux</div>
+            <div class="metric-change positive">
+                <i class="bi bi-arrow-up"></i>
+                <span>Total disponible</span>
             </div>
         </div>
     </div>
-
-    <div class="row">
-        {# Alertes - Locations finissant bientôt #}
-        <div class="col-md-6 mb-4">
-            <div class="card">
-                <div class="card-header bg-warning text-dark">
-                    <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Locations finissant bientôt (30 jours)</h5>
-                </div>
-                <div class="card-body">
-                    {% if locationsFinissantBientot|length > 0 %}
-                        <div class="table-responsive">
-                            <table class="table table-sm">
-                                <thead>
-                                    <tr>
-                                        <th>Face</th>
-                                        <th>Client</th>
-                                        <th>Date fin</th>
-                                        <th>Statut</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for location in locationsFinissantBientot %}
-                                        <tr>
-                                            <td>{{ location.face.nomComplet }}</td>
-                                            <td>{{ location.client.nom }}</td>
-                                            <td>{{ location.dateFin|date('d/m/Y') }}</td>
-                                            <td>
-                                                {% if location.estPaye %}
-                                                    <span class="badge bg-success">Payé</span>
-                                                {% else %}
-                                                    <span class="badge bg-danger">Impayé</span>
-                                                {% endif %}
-                                            </td>
-                                        </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    {% else %}
-                        <p class="text-muted mb-0">Aucune location ne se termine bientôt.</p>
-                    {% endif %}
+    <div class="col-md-3">
+        <div class="metric-card">
+            <div class="metric-header">
+                <div class="metric-icon warning">
+                    <i class="bi bi-clock"></i>
                 </div>
             </div>
-        </div>
-
-        {# Alertes - Locations impayées #}
-        <div class="col-md-6 mb-4">
-            <div class="card">
-                <div class="card-header bg-danger text-white">
-                    <h5 class="mb-0"><i class="bi bi-exclamation-circle"></i> Locations impayées</h5>
-                </div>
-                <div class="card-body">
-                    {% if locationsImpayees|length > 0 %}
-                        <div class="table-responsive">
-                            <table class="table table-sm">
-                                <thead>
-                                    <tr>
-                                        <th>Face</th>
-                                        <th>Client</th>
-                                        <th>Montant</th>
-                                        <th>Période</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for location in locationsImpayees %}
-                                        <tr>
-                                            <td>{{ location.face.nomComplet }}</td>
-                                            <td>{{ location.client.nom }}</td>
-                                            <td>{{ location.montantMensuel|number_format(0, ',', ' ') }} FCFA</td>
-                                            <td>{{ location.dateDebut|date('d/m/Y') }} - {{ location.dateFin|date('d/m/Y') }}</td>
-                                        </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    {% else %}
-                        <p class="text-muted mb-0">Aucune location impayée.</p>
-                    {% endif %}
-                </div>
+            <div class="metric-value">{{ facesOccupees }}</div>
+            <div class="metric-label">Faces occupées</div>
+            <div class="metric-change warning">
+                <i class="bi bi-exclamation-triangle"></i>
+                <span>Nécessite attention</span>
             </div>
         </div>
     </div>
-
-    {# Dernières locations #}
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="bi bi-clock-history"></i> Dernières locations</h5>
+    <div class="col-md-3">
+        <div class="metric-card">
+            <div class="metric-header">
+                <div class="metric-icon info">
+                    <i class="bi bi-check-circle"></i>
                 </div>
-                <div class="card-body">
-                    {% if dernieresLocations|length > 0 %}
-                        <div class="table-responsive">
-                            <table class="table">
-                                <thead>
-                                    <tr>
-                                        <th>Face</th>
-                                        <th>Client</th>
-                                        <th>Date début</th>
-                                        <th>Date fin</th>
-                                        <th>Montant mensuel</th>
-                                        <th>Statut</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for location in dernieresLocations %}
-                                        <tr>
-                                            <td>{{ location.face.nomComplet }}</td>
-                                            <td>{{ location.client.nom }}</td>
-                                            <td>{{ location.dateDebut|date('d/m/Y') }}</td>
-                                            <td>{{ location.dateFin|date('d/m/Y') }}</td>
-                                            <td>{{ location.montantMensuel|number_format(0, ',', ' ') }} FCFA</td>
-                                            <td>
-                                                {% if location.estPaye %}
-                                                    <span class="badge bg-success">Payé</span>
-                                                {% else %}
-                                                    <span class="badge bg-danger">Impayé</span>
-                                                {% endif %}
-                                            </td>
-                                            <td>
-                                                <a href="{{ path('app_location_show', {id: location.id}) }}" class="btn btn-sm btn-outline-primary">
-                                                    <i class="bi bi-eye"></i>
-                                                </a>
-                                            </td>
-                                        </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    {% else %}
-                        <p class="text-muted mb-0">Aucune location enregistrée.</p>
-                    {% endif %}
+            </div>
+            <div class="metric-value">{{ facesDisponibles }}</div>
+            <div class="metric-label">Faces disponibles</div>
+            <div class="metric-change info">
+                <i class="bi bi-arrow-right"></i>
+                <span>En transit</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="metric-card">
+            <div class="metric-header">
+                <div class="metric-icon success">
+                    <i class="bi bi-currency-exchange"></i>
                 </div>
+            </div>
+            <div class="metric-value">{{ revenuMensuel|number_format(0, ',', ' ') }} FCFA</div>
+            <div class="metric-label">Revenu mensuel</div>
+            <div class="metric-change positive">
+                <i class="bi bi-arrow-up"></i>
+                <span>Revenus actifs</span>
             </div>
         </div>
     </div>
 </div>
+
+{# Sections Order Trends et Order Status #}
+<div class="row g-4 mb-4">
+    <div class="col-md-6">
+        <div class="section-card">
+            <div class="section-header">
+                <h3 class="section-title">Tendances des Locations</h3>
+                <div class="period-selector">
+                    <button class="period-btn active">7J</button>
+                    <button class="period-btn">30J</button>
+                    <button class="period-btn">90J</button>
+                </div>
+            </div>
+            <div style="min-height: 200px; display: flex; align-items: center; justify-content: center; color: var(--text-gray);">
+                <p>Visualisation des tendances (graphique non implémenté)</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="section-card">
+            <div class="section-header">
+                <h3 class="section-title">Statut des Locations</h3>
+            </div>
+            <ul class="status-list">
+                {% set totalFaces = totalPanneaux * 2 %}
+                {% set pendingCount = locationsFinissantBientot|length %}
+                {% set unpaidCount = locationsImpayees|length %}
+                {% set activeCount = facesOccupees %}
+                {% set totalLocations = pendingCount + unpaidCount + activeCount %}
+                {% set totalForPercent = totalLocations > 0 ? totalLocations : 1 %}
+
+                <li class="status-item">
+                    <span class="status-label">Finissant bientôt</span>
+                    <span class="status-value">{{ pendingCount > 0 ? ((pendingCount / totalForPercent) * 100)|round : 0 }}% {{ pendingCount }}</span>
+                </li>
+                <li class="status-item">
+                    <span class="status-label">Actives</span>
+                    <span class="status-value">{{ activeCount > 0 ? ((activeCount / totalForPercent) * 100)|round : 0 }}% {{ activeCount }}</span>
+                </li>
+                <li class="status-item">
+                    <span class="status-label">Impayées</span>
+                    <span class="status-value">{{ unpaidCount > 0 ? ((unpaidCount / totalForPercent) * 100)|round : 0 }}% {{ unpaidCount }}</span>
+                </li>
+                <li class="status-item">
+                    <span class="status-label">Disponibles</span>
+                    <span class="status-value">{{ totalFaces > 0 ? ((facesDisponibles / totalFaces) * 100)|round : 0 }}% {{ facesDisponibles }}</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+{# Tableau des Locations #}
+<div class="table-card">
+    <div class="table-header">
+        <h3 class="table-title">Locations</h3>
+        <div class="table-toolbar">
+            <div class="table-search">
+                <i class="bi bi-search"></i>
+                <input type="text" placeholder="Rechercher des locations..." />
+            </div>
+            <select class="table-select">
+                <option>Tous les statuts</option>
+                <option>Actives</option>
+                <option>En attente</option>
+                <option>Impayées</option>
+            </select>
+            <select class="table-select">
+                <option>Toutes les dates</option>
+                <option>Cette semaine</option>
+                <option>Ce mois</option>
+                <option>Cette année</option>
+            </select>
+        </div>
+    </div>
+
+    <table class="modern-table">
+        <thead>
+            <tr>
+                <th>
+                    <input type="checkbox" />
+                </th>
+                <th>LOCATION #</th>
+                <th>CLIENT</th>
+                <th>FACE</th>
+                <th>MONTANT</th>
+                <th>STATUT</th>
+                <th>DATE</th>
+                <th>ACTIONS</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if dernieresLocations|length > 0 %}
+                {% for location in dernieresLocations %}
+                    <tr>
+                        <td>
+                            <input type="checkbox" />
+                        </td>
+                        <td>
+                            <div style="font-weight: 600;">LOC-{{ "%03d"|format(location.id) }}</div>
+                            <div style="font-size: 0.75rem; color: var(--text-gray);">ID: {{ location.id }}</div>
+                        </td>
+                        <td>
+                            <div class="customer-info">
+                                <div class="customer-avatar">{{ location.client.nom|first|upper }}</div>
+                                <div class="customer-details">
+                                    <div class="customer-name">{{ location.client.nom }}</div>
+                                    <div class="customer-email">{{ location.client.email ?? 'N/A' }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div style="font-size: 0.75rem; color: var(--text-gray);">1 face</div>
+                            <div style="font-size: 0.75rem; color: var(--text-gray);">{{ location.face.nomComplet }}</div>
+                        </td>
+                        <td>
+                            <div style="font-weight: 600;">{{ location.montantMensuel|number_format(0, ',', ' ') }} FCFA</div>
+                        </td>
+                        <td>
+                            {% set statutPaiement = location.statutPaiement %}
+                            {% if statutPaiement == 'paye' %}
+                                <span class="table-badge success">Payé</span>
+                            {% elseif statutPaiement == 'partiellement_paye' %}
+                                <span class="table-badge warning">Partiellement payé</span>
+                            {% else %}
+                                <span class="table-badge pending">Impayé</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div>{{ location.dateDebut|date('Y-m-d') }}</div>
+                        </td>
+                        <td>
+                            <div class="action-menu">
+                                <button class="action-btn">
+                                    <i class="bi bi-three-dots-vertical"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            {% else %}
+                <tr>
+                    <td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-gray);">
+                        Aucune location enregistrée.
+                    </td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Toggle des boutons de période
+    const periodButtons = document.querySelectorAll('.period-btn');
+    periodButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            periodButtons.forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+        });
+    });
+});
+</script>
 {% endblock %}

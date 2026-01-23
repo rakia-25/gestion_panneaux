@@ -51,16 +51,21 @@ class LocationRepository extends ServiceEntityRepository
     }
 
     /**
-     * Retourne les locations impayées
+     * Retourne les locations impayées (calculé à partir des paiements)
      */
     public function findImpayees(): array
     {
-        return $this->createQueryBuilder('l')
-            ->where('l.estPaye = :estPaye')
-            ->setParameter('estPaye', false)
+        $locations = $this->createQueryBuilder('l')
+            ->leftJoin('l.paiements', 'p')
+            ->addSelect('p')
             ->orderBy('l.dateDebut', 'DESC')
             ->getQuery()
             ->getResult();
+        
+        // Filtrer les locations impayées en calculant le statut
+        return array_filter($locations, function($location) {
+            return $location->isImpaye();
+        });
     }
 
     /**
@@ -71,7 +76,9 @@ class LocationRepository extends ServiceEntityRepository
         $qb = $this->createQueryBuilder('l')
             ->leftJoin('l.client', 'c')
             ->leftJoin('l.face', 'f')
-            ->leftJoin('f.panneau', 'p');
+            ->leftJoin('f.panneau', 'p')
+            ->leftJoin('l.paiements', 'pai')
+            ->addSelect('pai');
 
         $now = new \DateTime();
 
@@ -89,11 +96,6 @@ class LocationRepository extends ServiceEntityRepository
             }
         }
 
-        if ($estPaye !== null && $estPaye !== '') {
-            $qb->andWhere('l.estPaye = :estPaye')
-               ->setParameter('estPaye', $estPaye === '1' || $estPaye === 'true');
-        }
-
         if ($clientId) {
             $qb->andWhere('c.id = :clientId')
                ->setParameter('clientId', $clientId);
@@ -104,9 +106,25 @@ class LocationRepository extends ServiceEntityRepository
                ->setParameter('recherche', '%' . $recherche . '%');
         }
 
-        return $qb->orderBy('l.dateDebut', 'DESC')
+        $locations = $qb->orderBy('l.dateDebut', 'DESC')
                   ->getQuery()
                   ->getResult();
+        
+        // Filtrer par statut de paiement si demandé (calculé à partir des paiements)
+        if ($estPaye !== null && $estPaye !== '') {
+            $locations = array_filter($locations, function($location) use ($estPaye) {
+                $statutPaiement = $location->getStatutPaiement();
+                if ($estPaye === '1') {
+                    return $statutPaiement === 'paye';
+                } elseif ($estPaye === '2') {
+                    return $statutPaiement === 'partiellement_paye';
+                } else {
+                    return $statutPaiement === 'impaye';
+                }
+            });
+        }
+
+        return array_values($locations);
     }
 
     //    /**

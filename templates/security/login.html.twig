@@ -2,39 +2,42 @@
 
 {% block title %}Connexion - Gestion Panneaux{% endblock %}
 
-{% block body %}
-<div class="row justify-content-center">
+{% block body_guest %}
+<div style="min-height: calc(100vh - 200px); display: flex; align-items: center; justify-content: center; padding: 2rem;">
     <div class="col-md-4">
-        <div class="card shadow">
-            <div class="card-body p-5">
-                <h2 class="card-title text-center mb-4">
-                    <i class="bi bi-lock"></i> Connexion
-                </h2>
-                
-                {% if error %}
-                    <div class="alert alert-danger">{{ error.messageKey|trans(error.messageData, 'security') }}</div>
-                {% endif %}
-
-                <form method="post">
-                    <div class="mb-3">
-                        <label for="inputEmail" class="form-label">Email</label>
-                        <input type="email" value="{{ last_username }}" name="_username" id="inputEmail" class="form-control" autocomplete="email" required autofocus>
-                    </div>
-                    <div class="mb-3">
-                        <label for="inputPassword" class="form-label">Mot de passe</label>
-                        <input type="password" name="_password" id="inputPassword" class="form-control" autocomplete="current-password" required>
-                    </div>
-
-                    <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
-
-                    <div class="d-grid">
-                        <button class="btn btn-primary btn-lg" type="submit">
-                            <i class="bi bi-box-arrow-in-right"></i> Se connecter
-                        </button>
-                    </div>
-                </form>
+        <div class="section-card" style="max-width: 100%;">
+            <div style="text-align: center; margin-bottom: 2rem;">
+                <div style="width: 60px; height: 60px; background: var(--primary-color); border-radius: 12px; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; color: white; font-size: 1.5rem;">
+                    <i class="bi bi-lock"></i>
+                </div>
+                <h2 style="font-size: 1.75rem; font-weight: 700; color: var(--text-dark); margin-bottom: 0.5rem;">Connexion</h2>
+                <p style="color: var(--text-gray); font-size: 0.9375rem;">Accédez à votre espace de gestion</p>
             </div>
+
+            {% if error %}
+                <div class="alert alert-danger">{{ error.messageKey|trans(error.messageData, 'security') }}</div>
+            {% endif %}
+
+            <form method="post">
+                <div class="mb-3">
+                    <label for="inputEmail" class="form-label">Email</label>
+                    <input type="email" value="{{ last_username }}" name="_username" id="inputEmail" class="form-control" autocomplete="email" required autofocus>
+                </div>
+                <div class="mb-3">
+                    <label for="inputPassword" class="form-label">Mot de passe</label>
+                    <input type="password" name="_password" id="inputPassword" class="form-control" autocomplete="current-password" required>
+                </div>
+
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+
+                <div class="d-grid">
+                    <button class="btn-primary-modern" type="submit" style="width: 100%; padding: 0.75rem 1.5rem; font-size: 1rem;">
+                        <i class="bi bi-box-arrow-in-right"></i> Se connecter
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
 {% endblock %}
+

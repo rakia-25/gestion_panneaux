@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\LocationRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -47,11 +49,15 @@ class Location
     #[ORM\Column]
     private ?\DateTimeImmutable $updatedAt = null;
 
+    #[ORM\OneToMany(mappedBy: 'location', targetEntity: Paiement::class, orphanRemoval: true, cascade: ['persist', 'remove'])]
+    private Collection $paiements;
+
     public function __construct()
     {
         $this->createdAt = new \DateTimeImmutable();
         $this->updatedAt = new \DateTimeImmutable();
         $this->estPaye = false;
+        $this->paiements = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -232,5 +238,104 @@ class Location
     {
         $now = new \DateTime();
         return $this->dateDebut > $now;
+    }
+
+    /**
+     * @return Collection<int, Paiement>
+     */
+    public function getPaiements(): Collection
+    {
+        return $this->paiements;
+    }
+
+    public function addPaiement(Paiement $paiement): static
+    {
+        if (!$this->paiements->contains($paiement)) {
+            $this->paiements->add($paiement);
+            $paiement->setLocation($this);
+        }
+
+        return $this;
+    }
+
+    public function removePaiement(Paiement $paiement): static
+    {
+        if ($this->paiements->removeElement($paiement)) {
+            // set the owning side to null (unless already changed)
+            if ($paiement->getLocation() === $this) {
+                $paiement->setLocation(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * Calcule le montant total payé pour cette location
+     */
+    public function getMontantTotalPaye(): string
+    {
+        $total = '0.00';
+        foreach ($this->paiements as $paiement) {
+            $total = bcadd($total, $paiement->getMontant() ?? '0', 2);
+        }
+        return $total;
+    }
+
+    /**
+     * Calcule le montant restant à payer
+     */
+    public function getMontantRestant(): string
+    {
+        $montantTotal = $this->getMontantTotal();
+        $montantPaye = $this->getMontantTotalPaye();
+        return bcsub($montantTotal, $montantPaye, 2);
+    }
+
+    /**
+     * Retourne le statut de paiement : 'paye', 'partiellement_paye', 'impaye'
+     */
+    public function getStatutPaiement(): string
+    {
+        $montantTotal = floatval($this->getMontantTotal());
+        $montantPaye = floatval($this->getMontantTotalPaye());
+
+        if ($montantTotal <= 0) {
+            return 'paye'; // Si pas de montant, considéré comme payé
+        }
+
+        $difference = abs($montantTotal - $montantPaye);
+
+        if ($difference < 0.01) {
+            return 'paye';
+        } elseif ($montantPaye > 0) {
+            return 'partiellement_paye';
+        } else {
+            return 'impaye';
+        }
+    }
+
+    /**
+     * Vérifie si la location est complètement payée
+     */
+    public function isCompletementPaye(): bool
+    {
+        return $this->getStatutPaiement() === 'paye';
+    }
+
+    /**
+     * Vérifie si la location est partiellement payée
+     */
+    public function isPartiellementPaye(): bool
+    {
+        return $this->getStatutPaiement() === 'partiellement_paye';
+    }
+
+    /**
+     * Vérifie si la location est impayée
+     */
+    public function isImpaye(): bool
+    {
+        return $this->getStatutPaiement() === 'impaye';
     }
 }

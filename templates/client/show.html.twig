@@ -3,139 +3,143 @@
 {% block title %}Client {{ client.nom }}{% endblock %}
 
 {% block body %}
-<div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1><i class="bi bi-people"></i> Client : {{ client.nom }}</h1>
+<div class="page-header">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
         <div>
-            <a href="{{ path('app_location_new', {client_id: client.id}) }}" class="btn btn-success">
-                <i class="bi bi-plus-circle"></i> Nouvelle location
+            <h1 class="page-title">Client : {{ client.nom }}</h1>
+            <p class="page-description">Informations et historique des locations</p>
+        </div>
+        <div style="display: flex; gap: 0.75rem;">
+            <a href="{{ path('app_location_new', {client_id: client.id}) }}" class="btn-primary-modern">
+                <i class="bi bi-plus"></i> Nouvelle location
             </a>
-            <a href="{{ path('app_client_edit', {id: client.id}) }}" class="btn btn-secondary">
+            <a href="{{ path('app_client_edit', {id: client.id}) }}" class="btn-secondary-modern">
                 <i class="bi bi-pencil"></i> Modifier
             </a>
-            <a href="{{ path('app_client_index') }}" class="btn btn-outline-secondary">
+            <a href="{{ path('app_client_index') }}" class="btn-secondary-modern">
                 <i class="bi bi-arrow-left"></i> Retour
             </a>
         </div>
     </div>
+</div>
 
-    <div class="row">
-        <div class="col-md-6">
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0">Informations générales</h5>
-                </div>
-                <div class="card-body">
-                    <table class="table">
-                        <tr>
-                            <th width="200">Nom / Raison sociale</th>
-                            <td><strong>{{ client.nom }}</strong></td>
-                        </tr>
-                        <tr>
-                            <th>Type</th>
-                            <td>
-                                {% if client.type == 'entreprise' %}
-                                    <span class="badge bg-info">Entreprise</span>
-                                {% else %}
-                                    <span class="badge bg-secondary">Personne</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% if client.email %}
-                        <tr>
-                            <th>Email</th>
-                            <td><a href="mailto:{{ client.email }}">{{ client.email }}</a></td>
-                        </tr>
-                        {% endif %}
-                        {% if client.telephone %}
-                        <tr>
-                            <th>Téléphone</th>
-                            <td><a href="tel:{{ client.telephone }}">{{ client.telephone }}</a></td>
-                        </tr>
-                        {% endif %}
-                        {% if client.adresse %}
-                        <tr>
-                            <th>Adresse</th>
-                            <td>{{ client.adresse }}</td>
-                        </tr>
-                        {% endif %}
-                        {% if client.ville %}
-                        <tr>
-                            <th>Ville</th>
-                            <td>{{ client.ville }}</td>
-                        </tr>
-                        {% endif %}
-                        {% if client.pays %}
-                        <tr>
-                            <th>Pays</th>
-                            <td>{{ client.pays }}</td>
-                        </tr>
-                        {% endif %}
-                        {% if client.notes %}
-                        <tr>
-                            <th>Notes</th>
-                            <td>{{ client.notes }}</td>
-                        </tr>
-                        {% endif %}
-                    </table>
-                </div>
+<div class="row">
+    <div class="col-md-6">
+        <div class="section-card" style="margin-bottom: 1.5rem;">
+            <div class="section-header">
+                <h3 class="section-title">Informations générales</h3>
             </div>
-        </div>
-
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Historique des locations</h5>
-                    <span class="badge bg-primary">{{ client.locations|length }} location(s)</span>
-                </div>
-                <div class="card-body">
-                    {% if client.locations|length > 0 %}
-                        <div class="table-responsive">
-                            <table class="table table-sm">
-                                <thead>
-                                    <tr>
-                                        <th>Face</th>
-                                        <th>Période</th>
-                                        <th>Montant</th>
-                                        <th>Statut</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for location in client.locations %}
-                                        <tr>
-                                            <td>{{ location.face.nomComplet }}</td>
-                                            <td>
-                                                <small>{{ location.dateDebut|date('d/m/Y') }} - {{ location.dateFin|date('d/m/Y') }}</small>
-                                            </td>
-                                            <td>{{ location.montantMensuel|number_format(0, ',', ' ') }} FCFA</td>
-                                            <td>
-                                                {% if location.estPaye %}
-                                                    <span class="badge bg-success">Payé</span>
-                                                {% else %}
-                                                    <span class="badge bg-danger">Impayé</span>
-                                                {% endif %}
-                                            </td>
-                                            <td>
-                                                <a href="{{ path('app_location_show', {id: location.id}) }}" class="btn btn-sm btn-outline-primary">
-                                                    <i class="bi bi-eye"></i>
-                                                </a>
-                                            </td>
-                                        </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    {% else %}
-                        <div class="text-center py-4">
-                            <p class="text-muted mb-3">Aucune location pour ce client.</p>
-                            <a href="{{ path('app_location_new', {client_id: client.id}) }}" class="btn btn-primary">
-                                <i class="bi bi-plus-circle"></i> Créer une location
-                            </a>
-                        </div>
+            <table class="modern-table" style="margin: 0;">
+                <tbody>
+                    <tr>
+                        <th width="200" style="font-weight: 600; color: var(--text-gray);">Nom / Raison sociale</th>
+                        <td><strong>{{ client.nom }}</strong></td>
+                    </tr>
+                    <tr>
+                        <th>Type</th>
+                        <td>
+                            {% if client.type == 'entreprise' %}
+                                <span class="table-badge info">Entreprise</span>
+                            {% else %}
+                                <span class="table-badge warning">Personne</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% if client.email %}
+                    <tr>
+                        <th>Email</th>
+                        <td><a href="mailto:{{ client.email }}">{{ client.email }}</a></td>
+                    </tr>
                     {% endif %}
-                </div>
+                    {% if client.telephone %}
+                    <tr>
+                        <th>Téléphone</th>
+                        <td><a href="tel:{{ client.telephone }}">{{ client.telephone }}</a></td>
+                    </tr>
+                    {% endif %}
+                    {% if client.adresse %}
+                    <tr>
+                        <th>Adresse</th>
+                        <td>{{ client.adresse }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if client.ville %}
+                    <tr>
+                        <th>Ville</th>
+                        <td>{{ client.ville }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if client.pays %}
+                    <tr>
+                        <th>Pays</th>
+                        <td>{{ client.pays }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if client.notes %}
+                    <tr>
+                        <th>Notes</th>
+                        <td>{{ client.notes }}</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="table-card">
+            <div class="table-header">
+                <h3 class="table-title">Historique des locations</h3>
+                <span class="table-badge success">{{ client.locations|length }} location(s)</span>
             </div>
+            {% if client.locations|length > 0 %}
+                <table class="modern-table">
+                    <thead>
+                        <tr>
+                            <th>Face</th>
+                            <th>Période</th>
+                            <th>Montant</th>
+                            <th>Statut</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for location in client.locations %}
+                            <tr>
+                                <td>{{ location.face.nomComplet }}</td>
+                                <td>
+                                    <small style="color: var(--text-gray);">{{ location.dateDebut|date('d/m/Y') }} - {{ location.dateFin|date('d/m/Y') }}</small>
+                                </td>
+                                <td>{{ location.montantMensuel|number_format(0, ',', ' ') }} FCFA</td>
+                                <td>
+                                    {% set statutPaiement = location.statutPaiement %}
+                                    {% if statutPaiement == 'paye' %}
+                                        <span class="table-badge success">Payé</span>
+                                    {% elseif statutPaiement == 'partiellement_paye' %}
+                                        <span class="table-badge warning">Partiellement payé</span>
+                                    {% else %}
+                                        <span class="table-badge pending">Impayé</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="action-menu">
+                                        <a href="{{ path('app_location_show', {id: location.id}) }}" class="action-btn" title="Voir">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div style="text-align: center; padding: 2rem; color: var(--text-gray);">
+                    <p style="margin-bottom: 1rem;">Aucune location pour ce client.</p>
+                    <a href="{{ path('app_location_new', {client_id: client.id}) }}" class="btn-primary-modern">
+                        <i class="bi bi-plus-circle"></i> Créer une location
+                    </a>
+                </div>
+            {% endif %}
         </div>
     </div>
 </div>

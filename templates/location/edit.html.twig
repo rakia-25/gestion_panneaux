@@ -3,50 +3,52 @@
 {% block title %}Modifier location{% endblock %}
 
 {% block body %}
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-md-8 offset-md-2">
-            <div class="card">
-                <div class="card-header">
-                    <h3><i class="bi bi-pencil"></i> Modifier location</h3>
-                </div>
-                <div class="card-body">
-                    {{ form_start(form) }}
-                        {{ form_row(form.face) }}
-                        {{ form_row(form.client) }}
-                        <div class="row">
-                            <div class="col-md-6">
-                                {{ form_row(form.dateDebut) }}
-                            </div>
-                            <div class="col-md-6">
-                                {{ form_row(form.dureeMois) }}
-                            </div>
+<div class="page-header">
+    <h1 class="page-title">Modifier location</h1>
+    <p class="page-description">Modifiez les informations de la location</p>
+</div>
+
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="section-card">
+            <div class="section-header">
+                <h3 class="section-title"><i class="bi bi-pencil"></i> Informations de la location</h3>
+            </div>
+            <div>
+                {{ form_start(form) }}
+                    {{ form_row(form.face) }}
+                    {{ form_row(form.client) }}
+                    <div class="row">
+                        <div class="col-md-6">
+                            {{ form_row(form.dateDebut) }}
                         </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                {{ form_row(form.dateFin) }}
-                            </div>
+                        <div class="col-md-6">
+                            {{ form_row(form.dureeMois) }}
                         </div>
-                        {{ form_row(form.montantMensuel) }}
-                        {{ form_row(form.estPaye) }}
-                        {{ form_row(form.notes) }}
-                        
-                        <div class="alert alert-info">
-                            <i class="bi bi-info-circle"></i> Le montant mensuel peut être modifié pour appliquer une remise ou un tarif spécial.
-                            <br>
-                            <i class="bi bi-info-circle"></i> Le système vérifiera automatiquement que la face est disponible pour la période sélectionnée.
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            {{ form_row(form.dateFin) }}
                         </div>
-                        
-                        <div class="d-flex justify-content-between mt-4">
-                            <a href="{{ path('app_location_index') }}" class="btn btn-secondary">
-                                <i class="bi bi-arrow-left"></i> Retour
-                            </a>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-check"></i> Enregistrer
-                            </button>
-                        </div>
-                    {{ form_end(form) }}
-                </div>
+                    </div>
+                    {{ form_row(form.montantMensuel) }}
+                    {{ form_row(form.notes) }}
+
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> Le montant mensuel peut être modifié pour appliquer une remise ou un tarif spécial.
+                        <br>
+                        <i class="bi bi-info-circle"></i> Le système vérifiera automatiquement que la face est disponible pour la période sélectionnée.
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; margin-top: 2rem;">
+                        <a href="{{ path('app_location_index') }}" class="btn-secondary-modern">
+                            <i class="bi bi-arrow-left"></i> Retour
+                        </a>
+                        <button type="submit" class="btn-primary-modern">
+                            <i class="bi bi-check"></i> Enregistrer
+                        </button>
+                    </div>
+                {{ form_end(form) }}
             </div>
         </div>
     </div>
@@ -59,6 +61,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const faceSelect = document.getElementById('location_face');
     const montantInput = document.getElementById('location_montantMensuel');
     const notesSelect = document.getElementById('location_notes');
+    const dateDebutInput = document.getElementById('location_dateDebut');
+    const dureeMoisInput = document.getElementById('location_dureeMois');
+    const dateFinInput = document.getElementById('location_dateFin');
 
     if (faceSelect && montantInput && notesSelect) {
         let prixOriginal = null;
@@ -156,11 +161,11 @@ document.addEventListener('DOMContentLoaded', function() {
             if (dateDebutInput.value && dateFinInput.value && !dureeMoisInput.value) {
                 const dateDebut = new Date(dateDebutInput.value);
                 const dateFin = new Date(dateFinInput.value);
-                
+
                 // Calculer la différence en mois
                 const diffTime = Math.abs(dateFin - dateDebut);
                 const diffMonths = Math.round(diffTime / (1000 * 60 * 60 * 24 * 30.44)); // Moyenne de jours par mois
-                
+
                 if (diffMonths > 0) {
                     dureeMoisInput.value = diffMonths;
                 }
@@ -175,13 +180,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 const date = new Date(dateDebut);
                 // Ajouter le nombre de mois
                 date.setMonth(date.getMonth() + dureeMois);
-                
+
                 // Formater la date au format YYYY-MM-DD
                 const annee = date.getFullYear();
                 const mois = String(date.getMonth() + 1).padStart(2, '0');
                 const jour = String(date.getDate()).padStart(2, '0');
                 const dateFinFormatee = `${annee}-${mois}-${jour}`;
-                
+
                 dateFinInput.value = dateFinFormatee;
                 dateFinInput.setAttribute('readonly', 'readonly');
                 dateFinInput.dataset.autoCalculated = 'true';

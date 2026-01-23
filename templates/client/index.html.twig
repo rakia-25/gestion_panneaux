@@ -3,25 +3,29 @@
 {% block title %}Liste des clients{% endblock %}
 
 {% block body %}
-<div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1><i class="bi bi-people"></i> Gestion des clients</h1>
-        <a href="{{ path('app_client_new') }}" class="btn btn-primary">
-            <i class="bi bi-plus-circle"></i> Nouveau client
-        </a>
-    </div>
+<div class="page-header">
+    <h1 class="page-title">Gestion des Clients</h1>
+    <p class="page-description">Gérez vos clients et leurs informations de contact</p>
+</div>
 
-    <!-- Filtres -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5 class="mb-0"><i class="bi bi-funnel"></i> Filtres</h5>
-        </div>
-        <div class="card-body">
+{# Boutons d'action #}
+<div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
+    <a href="{{ path('app_client_new') }}" class="btn-primary-modern">
+        <i class="bi bi-plus"></i> Nouveau Client
+    </a>
+</div>
+
+<!-- Filtres -->
+<div class="section-card" style="margin-bottom: 1.5rem;">
+    <div class="section-header">
+        <h3 class="section-title"><i class="bi bi-funnel"></i> Filtres</h3>
+    </div>
+    <div>
             <form method="GET" action="{{ path('app_client_index') }}" class="row g-3" onsubmit="return false;">
                 <div class="col-md-4">
                     <label for="recherche" class="form-label">Recherche</label>
-                    <input type="text" class="form-control" id="recherche" name="recherche" 
-                           value="{{ filters.recherche ?? '' }}" 
+                    <input type="text" class="form-control" id="recherche" name="recherche"
+                           value="{{ filters.recherche ?? '' }}"
                            placeholder="Nom, email, téléphone, adresse...">
                 </div>
                 <div class="col-md-3">
@@ -34,83 +38,83 @@
                 </div>
                 <div class="col-md-3">
                     <label for="ville" class="form-label">Ville</label>
-                    <input type="text" class="form-control" id="ville" name="ville" 
-                           value="{{ filters.ville ?? '' }}" 
+                    <input type="text" class="form-control" id="ville" name="ville"
+                           value="{{ filters.ville ?? '' }}"
                            placeholder="Ex: Niamey">
                 </div>
                 <div class="col-md-2 d-flex align-items-end gap-2">
-                    <a href="{{ path('app_client_index') }}" class="btn btn-secondary">
+                    <a href="{{ path('app_client_index') }}" class="btn-secondary-modern">
                         <i class="bi bi-x-circle"></i> Réinitialiser
                     </a>
                 </div>
             </form>
-        </div>
     </div>
+</div>
 
-    <div class="card">
-        <div class="card-body">
-            {% if clients|length > 0 %}
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Nom / Raison sociale</th>
-                                <th>Type</th>
-                                <th>Email</th>
-                                <th>Téléphone</th>
-                                <th>Ville</th>
-                                <th>Locations</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for client in clients %}
-                                <tr data-type="{{ client.type }}"
-                                    data-ville="{{ (client.ville ?? '')|lower }}"
-                                    data-nom="{{ client.nom|lower }}"
-                                    data-email="{{ (client.email ?? '')|lower }}"
-                                    data-telephone="{{ (client.telephone ?? '')|lower }}"
-                                    data-adresse="{{ (client.adresse ?? '')|lower }}">
-                                    <td><strong>{{ client.nom }}</strong></td>
-                                    <td>
-                                        {% if client.type == 'entreprise' %}
-                                            <span class="badge bg-info">Entreprise</span>
-                                        {% else %}
-                                            <span class="badge bg-secondary">Personne</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>{{ client.email ?? '-' }}</td>
-                                    <td>{{ client.telephone ?? '-' }}</td>
-                                    <td>{{ client.ville ?? '-' }}</td>
-                                    <td>
-                                        <span class="badge bg-primary">{{ client.locations|length }} location(s)</span>
-                                    </td>
-                                    <td>
-                                        <a href="{{ path('app_client_show', {id: client.id}) }}" class="btn btn-sm btn-outline-primary">
-                                            <i class="bi bi-eye"></i>
-                                        </a>
-                                        <a href="{{ path('app_client_edit', {id: client.id}) }}" class="btn btn-sm btn-outline-secondary">
-                                            <i class="bi bi-pencil"></i>
-                                        </a>
-                                        <form method="post" action="{{ path('app_client_delete', {id: client.id}) }}" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce client ?');">
-                                            <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ client.id) }}">
-                                            <button type="submit" class="btn btn-sm btn-outline-danger">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </form>
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            {% else %}
-                <div class="alert alert-info">
-                    <i class="bi bi-info-circle"></i> Aucun client enregistré. <a href="{{ path('app_client_new') }}">Créer le premier client</a>
-                </div>
-            {% endif %}
-        </div>
+<div class="table-card">
+    <div class="table-header">
+        <h3 class="table-title">Clients</h3>
     </div>
+    {% if clients|length > 0 %}
+        <table class="modern-table">
+            <thead>
+                <tr>
+                    <th>Nom / Raison sociale</th>
+                    <th>Type</th>
+                    <th>Email</th>
+                    <th>Téléphone</th>
+                    <th>Ville</th>
+                    <th>Locations</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for client in clients %}
+                    <tr data-type="{{ client.type }}"
+                        data-ville="{{ (client.ville ?? '')|lower }}"
+                        data-nom="{{ client.nom|lower }}"
+                        data-email="{{ (client.email ?? '')|lower }}"
+                        data-telephone="{{ (client.telephone ?? '')|lower }}"
+                        data-adresse="{{ (client.adresse ?? '')|lower }}">
+                        <td><strong>{{ client.nom }}</strong></td>
+                        <td>
+                            {% if client.type == 'entreprise' %}
+                                <span class="table-badge info">Entreprise</span>
+                            {% else %}
+                                <span class="table-badge warning">Personne</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ client.email ?? '-' }}</td>
+                        <td>{{ client.telephone ?? '-' }}</td>
+                        <td>{{ client.ville ?? '-' }}</td>
+                        <td>
+                            <span class="table-badge success">{{ client.locations|length }} location(s)</span>
+                        </td>
+                        <td>
+                            <div class="action-menu">
+                                <a href="{{ path('app_client_show', {id: client.id}) }}" class="action-btn" title="Voir">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a href="{{ path('app_client_edit', {id: client.id}) }}" class="action-btn" title="Modifier">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form method="post" action="{{ path('app_client_delete', {id: client.id}) }}" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce client ?');">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ client.id) }}">
+                                    <button type="submit" class="action-btn" title="Supprimer" style="color: var(--danger-color);">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div style="text-align: center; padding: 2rem; color: var(--text-gray);">
+            <i class="bi bi-info-circle"></i> Aucun client enregistré. <a href="{{ path('app_client_new') }}">Créer le premier client</a>
+        </div>
+    {% endif %}
 </div>
 {% endblock %}
 
@@ -121,7 +125,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const typeSelect = document.getElementById('type');
     const villeInput = document.getElementById('ville');
     const tableRows = document.querySelectorAll('tbody tr');
-    
+
     let searchTimeout;
 
     // Fonction pour filtrer les lignes sans recharger la page
@@ -143,8 +147,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // Vérifier les filtres
             const typeMatch = !type || rowType === type;
             const villeMatch = !ville || rowVille.includes(ville);
-            const rechercheMatch = !recherche || 
-                rowNom.includes(recherche) || 
+            const rechercheMatch = !recherche ||
+                rowNom.includes(recherche) ||
                 rowEmail.includes(recherche) ||
                 rowTelephone.includes(recherche) ||
                 rowAdresse.includes(recherche);

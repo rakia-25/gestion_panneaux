@@ -107,18 +107,32 @@ class Face
 
     /**
      * Vérifie si la face est disponible pour une période donnée
+     * 
+     * @param \DateTimeInterface $dateDebut Date de début de la période
+     * @param \DateTimeInterface $dateFin Date de fin de la période
+     * @param Location|null $excludeLocation Location à exclure de la vérification (utile lors de l'édition)
+     * @return bool True si disponible, false sinon
      */
-    public function isDisponible(\DateTimeInterface $dateDebut, \DateTimeInterface $dateFin): bool
+    public function isDisponible(\DateTimeInterface $dateDebut, \DateTimeInterface $dateFin, ?Location $excludeLocation = null): bool
     {
-        $now = new \DateTime();
+        // Normaliser les dates pour la comparaison (ignorer l'heure)
+        $dateDebutNormalisee = new \DateTime($dateDebut->format('Y-m-d'));
+        $dateFinNormalisee = new \DateTime($dateFin->format('Y-m-d'));
         
         foreach ($this->locations as $location) {
-            // Vérifier si la location est active (en cours ou future)
-            if ($location->getDateFin() >= $now) {
-                // Vérifier s'il y a un chevauchement de dates
-                if (!($dateFin < $location->getDateDebut() || $dateDebut > $location->getDateFin())) {
-                    return false;
-                }
+            // Exclure la location spécifiée (utile lors de l'édition)
+            if ($excludeLocation && $location->getId() === $excludeLocation->getId()) {
+                continue;
+            }
+            
+            // Normaliser les dates de la location
+            $locDateDebut = new \DateTime($location->getDateDebut()->format('Y-m-d'));
+            $locDateFin = new \DateTime($location->getDateFin()->format('Y-m-d'));
+            
+            // Vérifier s'il y a un chevauchement de dates
+            // Chevauchement si : dateDebut <= locDateFin ET dateFin >= locDateDebut
+            if ($dateDebutNormalisee <= $locDateFin && $dateFinNormalisee >= $locDateDebut) {
+                return false;
             }
         }
         
@@ -139,6 +153,44 @@ class Face
         }
         
         return null;
+    }
+
+    /**
+     * Retourne toutes les locations actives ou futures (non terminées)
+     */
+    public function getLocationsActivesOuFutures(): array
+    {
+        $now = new \DateTime();
+        $locations = [];
+        
+        foreach ($this->locations as $location) {
+            if ($location->getDateFin() >= $now) {
+                $locations[] = $location;
+            }
+        }
+        
+        // Trier par date de début
+        usort($locations, function($a, $b) {
+            return $a->getDateDebut() <=> $b->getDateDebut();
+        });
+        
+        return $locations;
+    }
+
+    /**
+     * Vérifie si la face a des locations futures (non terminées)
+     */
+    public function hasLocationsFutures(): bool
+    {
+        $now = new \DateTime();
+        
+        foreach ($this->locations as $location) {
+            if ($location->getDateFin() >= $now) {
+                return true;
+            }
+        }
+        
+        return false;
     }
 
     /**

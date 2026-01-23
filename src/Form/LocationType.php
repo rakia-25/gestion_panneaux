@@ -9,7 +9,6 @@ use App\Repository\ClientRepository;
 use App\Repository\FaceRepository;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
-use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
@@ -33,20 +32,20 @@ class LocationType extends AbstractType
                 'label' => 'Face du panneau',
                 'placeholder' => 'Sélectionner une face',
                 'query_builder' => function (FaceRepository $er) use ($currentFaceId) {
-                    $now = new \DateTime();
-                    $qb = $er->createQueryBuilder('f')
-                        ->leftJoin('f.locations', 'l', 'WITH', 'l.dateFin >= :now')
-                        ->where('l.id IS NULL');
+                    $qb = $er->createQueryBuilder('f');
                     
-                    // Si on édite une location, inclure aussi la face actuelle
+                    // Si on édite une location, inclure la face actuelle
                     if ($currentFaceId) {
-                        $qb->orWhere('f.id = :currentFaceId')
+                        $qb->where('f.id = :currentFaceId')
                            ->setParameter('currentFaceId', $currentFaceId);
+                    } else {
+                        // Pour une nouvelle location, on affiche toutes les faces
+                        // La vérification de disponibilité se fera côté contrôleur
+                        // Cela permet de réserver une face même si elle est actuellement occupée
+                        // (par exemple, réserver après la fin de la location actuelle)
                     }
                     
-                    return $qb->setParameter('now', $now)
-                        ->groupBy('f.id')
-                        ->orderBy('f.lettre', 'ASC');
+                    return $qb->orderBy('f.lettre', 'ASC');
                 },
                 'group_by' => function (Face $face) {
                     return $face->getPanneau()->getReference();
@@ -78,8 +77,12 @@ class LocationType extends AbstractType
                 'required' => false,
                 'attr' => [
                     'id' => 'location_dureeMois',
+                    'type' => 'number',
+                    'inputmode' => 'numeric',
+                    'pattern' => '[0-9]*',
                     'min' => 1,
                     'max' => 120,
+                    'step' => '1',
                     'placeholder' => 'Ex: 3',
                 ],
                 'help' => 'La date de fin sera calculée automatiquement. Ex: 3 mois à partir du 23/01/2026 = 23/04/2026'
@@ -102,12 +105,13 @@ class LocationType extends AbstractType
                 'attr' => [
                     'placeholder' => '150000',
                     'id' => 'location_montantMensuel',
+                    'type' => 'number',
+                    'inputmode' => 'numeric',
+                    'pattern' => '[0-9]*',
+                    'min' => '0',
+                    'step' => '1',
                 ],
                 'help' => 'Le montant sera pré-rempli automatiquement depuis le panneau sélectionné. Vous pouvez le modifier si nécessaire.'
-            ])
-            ->add('estPaye', CheckboxType::class, [
-                'label' => 'Paiement effectué',
-                'required' => false,
             ])
             ->add('notes', ChoiceType::class, [
                 'label' => 'Justification (si prix modifié)',
