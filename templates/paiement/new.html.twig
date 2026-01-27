@@ -16,19 +16,42 @@
             </div>
             <div>
                 {% if location_obj %}
-                    <div class="alert alert-info mb-3">
-                        <i class="bi bi-info-circle"></i> <strong>Location pré-sélectionnée :</strong>
-                        {{ location_obj.face.nomComplet }} - {{ location_obj.client.nom }}
-                        <br>
-                        <small>Montant total: {{ location_obj.montantTotal|number_format(0, ',', ' ') }} FCFA |
-                        Déjà payé: {{ location_obj.montantTotalPaye|number_format(0, ',', ' ') }} FCFA |
-                        Restant: {{ location_obj.montantRestant|number_format(0, ',', ' ') }} FCFA</small>
-                    </div>
+                    {% if location_obj.isCompletementPaye %}
+                        <div class="alert alert-warning mb-3">
+                            <i class="bi bi-exclamation-triangle"></i> <strong>Attention :</strong>
+                            Cette location est déjà entièrement payée. Vous ne pouvez pas créer un nouveau paiement.
+                            <br>
+                            <small>Montant total: {{ location_obj.montantTotal|number_format(0, ',', ' ') }} FCFA |
+                            Déjà payé: {{ location_obj.montantTotalPaye|number_format(0, ',', ' ') }} FCFA</small>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info mb-3">
+                            <i class="bi bi-info-circle"></i> <strong>Location pré-sélectionnée :</strong>
+                            {{ location_obj.face.nomComplet }} - {{ location_obj.client.nom }}
+                            <br>
+                            <small>Montant total: {{ location_obj.montantTotal|number_format(0, ',', ' ') }} FCFA |
+                            Déjà payé: {{ location_obj.montantTotalPaye|number_format(0, ',', ' ') }} FCFA |
+                            Restant: <strong>{{ location_obj.montantRestant|number_format(0, ',', ' ') }} FCFA</strong></small>
+                        </div>
+                    {% endif %}
                 {% endif %}
 
                 {{ form_start(form) }}
                     {{ form_row(form.location) }}
-                    {{ form_row(form.montant) }}
+                    {% if location_obj and not location_obj.isCompletementPaye %}
+                        {% set montantRestant = location_obj.montantRestant|number_format(0, '', '') %}
+                        <div class="mb-3">
+                            {{ form_label(form.montant) }}
+                            {{ form_widget(form.montant, {'attr': {'max': montantRestant, 'data-montant-restant': montantRestant}}) }}
+                            {{ form_help(form.montant) }}
+                            {{ form_errors(form.montant) }}
+                            <div class="form-text text-info">
+                                <i class="bi bi-info-circle"></i> Montant maximum autorisé: <strong>{{ location_obj.montantRestant|number_format(0, ',', ' ') }} FCFA</strong>
+                            </div>
+                        </div>
+                    {% else %}
+                        {{ form_row(form.montant) }}
+                    {% endif %}
                     <div class="row">
                         <div class="col-md-6">
                             {{ form_row(form.datePaiement) }}
@@ -49,9 +72,15 @@
                                 <i class="bi bi-arrow-left"></i> Retour
                             </a>
                         {% endif %}
-                        <button type="submit" class="btn-primary-modern">
-                            <i class="bi bi-check"></i> Enregistrer
-                        </button>
+                        {% if location_obj and location_obj.isCompletementPaye %}
+                            <button type="button" class="btn-primary-modern" disabled>
+                                <i class="bi bi-x-circle"></i> Location déjà payée
+                            </button>
+                        {% else %}
+                            <button type="submit" class="btn-primary-modern">
+                                <i class="bi bi-check"></i> Enregistrer
+                            </button>
+                        {% endif %}
                     </div>
                     {{ form_rest(form) }}
                 {{ form_end(form) }}
@@ -59,4 +88,43 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block javascripts %}
+{% if location_obj and not location_obj.isCompletementPaye %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const montantInput = document.getElementById('paiement_montant');
+    const montantRestant = parseFloat('{{ location_obj.montantRestant|number_format(2, '.', '') }}');
+    const form = montantInput ? montantInput.closest('form') : null;
+    
+    if (montantInput && form) {
+        // Validation en temps réel
+        montantInput.addEventListener('input', function() {
+            const montantSaisi = parseFloat(this.value) || 0;
+            
+            if (montantSaisi > montantRestant) {
+                this.setCustomValidity('Le montant ne peut pas dépasser ' + montantRestant.toLocaleString('fr-FR') + ' FCFA');
+                this.classList.add('is-invalid');
+            } else {
+                this.setCustomValidity('');
+                this.classList.remove('is-invalid');
+            }
+        });
+        
+        // Validation avant soumission
+        form.addEventListener('submit', function(e) {
+            const montantSaisi = parseFloat(montantInput.value) || 0;
+            
+            if (montantSaisi > montantRestant) {
+                e.preventDefault();
+                alert('Le montant du paiement (' + montantSaisi.toLocaleString('fr-FR') + ' FCFA) ne peut pas dépasser le montant restant à payer (' + montantRestant.toLocaleString('fr-FR') + ' FCFA).');
+                montantInput.focus();
+                return false;
+            }
+        });
+    }
+});
+</script>
+{% endif %}
 {% endblock %}

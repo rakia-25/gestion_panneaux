@@ -12,12 +12,17 @@ use Symfony\Component\Form\Extension\Core\Type\MoneyType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\Component\Validator\Constraints\Callback;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 class PaiementType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $location = $options['location'] ?? null;
+        $locationPreselectionnee = $location !== null;
+        $currentPaiement = $options['data'] ?? null;
+        $currentLocationId = $currentPaiement && $currentPaiement->getLocation() ? $currentPaiement->getLocation()->getId() : null;
 
         $builder
             ->add('location', EntityType::class, [
@@ -28,6 +33,22 @@ class PaiementType extends AbstractType
                 },
                 'label' => 'Location',
                 'placeholder' => 'Sélectionner une location',
+                'disabled' => $locationPreselectionnee,
+                'query_builder' => function ($er) use ($location, $currentLocationId, $locationPreselectionnee) {
+                    $qb = $er->createQueryBuilder('l');
+                    
+                    // Si la location est présélectionnée, limiter à cette location
+                    if ($locationPreselectionnee && $location) {
+                        $qb->where('l.id = :locationId')
+                           ->setParameter('locationId', $location->getId());
+                    } elseif ($currentLocationId) {
+                        // En édition, limiter à la location actuelle
+                        $qb->where('l.id = :currentLocationId')
+                           ->setParameter('currentLocationId', $currentLocationId);
+                    }
+                    
+                    return $qb->orderBy('l.dateDebut', 'DESC');
+                },
                 'attr' => [
                     'id' => 'paiement_location',
                 ],
@@ -44,6 +65,35 @@ class PaiementType extends AbstractType
                     'pattern' => '[0-9]*',
                     'min' => '0',
                     'step' => '1',
+                ],
+                'constraints' => [
+                    new Callback([
+                        'callback' => function ($value, ExecutionContextInterface $context) use ($location, $currentPaiement) {
+                            if ($value && $location) {
+                                $montantPaiement = floatval($value);
+                                
+                                // En édition, exclure le montant du paiement actuel du calcul
+                                if ($currentPaiement && $currentPaiement->getId()) {
+                                    // Récupérer l'ancien montant depuis l'entité (avant modification)
+                                    $ancienMontant = floatval($currentPaiement->getMontant());
+                                    $montantTotalPaye = floatval($location->getMontantTotalPaye());
+                                    $montantTotalPayeSansActuel = $montantTotalPaye - $ancienMontant;
+                                    $montantTotal = floatval($location->getMontantTotal());
+                                    $montantRestant = $montantTotal - $montantTotalPayeSansActuel;
+                                } else {
+                                    $montantRestant = floatval($location->getMontantRestant());
+                                }
+                                
+                                if ($montantPaiement > $montantRestant) {
+                                    $context->buildViolation(sprintf(
+                                        'Le montant du paiement (%.0f FCFA) ne peut pas dépasser le montant restant à payer (%.0f FCFA).',
+                                        $montantPaiement,
+                                        $montantRestant
+                                    ))->addViolation();
+                                }
+                            }
+                        }
+                    ])
                 ],
             ])
             ->add('datePaiement', DateType::class, [

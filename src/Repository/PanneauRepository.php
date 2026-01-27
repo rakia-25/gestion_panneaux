@@ -39,13 +39,36 @@ class PanneauRepository extends ServiceEntityRepository
         }
 
         if ($recherche) {
-            $qb->andWhere('p.reference LIKE :recherche OR p.emplacement LIKE :recherche OR p.quartier LIKE :recherche OR p.rue LIKE :recherche')
+            $qb->andWhere('p.reference LIKE :recherche OR p.emplacement LIKE :recherche OR p.quartier LIKE :recherche OR p.visibilite LIKE :recherche')
                ->setParameter('recherche', '%' . $recherche . '%');
         }
 
         return $qb->orderBy('p.reference', 'ASC')
                   ->getQuery()
                   ->getResult();
+    }
+
+    /**
+     * Trouve la dernière référence générée pour créer la suivante
+     */
+    public function findLastReferenceNumber(): int
+    {
+        $lastPanneau = $this->createQueryBuilder('p')
+            ->where('p.reference LIKE :pattern')
+            ->setParameter('pattern', 'PAN-%')
+            ->orderBy('p.id', 'DESC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        if ($lastPanneau && $lastPanneau->getReference()) {
+            // Extraire le numéro de la référence (ex: PAN-001 -> 1)
+            if (preg_match('/PAN-(\d+)/', $lastPanneau->getReference(), $matches)) {
+                return (int) $matches[1];
+            }
+        }
+
+        return 0;
     }
 
     //    /**

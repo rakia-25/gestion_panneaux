@@ -21,27 +21,42 @@ class PanneauType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
+        $panneau = $options['data'] ?? null;
+        $isNew = $panneau === null || $panneau->getId() === null;
+        
         $builder
             ->add('reference', TextType::class, [
                 'label' => 'Référence',
-                'attr' => ['placeholder' => 'Ex: PAN-001']
+                'required' => false,
+                'disabled' => $isNew, // Désactivé lors de la création (sera généré automatiquement)
+                'attr' => [
+                    'placeholder' => 'Générée automatiquement',
+                    'readonly' => $isNew,
+                ],
+                'help' => $isNew ? 'La référence sera générée automatiquement lors de la création.' : 'Référence du panneau'
             ])
             ->add('emplacement', TextType::class, [
-                'label' => 'Emplacement principal',
-                'attr' => ['placeholder' => 'Adresse principale à Niamey']
+                'label' => 'Emplacement',
+                'attr' => ['placeholder' => 'Ex: Avenue de la République, près du rond-point']
             ])
             ->add('quartier', TextType::class, [
                 'label' => 'Quartier',
                 'required' => false,
-                'attr' => ['placeholder' => 'Ex: Plateau, Terminus, etc.']
+                'attr' => ['placeholder' => 'Ex: Plateau, Terminus, Centre-ville, Aéroport, etc.']
             ])
-            ->add('rue', TextType::class, [
-                'label' => 'Rue / Avenue',
+            ->add('visibilite', ChoiceType::class, [
+                'label' => 'Visibilité',
                 'required' => false,
-                'attr' => ['placeholder' => 'Nom de la rue ou avenue']
+                'choices' => [
+                    'Excellente' => 'Excellente',
+                    'Bonne' => 'Bonne',
+                    'Moyenne' => 'Moyenne',
+                    'Faible' => 'Faible',
+                ],
+                'placeholder' => 'Sélectionner une visibilité'
             ])
             ->add('coordonneesGps', TextType::class, [
-                'label' => 'Coordonnées GPS',
+                'label' => 'Coordonnées GPS (optionnel)',
                 'required' => false,
                 'attr' => [
                     'placeholder' => 'Ex: 13.5123,2.1098',
@@ -128,10 +143,6 @@ class PanneauType extends AbstractType
                     'min' => '0',
                     'step' => '1',
                 ],
-                'label' => 'Prix mensuel (FCFA)',
-                'currency' => 'XOF',
-                'divisor' => 1,
-                'attr' => ['placeholder' => '150000']
             ])
             ->add('photo', FileType::class, [
                 'label' => 'Photo',

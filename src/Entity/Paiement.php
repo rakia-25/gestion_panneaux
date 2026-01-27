@@ -19,7 +19,7 @@ class Paiement
     #[ORM\JoinColumn(nullable: false)]
     private ?Location $location = null;
 
-    #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
+    #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 0)]
     private ?string $montant = null;
 
     #[ORM\Column(type: Types::DATE_MUTABLE)]

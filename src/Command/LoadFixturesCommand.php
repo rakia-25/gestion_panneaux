@@ -52,7 +52,7 @@ class LoadFixturesCommand extends Command
         $admin->setNom('Admin');
         $admin->setPrenom('Système');
         $this->entityManager->persist($admin);
-        $io->success('Admin créé : admin@gestion-panneaux.niamey / admin123');
+        $io->success('Admin créé : admin@gestion-panneaux / admin123');
 
         // 2. Créer les clients
         $io->section('Création des clients...');
@@ -87,10 +87,9 @@ class LoadFixturesCommand extends Command
 
         $panneauData = [
             [
-                'reference' => 'PAN-001',
                 'emplacement' => 'Avenue de la République, près du rond-point',
                 'quartier' => 'Plateau',
-                'rue' => 'Avenue de la République',
+                'visibilite' => 'Excellente',
                 'coordonneesGps' => '13.5123,2.1098',
                 'taille' => '12.00',
                 'type' => 'double',
@@ -99,10 +98,9 @@ class LoadFixturesCommand extends Command
                 'prix' => '150000'
             ],
             [
-                'reference' => 'PAN-002',
                 'emplacement' => 'Boulevard de la Liberté, face au marché',
                 'quartier' => 'Terminus',
-                'rue' => 'Boulevard de la Liberté',
+                'visibilite' => 'Bonne',
                 'coordonneesGps' => '13.5089,2.1156',
                 'taille' => '6.00',
                 'type' => 'simple',
@@ -111,10 +109,9 @@ class LoadFixturesCommand extends Command
                 'prix' => '100000'
             ],
             [
-                'reference' => 'PAN-003',
                 'emplacement' => 'Route de l\'Aéroport, entrée ville',
                 'quartier' => 'Aéroport',
-                'rue' => 'Route de l\'Aéroport',
+                'visibilite' => 'Excellente',
                 'coordonneesGps' => '13.4815,2.1689',
                 'taille' => '24.00',
                 'type' => 'double',
@@ -123,10 +120,9 @@ class LoadFixturesCommand extends Command
                 'prix' => '200000'
             ],
             [
-                'reference' => 'PAN-004',
                 'emplacement' => 'Place de la Concorde, centre-ville',
                 'quartier' => 'Centre-ville',
-                'rue' => 'Place de la Concorde',
+                'visibilite' => 'Bonne',
                 'coordonneesGps' => '13.5156,2.1089',
                 'taille' => '12.00',
                 'type' => 'double',
@@ -135,11 +131,10 @@ class LoadFixturesCommand extends Command
                 'prix' => '180000'
             ],
             [
-                'reference' => 'PAN-005',
                 'emplacement' => 'Quartier Plateau, route principale',
                 'quartier' => 'Plateau',
-                'rue' => 'Route principale',
-                'coordonneesGps' => '13.5100,2.1100',
+                'visibilite' => 'Moyenne',
+                'coordonneesGps' => null, // Optionnel - pas de coordonnées GPS
                 'taille' => '6.00',
                 'type' => 'simple',
                 'eclairage' => false,
@@ -147,10 +142,9 @@ class LoadFixturesCommand extends Command
                 'prix' => '90000'
             ],
             [
-                'reference' => 'PAN-006',
                 'emplacement' => 'Quartier Terminus, sortie ville',
                 'quartier' => 'Terminus',
-                'rue' => 'Route de sortie',
+                'visibilite' => 'Bonne',
                 'coordonneesGps' => '13.5056,2.1189',
                 'taille' => '15.00',
                 'type' => 'double',
@@ -159,11 +153,10 @@ class LoadFixturesCommand extends Command
                 'prix' => '170000'
             ],
             [
-                'reference' => 'PAN-007',
                 'emplacement' => 'Avenue du Général de Gaulle',
                 'quartier' => 'Plateau',
-                'rue' => 'Avenue du Général de Gaulle',
-                'coordonneesGps' => '13.5120,2.1095',
+                'visibilite' => 'Moyenne',
+                'coordonneesGps' => null, // Optionnel - pas de coordonnées GPS
                 'taille' => '12.00',
                 'type' => 'simple',
                 'eclairage' => false,
@@ -171,10 +164,9 @@ class LoadFixturesCommand extends Command
                 'prix' => '110000'
             ],
             [
-                'reference' => 'PAN-008',
                 'emplacement' => 'Boulevard Mali Bero, près du stade',
                 'quartier' => 'Mali Bero',
-                'rue' => 'Boulevard Mali Bero',
+                'visibilite' => 'Excellente',
                 'coordonneesGps' => '13.5200,2.1200',
                 'taille' => '24.00',
                 'type' => 'double',
@@ -184,13 +176,28 @@ class LoadFixturesCommand extends Command
             ],
         ];
 
+        $referenceNumber = 0;
+
         foreach ($panneauData as $data) {
             $panneau = new Panneau();
-            $panneau->setReference($data['reference']);
+
+            // Générer automatiquement la référence
+            $referenceNumber++;
+            $panneau->setReference(sprintf('PAN-%03d', $referenceNumber));
+
             $panneau->setEmplacement($data['emplacement']);
             $panneau->setQuartier($data['quartier']);
-            $panneau->setRue($data['rue']);
-            $panneau->setCoordonneesGps($data['coordonneesGps']);
+
+            // Visibilité optionnelle
+            if (isset($data['visibilite']) && $data['visibilite'] !== null) {
+                $panneau->setVisibilite($data['visibilite']);
+            }
+
+            // Coordonnées GPS optionnelles
+            if (isset($data['coordonneesGps']) && $data['coordonneesGps'] !== null) {
+                $panneau->setCoordonneesGps($data['coordonneesGps']);
+            }
+
             $panneau->setTaille($data['taille']);
             $panneau->setType($data['type']);
             $panneau->setEclairage($data['eclairage']);

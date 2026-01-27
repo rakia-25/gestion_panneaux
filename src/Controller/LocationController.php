@@ -59,18 +59,50 @@ class LocationController extends AbstractController
 
         // Si un client_id est passée en paramètre, pré-sélectionner le client
         $clientId = $request->query->get('client_id');
+        $clientPreselectionne = false;
         if ($clientId) {
             $client = $clientRepository->find($clientId);
             if ($client) {
                 $location->setClient($client);
+                $clientPreselectionne = true;
             }
         }
 
-        $form = $this->createForm(LocationType::class, $location);
+        $facePreselectionnee = (bool) $faceId;
+        $facePreselectionneeObj = $faceId ? $faceRepository->find($faceId) : null;
+        $clientPreselectionneObj = $clientId ? $clientRepository->find($clientId) : null;
+        
+        $form = $this->createForm(LocationType::class, $location, [
+            'face_preselectionnee' => $facePreselectionnee,
+            'client_preselectionne' => $clientPreselectionne,
+        ]);
         $form->handleRequest($request);
 
-        // Calculer la date de fin si la durée est fournie
-        if ($form->isSubmitted() && $form->has('dureeMois')) {
+        // Restaurer les valeurs présélectionnées si les champs sont désactivés
+        if ($form->isSubmitted()) {
+            if ($facePreselectionnee && $facePreselectionneeObj && !$location->getFace()) {
+                $location->setFace($facePreselectionneeObj);
+            }
+            if ($clientPreselectionne && $clientPreselectionneObj && !$location->getClient()) {
+                $location->setClient($clientPreselectionneObj);
+            }
+            // Restaurer la date de fin si elle est désactivée
+            if ($location->getDateFin() === null && $form->get('dateFin')->getData() === null) {
+                // Calculer la date de fin si la durée est fournie
+                if ($form->has('dureeMois')) {
+                    $dureeMois = $form->get('dureeMois')->getData();
+                    if ($dureeMois && $location->getDateDebut()) {
+                        $dateDebut = $location->getDateDebut();
+                        $dateFin = new \DateTime($dateDebut->format('Y-m-d'));
+                        $dateFin->modify('+' . $dureeMois . ' months');
+                        $location->setDateFin($dateFin);
+                    }
+                }
+            }
+        }
+
+        // Calculer la date de fin si la durée est fournie (pour l'affichage initial)
+        if (!$form->isSubmitted() && $form->has('dureeMois')) {
             $dureeMois = $form->get('dureeMois')->getData();
             if ($dureeMois && $location->getDateDebut()) {
                 $dateDebut = $location->getDateDebut();
@@ -215,7 +247,11 @@ class LocationController extends AbstractController
     #[Route('/{id}/edit', name: 'app_location_edit', methods: ['GET', 'POST'])]
     public function edit(Request $request, Location $location, EntityManagerInterface $entityManager): Response
     {
-        $form = $this->createForm(LocationType::class, $location);
+        // En édition, la face et le client sont toujours présélectionnés (désactivés)
+        $form = $this->createForm(LocationType::class, $location, [
+            'face_preselectionnee' => true,
+            'client_preselectionne' => true,
+        ]);
 
         // Pré-remplir la durée en mois si les dates existent
         if ($location->getDateDebut() && $location->getDateFin()) {
@@ -230,14 +266,37 @@ class LocationController extends AbstractController
 
         $form->handleRequest($request);
 
-        // Calculer la date de fin si la durée est fournie
-        if ($form->isSubmitted() && $form->has('dureeMois')) {
-            $dureeMois = $form->get('dureeMois')->getData();
-            if ($dureeMois && $location->getDateDebut()) {
-                $dateDebut = $location->getDateDebut();
-                $dateFin = new \DateTime($dateDebut->format('Y-m-d'));
-                $dateFin->modify('+' . $dureeMois . ' months');
-                $location->setDateFin($dateFin);
+        // Sauvegarder les valeurs originales avant handleRequest
+        $originalFace = $location->getFace();
+        $originalClient = $location->getClient();
+        $originalDateFin = $location->getDateFin();
+        
+        $form->handleRequest($request);
+
+        // Restaurer les valeurs présélectionnées si les champs sont désactivés
+        if ($form->isSubmitted()) {
+            // Restaurer la face et le client (toujours présélectionnés en édition)
+            if (!$location->getFace() && $originalFace) {
+                $location->setFace($originalFace);
+            }
+            if (!$location->getClient() && $originalClient) {
+                $location->setClient($originalClient);
+            }
+            // Restaurer la date de fin si elle est désactivée
+            if ($location->getDateFin() === null) {
+                // Calculer la date de fin si la durée est fournie
+                if ($form->has('dureeMois')) {
+                    $dureeMois = $form->get('dureeMois')->getData();
+                    if ($dureeMois && $location->getDateDebut()) {
+                        $dateDebut = $location->getDateDebut();
+                        $dateFin = new \DateTime($dateDebut->format('Y-m-d'));
+                        $dateFin->modify('+' . $dureeMois . ' months');
+                        $location->setDateFin($dateFin);
+                    }
+                } elseif ($originalDateFin) {
+                    // Restaurer la date de fin originale si pas de durée fournie
+                    $location->setDateFin($originalDateFin);
+                }
             }
         }
 
@@ -254,6 +313,8 @@ class LocationController extends AbstractController
             }
 
             // Vérifier que la date de début est avant la date de fin
+            $dateDebut = $location->getDateDebut();
+            $dateFin = $location->getDateFin();
             if ($dateDebut >= $dateFin) {
                 $this->addFlash('error', 'La date de début doit être antérieure à la date de fin.');
                 return $this->render('location/edit.html.twig', [
