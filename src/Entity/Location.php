@@ -49,6 +49,15 @@ class Location
     #[ORM\Column]
     private ?\DateTimeImmutable $updatedAt = null;
 
+    #[ORM\Column(length: 20)]
+    private ?string $statut = 'active'; // 'active', 'terminee', 'annulee'
+
+    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
+    private ?\DateTimeInterface $dateAnnulation = null;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $raisonAnnulation = null;
+
     #[ORM\OneToMany(mappedBy: 'location', targetEntity: Paiement::class, orphanRemoval: true, cascade: ['persist', 'remove'])]
     private Collection $paiements;
 
@@ -57,6 +66,7 @@ class Location
         $this->createdAt = new \DateTimeImmutable();
         $this->updatedAt = new \DateTimeImmutable();
         $this->estPaye = false;
+        $this->statut = 'active';
         $this->paiements = new ArrayCollection();
     }
 
@@ -271,13 +281,16 @@ class Location
     }
 
     /**
-     * Calcule le montant total payé pour cette location
+     * Calcule le montant total payé pour cette location (exclut les paiements annulés)
      */
     public function getMontantTotalPaye(): string
     {
         $total = '0.00';
         foreach ($this->paiements as $paiement) {
-            $total = bcadd($total, $paiement->getMontant() ?? '0', 2);
+            // Exclure les paiements annulés
+            if ($paiement->getStatut() === 'valide') {
+                $total = bcadd($total, $paiement->getMontant() ?? '0', 2);
+            }
         }
         return $total;
     }
@@ -337,5 +350,68 @@ class Location
     public function isImpaye(): bool
     {
         return $this->getStatutPaiement() === 'impaye';
+    }
+
+    public function getStatut(): ?string
+    {
+        return $this->statut;
+    }
+
+    public function setStatut(string $statut): static
+    {
+        $this->statut = $statut;
+
+        return $this;
+    }
+
+    public function getDateAnnulation(): ?\DateTimeInterface
+    {
+        return $this->dateAnnulation;
+    }
+
+    public function setDateAnnulation(?\DateTimeInterface $dateAnnulation): static
+    {
+        $this->dateAnnulation = $dateAnnulation;
+
+        return $this;
+    }
+
+    public function getRaisonAnnulation(): ?string
+    {
+        return $this->raisonAnnulation;
+    }
+
+    public function setRaisonAnnulation(?string $raisonAnnulation): static
+    {
+        $this->raisonAnnulation = $raisonAnnulation;
+
+        return $this;
+    }
+
+    /**
+     * Vérifie si la location est annulée
+     */
+    public function isAnnulee(): bool
+    {
+        return $this->statut === 'annulee';
+    }
+
+    /**
+     * Annule la location et tous ses paiements
+     */
+    public function annuler(?string $raison = null): static
+    {
+        $this->statut = 'annulee';
+        $this->dateAnnulation = new \DateTime();
+        $this->raisonAnnulation = $raison;
+
+        // Annuler tous les paiements
+        foreach ($this->paiements as $paiement) {
+            if ($paiement->getStatut() === 'valide') {
+                $paiement->annuler('Location annulée');
+            }
+        }
+
+        return $this;
     }
 }

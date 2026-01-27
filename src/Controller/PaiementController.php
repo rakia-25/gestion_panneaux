@@ -19,8 +19,16 @@ class PaiementController extends AbstractController
     #[Route('/', name: 'app_paiement_index', methods: ['GET'])]
     public function index(PaiementRepository $paiementRepository): Response
     {
+        // Charger tous les paiements avec leurs locations
+        $paiements = $paiementRepository->createQueryBuilder('p')
+            ->leftJoin('p.location', 'l')
+            ->addSelect('l')
+            ->orderBy('p.datePaiement', 'DESC')
+            ->getQuery()
+            ->getResult();
+        
         return $this->render('paiement/index.html.twig', [
-            'paiements' => $paiementRepository->findBy([], ['datePaiement' => 'DESC']),
+            'paiements' => $paiements,
         ]);
     }
 
@@ -35,6 +43,11 @@ class PaiementController extends AbstractController
         if ($locationId) {
             $location = $locationRepository->find($locationId);
             if ($location) {
+                // Vérifier si la location est annulée
+                if ($location->isAnnulee()) {
+                    $this->addFlash('error', 'Cette location a été annulée. Vous ne pouvez pas créer de paiement pour une location annulée.');
+                    return $this->redirectToRoute('app_location_show', ['id' => $locationId], Response::HTTP_SEE_OTHER);
+                }
                 // Vérifier si la location est déjà complètement payée
                 if ($location->isCompletementPaye()) {
                     $this->addFlash('error', 'Cette location est déjà entièrement payée. Vous ne pouvez pas créer un nouveau paiement.');
@@ -63,8 +76,18 @@ class PaiementController extends AbstractController
         }
 
         if ($form->isSubmitted() && $form->isValid()) {
-            // Vérifier que la location n'est pas complètement payée
+            // Vérifier que la location n'est pas annulée
             $locationPaiement = $paiement->getLocation();
+            if ($locationPaiement && $locationPaiement->isAnnulee()) {
+                $this->addFlash('error', 'Cette location a été annulée. Vous ne pouvez pas créer de paiement pour une location annulée.');
+                return $this->render('paiement/new.html.twig', [
+                    'paiement' => $paiement,
+                    'form' => $form,
+                    'location_id' => $locationId,
+                    'location_obj' => $locationId ? $locationRepository->find($locationId) : null,
+                ]);
+            }
+            // Vérifier que la location n'est pas complètement payée
             if ($locationPaiement && $locationPaiement->isCompletementPaye()) {
                 $this->addFlash('error', 'Cette location est déjà entièrement payée. Vous ne pouvez pas créer un nouveau paiement.');
                 return $this->render('paiement/new.html.twig', [
@@ -198,5 +221,41 @@ class PaiementController extends AbstractController
         }
 
         return $this->redirectToRoute('app_paiement_index', [], Response::HTTP_SEE_OTHER);
+    }
+
+    #[Route('/{id}/annuler', name: 'app_paiement_annuler', methods: ['GET', 'POST'])]
+    public function annuler(Request $request, Paiement $paiement, EntityManagerInterface $entityManager): Response
+    {
+        $locationId = $paiement->getLocation()?->getId();
+
+        if ($paiement->isAnnule()) {
+            $this->addFlash('warning', 'Ce paiement est déjà annulé.');
+            if ($locationId) {
+                return $this->redirectToRoute('app_location_show', ['id' => $locationId], Response::HTTP_SEE_OTHER);
+            }
+            return $this->redirectToRoute('app_paiement_index', [], Response::HTTP_SEE_OTHER);
+        }
+
+        if ($request->isMethod('POST')) {
+            $raison = $request->request->get('raison');
+            
+            if ($this->isCsrfTokenValid('annuler'.$paiement->getId(), $request->request->get('_token'))) {
+                $paiement->annuler($raison);
+                $entityManager->flush();
+
+                $this->addFlash('success', 'Paiement annulé avec succès. Le montant restant de la location a été recalculé.');
+                
+                if ($locationId) {
+                    return $this->redirectToRoute('app_location_show', ['id' => $locationId], Response::HTTP_SEE_OTHER);
+                }
+                
+                return $this->redirectToRoute('app_paiement_index', [], Response::HTTP_SEE_OTHER);
+            }
+        }
+
+        return $this->render('paiement/annuler.html.twig', [
+            'paiement' => $paiement,
+            'location_id' => $locationId,
+        ]);
     }
 }

@@ -26,7 +26,8 @@ class LocationController extends AbstractController
         $recherche = $request->query->get('recherche');
 
         $clientIdInt = $clientId ? (int) $clientId : null;
-        $locations = $locationRepository->findWithFilters($statut, $estPaye, $clientIdInt, $recherche);
+        // Inclure les annulées par défaut dans la liste
+        $locations = $locationRepository->findWithFilters($statut, $estPaye, $clientIdInt, $recherche, true);
         $clients = $clientRepository->findAll();
 
         return $this->render('location/index.html.twig', [
@@ -358,6 +359,31 @@ class LocationController extends AbstractController
         }
 
         return $this->redirectToRoute('app_location_index', [], Response::HTTP_SEE_OTHER);
+    }
+
+    #[Route('/{id}/annuler', name: 'app_location_annuler', methods: ['GET', 'POST'])]
+    public function annuler(Request $request, Location $location, EntityManagerInterface $entityManager): Response
+    {
+        if ($location->isAnnulee()) {
+            $this->addFlash('warning', 'Cette location est déjà annulée.');
+            return $this->redirectToRoute('app_location_show', ['id' => $location->getId()], Response::HTTP_SEE_OTHER);
+        }
+
+        if ($request->isMethod('POST')) {
+            $raison = $request->request->get('raison');
+            
+            if ($this->isCsrfTokenValid('annuler'.$location->getId(), $request->request->get('_token'))) {
+                $location->annuler($raison);
+                $entityManager->flush();
+
+                $this->addFlash('success', 'Location annulée avec succès. Tous les paiements associés ont également été annulés.');
+                return $this->redirectToRoute('app_location_show', ['id' => $location->getId()], Response::HTTP_SEE_OTHER);
+            }
+        }
+
+        return $this->render('location/annuler.html.twig', [
+            'location' => $location,
+        ]);
     }
 
 

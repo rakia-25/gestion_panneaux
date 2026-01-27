@@ -17,7 +17,7 @@ class LocationRepository extends ServiceEntityRepository
     }
 
     /**
-     * Retourne les locations actives
+     * Retourne les locations actives (exclut les annulées)
      */
     public function findActive(): array
     {
@@ -26,7 +26,9 @@ class LocationRepository extends ServiceEntityRepository
         return $this->createQueryBuilder('l')
             ->where('l.dateDebut <= :now')
             ->andWhere('l.dateFin >= :now')
+            ->andWhere('l.statut != :annulee')
             ->setParameter('now', $now)
+            ->setParameter('annulee', 'annulee')
             ->orderBy('l.dateFin', 'ASC')
             ->getQuery()
             ->getResult();
@@ -69,9 +71,9 @@ class LocationRepository extends ServiceEntityRepository
     }
 
     /**
-     * Recherche avec filtres
+     * Recherche avec filtres (inclut les annulées par défaut)
      */
-    public function findWithFilters(?string $statut = null, ?string $estPaye = null, ?int $clientId = null, ?string $recherche = null): array
+    public function findWithFilters(?string $statut = null, ?string $estPaye = null, ?int $clientId = null, ?string $recherche = null, ?bool $inclureAnnulees = true): array
     {
         $qb = $this->createQueryBuilder('l')
             ->leftJoin('l.client', 'c')
@@ -80,19 +82,34 @@ class LocationRepository extends ServiceEntityRepository
             ->leftJoin('l.paiements', 'pai')
             ->addSelect('pai');
 
+        // Exclure les annulées seulement si explicitement demandé
+        if (!$inclureAnnulees) {
+            $qb->andWhere('l.statut != :annulee')
+               ->setParameter('annulee', 'annulee');
+        }
+
         $now = new \DateTime();
 
         if ($statut) {
             if ($statut === 'active') {
                 $qb->andWhere('l.dateDebut <= :now')
                    ->andWhere('l.dateFin >= :now')
-                   ->setParameter('now', $now);
+                   ->andWhere('l.statut != :annulee')
+                   ->setParameter('now', $now)
+                   ->setParameter('annulee', 'annulee');
             } elseif ($statut === 'terminee') {
                 $qb->andWhere('l.dateFin < :now')
-                   ->setParameter('now', $now);
+                   ->andWhere('l.statut != :annulee')
+                   ->setParameter('now', $now)
+                   ->setParameter('annulee', 'annulee');
             } elseif ($statut === 'avenir') {
                 $qb->andWhere('l.dateDebut > :now')
-                   ->setParameter('now', $now);
+                   ->andWhere('l.statut != :annulee')
+                   ->setParameter('now', $now)
+                   ->setParameter('annulee', 'annulee');
+            } elseif ($statut === 'annulee') {
+                $qb->andWhere('l.statut = :annulee')
+                   ->setParameter('annulee', 'annulee');
             }
         }
 

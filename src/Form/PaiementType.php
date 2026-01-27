@@ -37,14 +37,20 @@ class PaiementType extends AbstractType
                 'query_builder' => function ($er) use ($location, $currentLocationId, $locationPreselectionnee) {
                     $qb = $er->createQueryBuilder('l');
                     
-                    // Si la location est présélectionnée, limiter à cette location
+                    // Exclure les locations annulées (sauf si c'est la location actuelle en édition)
                     if ($locationPreselectionnee && $location) {
+                        // Si la location est présélectionnée, limiter à cette location
+                        // Mais vérifier qu'elle n'est pas annulée (sera vérifié dans le contrôleur)
                         $qb->where('l.id = :locationId')
                            ->setParameter('locationId', $location->getId());
                     } elseif ($currentLocationId) {
-                        // En édition, limiter à la location actuelle
+                        // En édition, limiter à la location actuelle (même si annulée, pour permettre la consultation)
                         $qb->where('l.id = :currentLocationId')
                            ->setParameter('currentLocationId', $currentLocationId);
+                    } else {
+                        // Pour les nouvelles sélections, exclure les locations annulées
+                        $qb->where('l.statut != :annulee')
+                           ->setParameter('annulee', 'annulee');
                     }
                     
                     return $qb->orderBy('l.dateDebut', 'DESC');

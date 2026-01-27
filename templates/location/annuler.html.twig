@@ -1,0 +1,60 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Annuler la location{% endblock %}
+
+{% block body %}
+<div class="page-header">
+    <h1 class="page-title">Annuler la location #{{ location.id }}</h1>
+    <p class="page-description">{{ location.face.nomComplet }} - {{ location.client.nom }}</p>
+</div>
+
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="section-card">
+            <div class="section-header">
+                <h3 class="section-title"><i class="bi bi-x-circle"></i> Confirmation d'annulation</h3>
+            </div>
+            <div>
+                <div class="alert alert-warning mb-3">
+                    <i class="bi bi-exclamation-triangle"></i> <strong>Attention :</strong>
+                    L'annulation de cette location entraînera :
+                    <ul style="margin-top: 0.5rem; margin-bottom: 0;">
+                        <li>L'annulation automatique de tous les paiements associés</li>
+                        <li>La libération immédiate de la face pour de nouvelles locations</li>
+                        <li>La conservation de l'historique (la location ne sera pas supprimée)</li>
+                    </ul>
+                </div>
+
+                <div class="alert alert-info mb-3">
+                    <strong>Informations de la location :</strong><br>
+                    <small>
+                        Période: {{ location.dateDebut|date('d/m/Y') }} - {{ location.dateFin|date('d/m/Y') }}<br>
+                        Montant total: {{ location.montantTotal|number_format(0, ',', ' ') }} FCFA<br>
+                        Montant payé: {{ location.montantTotalPaye|number_format(0, ',', ' ') }} FCFA<br>
+                        Nombre de paiements: {{ location.paiements|length }}
+                    </small>
+                </div>
+
+                <form method="post" action="{{ path('app_location_annuler', {id: location.id}) }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token('annuler' ~ location.id) }}">
+                    
+                    <div class="mb-3">
+                        <label for="raison" class="form-label">Raison de l'annulation <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="raison" name="raison" rows="4" required placeholder="Ex: Demande du client, problème technique, etc."></textarea>
+                        <div class="form-text">Veuillez indiquer la raison de l'annulation de cette location.</div>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; margin-top: 2rem;">
+                        <a href="{{ path('app_location_show', {id: location.id}) }}" class="btn-secondary-modern">
+                            <i class="bi bi-arrow-left"></i> Retour
+                        </a>
+                        <button type="submit" class="btn-danger-modern">
+                            <i class="bi bi-x-circle"></i> Confirmer l'annulation
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

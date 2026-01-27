@@ -243,6 +243,7 @@ class LoadFixturesCommand extends Command
             $location1->setDateFin(new \DateTime('+1 month'));
             $location1->setMontantMensuel('150000');
             $location1->setNotes('Location en cours pour Orange Niger');
+            $location1->setStatut('active'); // Statut par défaut
             $this->entityManager->persist($location1);
             $locations[] = $location1;
 
@@ -253,6 +254,7 @@ class LoadFixturesCommand extends Command
             $paiement1->setDatePaiement(new \DateTime('-2 months'));
             $paiement1->setType('paiement_complet');
             $paiement1->setNotes('Paiement complet de la location');
+            $paiement1->setStatut('valide'); // Statut par défaut
             $this->entityManager->persist($paiement1);
         }
 
@@ -266,6 +268,7 @@ class LoadFixturesCommand extends Command
             // Prix réduit de 200000 à 180000 (réduction de 10%)
             $location2->setMontantMensuel('180000');
             $location2->setNotes('Remise pour fidélité client');
+            $location2->setStatut('active');
             $this->entityManager->persist($location2);
             $locations[] = $location2;
 
@@ -276,6 +279,7 @@ class LoadFixturesCommand extends Command
             $paiement2->setDatePaiement(new \DateTime('-1 month'));
             $paiement2->setType('acompte');
             $paiement2->setNotes('Acompte versé au début de la location');
+            $paiement2->setStatut('valide');
             $this->entityManager->persist($paiement2);
         }
 
@@ -287,6 +291,7 @@ class LoadFixturesCommand extends Command
             $location3->setDateDebut(new \DateTime('-3 months'));
             $location3->setDateFin(new \DateTime('+15 days'));
             $location3->setMontantMensuel('180000');
+            $location3->setStatut('active');
             $this->entityManager->persist($location3);
             $locations[] = $location3;
 
@@ -297,6 +302,7 @@ class LoadFixturesCommand extends Command
             $paiement3a->setDatePaiement(new \DateTime('-3 months'));
             $paiement3a->setType('acompte');
             $paiement3a->setNotes('Acompte de 50%');
+            $paiement3a->setStatut('valide');
             $this->entityManager->persist($paiement3a);
 
             // Solde de 420000 (4 mois * 180000 = 720000 - 300000 = 420000)
@@ -306,6 +312,7 @@ class LoadFixturesCommand extends Command
             $paiement3b->setDatePaiement(new \DateTime('-1 month'));
             $paiement3b->setType('solde');
             $paiement3b->setNotes('Solde de la location');
+            $paiement3b->setStatut('valide');
             $this->entityManager->persist($paiement3b);
         }
 
@@ -317,6 +324,7 @@ class LoadFixturesCommand extends Command
             $location4->setDateDebut(new \DateTime('-6 months'));
             $location4->setDateFin(new \DateTime('-1 month'));
             $location4->setMontantMensuel('170000');
+            $location4->setStatut('active');
             $this->entityManager->persist($location4);
             $locations[] = $location4;
 
@@ -328,6 +336,7 @@ class LoadFixturesCommand extends Command
                 $paiement4->setDatePaiement((new \DateTime('-6 months'))->modify("+{$i} months"));
                 $paiement4->setType($i === 0 ? 'acompte' : 'autre');
                 $paiement4->setNotes($i === 0 ? 'Premier paiement' : "Paiement mensuel #" . ($i + 1));
+                $paiement4->setStatut('valide');
                 $this->entityManager->persist($paiement4);
             }
         }
@@ -342,6 +351,7 @@ class LoadFixturesCommand extends Command
             // Prix réduit de 110000 à 95000 (remise de 15%)
             $location5->setMontantMensuel('95000');
             $location5->setNotes('Remise pour location longue durée');
+            $location5->setStatut('active');
             $this->entityManager->persist($location5);
             $locations[] = $location5;
             // Aucun paiement pour cette location (impayée)
@@ -357,6 +367,7 @@ class LoadFixturesCommand extends Command
             // Prix majoré de 220000 à 250000
             $location6->setMontantMensuel('250000');
             $location6->setNotes('Majoration pour emplacement premium');
+            $location6->setStatut('active');
             $this->entityManager->persist($location6);
             $locations[] = $location6;
 
@@ -367,7 +378,72 @@ class LoadFixturesCommand extends Command
             $paiement6->setDatePaiement(new \DateTime('-3 months'));
             $paiement6->setType('acompte');
             $paiement6->setNotes('Acompte partiel, solde en attente');
+            $paiement6->setStatut('valide');
             $this->entityManager->persist($paiement6);
+        }
+
+        // Location 7 : Annulée (avec paiements annulés) - Exemple de location annulée
+        if (isset($faces[1]) && count($clients) > 0) {
+            $location7 = new Location();
+            $location7->setFace($faces[1]);
+            $location7->setClient($clients[0]); // Orange Niger
+            $location7->setDateDebut(new \DateTime('-3 months'));
+            $location7->setDateFin(new \DateTime('-1 month'));
+            $location7->setMontantMensuel('100000');
+            $location7->setNotes('Location annulée à la demande du client');
+            $location7->setStatut('annulee');
+            $location7->setDateAnnulation(new \DateTime('-2 months'));
+            $location7->setRaisonAnnulation('Demande d\'annulation du client pour changement de stratégie marketing');
+            $this->entityManager->persist($location7);
+            $locations[] = $location7;
+
+            // Paiement annulé (car la location est annulée)
+            $paiement7a = new Paiement();
+            $paiement7a->setLocation($location7);
+            $paiement7a->setMontant('200000');
+            $paiement7a->setDatePaiement(new \DateTime('-3 months'));
+            $paiement7a->setType('acompte');
+            $paiement7a->setNotes('Acompte versé avant annulation');
+            $paiement7a->setStatut('annule');
+            $paiement7a->setDateAnnulation(new \DateTime('-2 months'));
+            $paiement7a->setRaisonAnnulation('Location annulée');
+            $this->entityManager->persist($paiement7a);
+        }
+
+        // Location 8 : En cours, avec un paiement annulé (exemple de paiement annulé sans annuler la location)
+        if (isset($faces[4]) && count($clients) > 1) {
+            $location8 = new Location();
+            $location8->setFace($faces[4]);
+            $location8->setClient($clients[1]); // Moov Niger
+            $location8->setDateDebut(new \DateTime('-1 month'));
+            $location8->setDateFin(new \DateTime('+2 months'));
+            $location8->setMontantMensuel('90000');
+            $location8->setNotes('Location avec paiement annulé');
+            $location8->setStatut('active');
+            $this->entityManager->persist($location8);
+            $locations[] = $location8;
+
+            // Paiement valide
+            $paiement8a = new Paiement();
+            $paiement8a->setLocation($location8);
+            $paiement8a->setMontant('90000');
+            $paiement8a->setDatePaiement(new \DateTime('-1 month'));
+            $paiement8a->setType('acompte');
+            $paiement8a->setNotes('Premier paiement valide');
+            $paiement8a->setStatut('valide');
+            $this->entityManager->persist($paiement8a);
+
+            // Paiement annulé (erreur de saisie)
+            $paiement8b = new Paiement();
+            $paiement8b->setLocation($location8);
+            $paiement8b->setMontant('100000');
+            $paiement8b->setDatePaiement(new \DateTime('-2 weeks'));
+            $paiement8b->setType('autre');
+            $paiement8b->setNotes('Paiement erroné - montant incorrect');
+            $paiement8b->setStatut('annule');
+            $paiement8b->setDateAnnulation(new \DateTime('-1 week'));
+            $paiement8b->setRaisonAnnulation('Erreur de saisie - montant incorrectement enregistré');
+            $this->entityManager->persist($paiement8b);
         }
 
         $this->entityManager->flush();

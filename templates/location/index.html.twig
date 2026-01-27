@@ -35,6 +35,7 @@
                         <option value="active" {{ filters.statut == 'active' ? 'selected' : '' }}>En cours</option>
                         <option value="terminee" {{ filters.statut == 'terminee' ? 'selected' : '' }}>Terminée</option>
                         <option value="avenir" {{ filters.statut == 'avenir' ? 'selected' : '' }}>À venir</option>
+                        <option value="annulee" {{ filters.statut == 'annulee' ? 'selected' : '' }}>Annulée</option>
                     </select>
                 </div>
                 <div class="col-md-2">
@@ -87,21 +88,29 @@
             </thead>
             <tbody>
                 {% for location in locations %}
-                    <tr data-statut="{% if location.isActive() %}active{% elseif location.isTerminee() %}terminee{% else %}avenir{% endif %}"
+                    <tr {% if location.isAnnulee %}style="opacity: 0.6;"{% endif %}
+                        data-statut="{% if location.isAnnulee %}annulee{% elseif location.isActive() %}active{% elseif location.isTerminee() %}terminee{% else %}avenir{% endif %}"
                         data-est-paye="{% if location.isCompletementPaye() %}1{% elseif location.isPartiellementPaye() %}2{% else %}0{% endif %}"
                         data-client-id="{{ location.client.id }}"
                         data-face="{{ location.face.nomComplet|lower }}"
                         data-client="{{ location.client.nom|lower }}"
                         data-panneau="{{ location.face.panneau.reference|lower }}"
                         data-emplacement="{{ location.face.panneau.emplacement|lower }}">
-                        <td><strong>{{ location.face.nomComplet }}</strong></td>
+                        <td>
+                            <strong>{{ location.face.nomComplet }}</strong>
+                            {% if location.isAnnulee %}
+                                <br><small class="text-danger">(Annulée)</small>
+                            {% endif %}
+                        </td>
                         <td>{{ location.client.nom }}</td>
                         <td>{{ location.dateDebut|date('d/m/Y') }}</td>
                         <td>{{ location.dateFin|date('d/m/Y') }}</td>
                         <td>{{ location.montantMensuel|number_format(0, ',', ' ') }} FCFA</td>
                         <td><strong>{{ location.montantTotal|number_format(0, ',', ' ') }} FCFA</strong></td>
                         <td>
-                            {% if location.isActive() %}
+                            {% if location.isAnnulee %}
+                                <span class="table-badge danger">Annulée</span>
+                            {% elseif location.isActive() %}
                                 <span class="table-badge success">En cours</span>
                             {% elseif location.isTerminee() %}
                                 <span class="table-badge warning">Terminée</span>
@@ -126,15 +135,14 @@
                                 <a href="{{ path('app_location_show', {id: location.id}) }}" class="action-btn" title="Voir">
                                     <i class="bi bi-eye"></i>
                                 </a>
-                                <a href="{{ path('app_location_edit', {id: location.id}) }}" class="action-btn" title="Modifier">
-                                    <i class="bi bi-pencil"></i>
-                                </a>
-                                <form method="post" action="{{ path('app_location_delete', {id: location.id}) }}" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette location ?');">
-                                    <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ location.id) }}">
-                                    <button type="submit" class="action-btn" title="Supprimer" style="color: var(--danger-color);">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </form>
+                                {% if not location.isAnnulee %}
+                                    <a href="{{ path('app_location_edit', {id: location.id}) }}" class="action-btn" title="Modifier">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a href="{{ path('app_location_annuler', {id: location.id}) }}" class="action-btn text-danger" title="Annuler">
+                                        <i class="bi bi-x-circle"></i>
+                                    </a>
+                                {% endif %}
                             </div>
                         </td>
                     </tr>
