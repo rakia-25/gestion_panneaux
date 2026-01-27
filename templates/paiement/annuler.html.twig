@@ -1,0 +1,66 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Annuler le paiement{% endblock %}
+
+{% block body %}
+<div class="page-header">
+    <h1 class="page-title">Annuler le paiement #{{ paiement.id }}</h1>
+    <p class="page-description">Location: {{ paiement.location.face.nomComplet }} - {{ paiement.location.client.nom }}</p>
+</div>
+
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="section-card">
+            <div class="section-header">
+                <h3 class="section-title"><i class="bi bi-x-circle"></i> Confirmation d'annulation</h3>
+            </div>
+            <div>
+                <div class="alert alert-warning mb-3">
+                    <i class="bi bi-exclamation-triangle"></i> <strong>Attention :</strong>
+                    L'annulation de ce paiement entraînera :
+                    <ul style="margin-top: 0.5rem; margin-bottom: 0;">
+                        <li>Le recalcul automatique du montant restant de la location</li>
+                        <li>La mise à jour du statut de paiement de la location</li>
+                        <li>La conservation de l'historique (le paiement ne sera pas supprimé)</li>
+                    </ul>
+                </div>
+
+                <div class="alert alert-info mb-3">
+                    <strong>Informations du paiement :</strong><br>
+                    <small>
+                        Date: {{ paiement.datePaiement|date('d/m/Y') }}<br>
+                        Montant: <strong>{{ paiement.montant|number_format(0, ',', ' ') }} FCFA</strong><br>
+                        Type: {{ paiement.typeLibelle }}<br>
+                        Location: {{ paiement.location.face.nomComplet }} - {{ paiement.location.client.nom }}
+                    </small>
+                </div>
+
+                <form method="post" action="{{ path('app_paiement_annuler', {id: paiement.id}) }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token('annuler' ~ paiement.id) }}">
+                    
+                    <div class="mb-3">
+                        <label for="raison" class="form-label">Raison de l'annulation <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="raison" name="raison" rows="4" required placeholder="Ex: Erreur de saisie, paiement erroné, remboursement, etc."></textarea>
+                        <div class="form-text">Veuillez indiquer la raison de l'annulation de ce paiement.</div>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; margin-top: 2rem;">
+                        {% if location_id %}
+                            <a href="{{ path('app_location_show', {id: location_id}) }}" class="btn-secondary-modern">
+                                <i class="bi bi-arrow-left"></i> Retour à la location
+                            </a>
+                        {% else %}
+                            <a href="{{ path('app_paiement_index') }}" class="btn-secondary-modern">
+                                <i class="bi bi-arrow-left"></i> Retour
+                            </a>
+                        {% endif %}
+                        <button type="submit" class="btn-danger-modern">
+                            <i class="bi bi-x-circle"></i> Confirmer l'annulation
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

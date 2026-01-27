@@ -71,7 +71,7 @@
                     <tbody>
                         {% for location in locations %}
                             {% set statutPaiement = location.statutPaiement %}
-                            <tr>
+                            <tr {% if location.isAnnulee %}style="opacity: 0.6;"{% endif %}>
                                 <td>
                                     <strong>{{ location.client.nom }}</strong>
                                     <br>
@@ -83,7 +83,14 @@
                                 <td>{{ location.montantMensuel|number_format(0, ',', ' ') }} FCFA</td>
                                 <td><strong>{{ location.montantTotal|number_format(0, ',', ' ') }} FCFA</strong></td>
                                 <td>
-                                    {% if location.isActive() %}
+                                    {% if location.isAnnulee %}
+                                        <span class="table-badge danger">Annulée</span>
+                                        {% if location.dateAnnulation %}
+                                            <br><small style="color: var(--text-gray); font-size: 0.7rem;">
+                                                Le {{ location.dateAnnulation|date('d/m/Y') }}
+                                            </small>
+                                        {% endif %}
+                                    {% elseif location.isActive() %}
                                         <span class="table-badge success">En cours</span>
                                     {% elseif location.isTerminee() %}
                                         <span class="table-badge warning">Terminée</span>
@@ -109,9 +116,11 @@
                                         <a href="{{ path('app_location_show', {id: location.id}) }}" class="action-btn" title="Voir">
                                             <i class="bi bi-eye"></i>
                                         </a>
-                                        <a href="{{ path('app_location_edit', {id: location.id}) }}" class="action-btn" title="Modifier">
-                                            <i class="bi bi-pencil"></i>
-                                        </a>
+                                        {% if not location.isAnnulee %}
+                                            <a href="{{ path('app_location_edit', {id: location.id}) }}" class="action-btn" title="Modifier">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                        {% endif %}
                                     </div>
                                 </td>
                             </tr>

@@ -33,28 +33,37 @@
             </thead>
             <tbody>
                 {% for paiement in paiements %}
-                    <tr>
-                        <td>{{ paiement.datePaiement|date('d/m/Y') }}</td>
+                    <tr {% if paiement.isAnnule %}style="opacity: 0.6;"{% endif %}>
+                        <td>
+                            {{ paiement.datePaiement|date('d/m/Y') }}
+                            {% if paiement.isAnnule %}
+                                <br><small class="text-danger">(Annulé)</small>
+                            {% endif %}
+                        </td>
                         <td><strong>{{ paiement.location.face.nomComplet }}</strong></td>
                         <td>{{ paiement.location.client.nom }}</td>
-                        <td><strong>{{ paiement.montant|number_format(0, ',', ' ') }} FCFA</strong></td>
                         <td>
-                            <span class="table-badge info">{{ paiement.typeLibelle }}</span>
+                            <strong>{{ paiement.montant|number_format(0, ',', ' ') }} FCFA</strong>
+                            {% if paiement.isAnnule %}
+                                <br><small class="text-danger">Annulé le {{ paiement.dateAnnulation|date('d/m/Y') }}</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="table-badge {% if paiement.isAnnule %}danger{% else %}info{% endif %}">{{ paiement.typeLibelle }}</span>
                         </td>
                         <td>
                             <div class="action-menu">
                                 <a href="{{ path('app_paiement_show', {id: paiement.id}) }}" class="action-btn" title="Voir">
                                     <i class="bi bi-eye"></i>
                                 </a>
-                                <a href="{{ path('app_paiement_edit', {id: paiement.id}) }}" class="action-btn" title="Modifier">
-                                    <i class="bi bi-pencil"></i>
-                                </a>
-                                <form method="post" action="{{ path('app_paiement_delete', {id: paiement.id}) }}" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce paiement ?');">
-                                    <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ paiement.id) }}">
-                                    <button type="submit" class="action-btn" title="Supprimer" style="color: var(--danger-color);">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </form>
+                                {% if not paiement.isAnnule and not paiement.location.isAnnulee %}
+                                    <a href="{{ path('app_paiement_edit', {id: paiement.id}) }}" class="action-btn" title="Modifier">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a href="{{ path('app_paiement_annuler', {id: paiement.id}) }}" class="action-btn text-danger" title="Annuler">
+                                        <i class="bi bi-x-circle"></i>
+                                    </a>
+                                {% endif %}
                             </div>
                         </td>
                     </tr>

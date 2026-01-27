@@ -10,15 +10,23 @@
             <p class="page-description">Informations complètes du paiement</p>
         </div>
         <div style="display: flex; gap: 0.75rem;">
-            <a href="{{ path('app_paiement_edit', {id: paiement.id}) }}" class="btn-secondary-modern">
-                <i class="bi bi-pencil"></i> Modifier
-            </a>
-            <form method="post" action="{{ path('app_paiement_delete', {id: paiement.id}) }}" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce paiement ?');">
-                <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ paiement.id) }}">
-                <button type="submit" class="btn-secondary-modern" style="color: var(--danger-color); border-color: var(--danger-color);">
-                    <i class="bi bi-trash"></i> Supprimer
-                </button>
-            </form>
+            {% if not paiement.isAnnule and not paiement.location.isAnnulee %}
+                <a href="{{ path('app_paiement_edit', {id: paiement.id}) }}" class="btn-secondary-modern">
+                    <i class="bi bi-pencil"></i> Modifier
+                </a>
+                <a href="{{ path('app_paiement_annuler', {id: paiement.id}) }}" class="btn-danger-modern">
+                    <i class="bi bi-x-circle"></i> Annuler
+                </a>
+            {% endif %}
+            {% if paiement.location %}
+                <a href="{{ path('app_location_show', {id: paiement.location.id}) }}" class="btn-secondary-modern">
+                    <i class="bi bi-arrow-left"></i> Retour à la location
+                </a>
+            {% else %}
+                <a href="{{ path('app_paiement_index') }}" class="btn-secondary-modern">
+                    <i class="bi bi-arrow-left"></i> Retour
+                </a>
+            {% endif %}
         </div>
     </div>
 </div>
@@ -29,8 +37,29 @@
             <div class="section-header">
                 <h3 class="section-title"><i class="bi bi-cash-coin"></i> Informations du paiement</h3>
             </div>
+            {% if paiement.isAnnule %}
+                <div class="alert alert-warning mb-3">
+                    <i class="bi bi-exclamation-triangle"></i> <strong>Ce paiement a été annulé</strong>
+                    {% if paiement.dateAnnulation %}
+                        <br><small>Annulé le {{ paiement.dateAnnulation|date('d/m/Y à H:i') }}</small>
+                    {% endif %}
+                    {% if paiement.raisonAnnulation %}
+                        <br><small>Raison: {{ paiement.raisonAnnulation }}</small>
+                    {% endif %}
+                </div>
+            {% endif %}
             <table class="modern-table" style="margin: 0;">
                 <tbody>
+                    <tr>
+                        <th width="200" style="font-weight: 600; color: var(--text-gray);">Statut</th>
+                        <td>
+                            {% if paiement.isAnnule %}
+                                <span class="table-badge danger">Annulé</span>
+                            {% else %}
+                                <span class="table-badge success">Valide</span>
+                            {% endif %}
+                        </td>
+                    </tr>
                     <tr>
                         <th width="200" style="font-weight: 600; color: var(--text-gray);">Location</th>
                         <td>
@@ -53,12 +82,18 @@
                     </tr>
                     <tr>
                         <th>Type</th>
-                        <td><span class="table-badge info" style="font-size: 0.875rem;">{{ paiement.typeLibelle }}</span></td>
+                        <td><span class="table-badge {% if paiement.isAnnule %}danger{% else %}info{% endif %}" style="font-size: 0.875rem;">{{ paiement.typeLibelle }}</span></td>
                     </tr>
                     {% if paiement.notes %}
                     <tr>
                         <th>Notes</th>
                         <td>{{ paiement.notes }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if paiement.isAnnule and paiement.raisonAnnulation %}
+                    <tr>
+                        <th>Raison d'annulation</th>
+                        <td>{{ paiement.raisonAnnulation }}</td>
                     </tr>
                     {% endif %}
                     <tr>

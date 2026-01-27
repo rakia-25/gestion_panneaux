@@ -701,6 +701,35 @@
                 color: var(--primary-color);
             }
 
+            .btn-danger-modern {
+                background: var(--danger-color);
+                color: white;
+                border: none;
+                padding: 0.625rem 1.25rem;
+                border-radius: 8px;
+                font-weight: 500;
+                font-size: 0.875rem;
+                cursor: pointer;
+                transition: all 0.2s;
+                text-decoration: none;
+                display: inline-flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+
+            .btn-danger-modern:hover {
+                background: #dc2626;
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+                color: white;
+            }
+
+            .btn-danger-modern:disabled {
+                background: #cbd5e1;
+                cursor: not-allowed;
+                transform: none;
+            }
+
             /* Responsive */
             @media (max-width: 768px) {
                 .sidebar {

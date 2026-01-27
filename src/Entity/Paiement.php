@@ -37,11 +37,21 @@ class Paiement
     #[ORM\Column]
     private ?\DateTimeImmutable $updatedAt = null;
 
+    #[ORM\Column(length: 20)]
+    private ?string $statut = 'valide'; // 'valide', 'annule'
+
+    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
+    private ?\DateTimeInterface $dateAnnulation = null;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $raisonAnnulation = null;
+
     public function __construct()
     {
         $this->createdAt = new \DateTimeImmutable();
         $this->updatedAt = new \DateTimeImmutable();
         $this->datePaiement = new \DateTime();
+        $this->statut = 'valide';
     }
 
     public function getId(): ?int
@@ -151,5 +161,61 @@ class Paiement
             'autre' => 'Autre',
             default => $this->type ?? 'Non défini'
         };
+    }
+
+    public function getStatut(): ?string
+    {
+        return $this->statut;
+    }
+
+    public function setStatut(string $statut): static
+    {
+        $this->statut = $statut;
+
+        return $this;
+    }
+
+    public function getDateAnnulation(): ?\DateTimeInterface
+    {
+        return $this->dateAnnulation;
+    }
+
+    public function setDateAnnulation(?\DateTimeInterface $dateAnnulation): static
+    {
+        $this->dateAnnulation = $dateAnnulation;
+
+        return $this;
+    }
+
+    public function getRaisonAnnulation(): ?string
+    {
+        return $this->raisonAnnulation;
+    }
+
+    public function setRaisonAnnulation(?string $raisonAnnulation): static
+    {
+        $this->raisonAnnulation = $raisonAnnulation;
+
+        return $this;
+    }
+
+    /**
+     * Vérifie si le paiement est annulé
+     */
+    public function isAnnule(): bool
+    {
+        return $this->statut === 'annule';
+    }
+
+    /**
+     * Annule le paiement
+     */
+    public function annuler(?string $raison = null): static
+    {
+        $this->statut = 'annule';
+        $this->dateAnnulation = new \DateTime();
+        $this->raisonAnnulation = $raison;
+
+        return $this;
     }
 }

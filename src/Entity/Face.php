@@ -120,6 +120,11 @@ class Face
         $dateFinNormalisee = new \DateTime($dateFin->format('Y-m-d'));
         
         foreach ($this->locations as $location) {
+            // Exclure les locations annulées
+            if ($location->isAnnulee()) {
+                continue;
+            }
+            
             // Exclure la location spécifiée (utile lors de l'édition)
             if ($excludeLocation && $location->getId() === $excludeLocation->getId()) {
                 continue;
@@ -140,14 +145,14 @@ class Face
     }
 
     /**
-     * Retourne la location active actuelle (si elle existe)
+     * Retourne la location active actuelle (si elle existe, exclut les annulées)
      */
     public function getLocationActive(): ?Location
     {
         $now = new \DateTime();
         
         foreach ($this->locations as $location) {
-            if ($location->getDateDebut() <= $now && $location->getDateFin() >= $now) {
+            if (!$location->isAnnulee() && $location->getDateDebut() <= $now && $location->getDateFin() >= $now) {
                 return $location;
             }
         }
@@ -156,7 +161,7 @@ class Face
     }
 
     /**
-     * Retourne toutes les locations actives ou futures (non terminées)
+     * Retourne toutes les locations actives ou futures (non terminées, exclut les annulées)
      */
     public function getLocationsActivesOuFutures(): array
     {
@@ -164,7 +169,7 @@ class Face
         $locations = [];
         
         foreach ($this->locations as $location) {
-            if ($location->getDateFin() >= $now) {
+            if (!$location->isAnnulee() && $location->getDateFin() >= $now) {
                 $locations[] = $location;
             }
         }
@@ -178,14 +183,14 @@ class Face
     }
 
     /**
-     * Vérifie si la face a des locations futures (non terminées)
+     * Vérifie si la face a des locations futures (non terminées, exclut les annulées)
      */
     public function hasLocationsFutures(): bool
     {
         $now = new \DateTime();
         
         foreach ($this->locations as $location) {
-            if ($location->getDateFin() >= $now) {
+            if (!$location->isAnnulee() && $location->getDateFin() >= $now) {
                 return true;
             }
         }
