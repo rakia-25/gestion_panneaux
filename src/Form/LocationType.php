@@ -22,6 +22,8 @@ class LocationType extends AbstractType
     {
         $currentLocation = $options['data'] ?? null;
         $currentFaceId = $currentLocation && $currentLocation->getFace() ? $currentLocation->getFace()->getId() : null;
+        $facePreselectionnee = $options['face_preselectionnee'] ?? false;
+        $clientPreselectionne = $options['client_preselectionne'] ?? false;
         
         $builder
             ->add('face', EntityType::class, [
@@ -31,13 +33,19 @@ class LocationType extends AbstractType
                 },
                 'label' => 'Face du panneau',
                 'placeholder' => 'Sélectionner une face',
-                'query_builder' => function (FaceRepository $er) use ($currentFaceId) {
+                'disabled' => $facePreselectionnee,
+                'query_builder' => function (FaceRepository $er) use ($currentFaceId, $facePreselectionnee) {
                     $qb = $er->createQueryBuilder('f');
                     
                     // Si on édite une location, inclure la face actuelle
                     if ($currentFaceId) {
                         $qb->where('f.id = :currentFaceId')
                            ->setParameter('currentFaceId', $currentFaceId);
+                    } elseif ($facePreselectionnee && $currentLocation && $currentLocation->getFace()) {
+                        // Si la face est présélectionnée, limiter aux faces du même panneau ou à la face sélectionnée
+                        $facePreselectionneeId = $currentLocation->getFace()->getId();
+                        $qb->where('f.id = :facePreselectionneeId')
+                           ->setParameter('facePreselectionneeId', $facePreselectionneeId);
                     } else {
                         // Pour une nouvelle location, on affiche toutes les faces
                         // La vérification de disponibilité se fera côté contrôleur
@@ -56,9 +64,18 @@ class LocationType extends AbstractType
                 'choice_label' => 'nom',
                 'label' => 'Client',
                 'placeholder' => 'Sélectionner un client',
-                'query_builder' => function (ClientRepository $er) {
-                    return $er->createQueryBuilder('c')
-                        ->orderBy('c.nom', 'ASC');
+                'disabled' => $clientPreselectionne,
+                'query_builder' => function (ClientRepository $er) use ($currentLocation, $clientPreselectionne) {
+                    $qb = $er->createQueryBuilder('c');
+                    
+                    // Si le client est présélectionné, limiter au client sélectionné
+                    if ($clientPreselectionne && $currentLocation && $currentLocation->getClient()) {
+                        $clientPreselectionneId = $currentLocation->getClient()->getId();
+                        $qb->where('c.id = :clientPreselectionneId')
+                           ->setParameter('clientPreselectionneId', $clientPreselectionneId);
+                    }
+                    
+                    return $qb->orderBy('c.nom', 'ASC');
                 }
             ])
             ->add('dateDebut', DateType::class, [
@@ -91,10 +108,9 @@ class LocationType extends AbstractType
                 'label' => 'Date de fin',
                 'widget' => 'single_text',
                 'html5' => true,
+                'disabled' => true, // Toujours désactivé car calculée automatiquement
                 'attr' => [
                     'id' => 'location_dateFin',
-                    'readonly' => true,
-                    'disabled' => false, // Ne pas utiliser disabled car cela empêche la soumission du formulaire
                 ],
                 'help' => 'Calculée automatiquement en fonction de la date de début et de la durée.'
             ])
@@ -138,6 +154,8 @@ class LocationType extends AbstractType
     {
         $resolver->setDefaults([
             'data_class' => Location::class,
+            'face_preselectionnee' => false,
+            'client_preselectionne' => false,
         ]);
     }
 }

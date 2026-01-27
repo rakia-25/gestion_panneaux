@@ -47,7 +47,7 @@
                     <tr>
                         <th>Période</th>
                         <td>
-                            <strong>{{ location.dateDebut|date('d/m/Y') }}</strong> - 
+                            <strong>{{ location.dateDebut|date('d/m/Y') }}</strong> -
                             <strong>{{ location.dateFin|date('d/m/Y') }}</strong><br>
                             <small style="color: var(--text-gray); font-size: 0.75rem;">{{ location.nombreMois }} mois</small>
                         </td>
@@ -73,7 +73,7 @@
                             {% endif %}
                             <br>
                             <small style="color: var(--text-gray); margin-top: 0.5rem; display: block;">
-                                Payé: <strong>{{ location.montantTotalPaye|number_format(0, ',', ' ') }} FCFA</strong> | 
+                                Payé: <strong>{{ location.montantTotalPaye|number_format(0, ',', ' ') }} FCFA</strong> |
                                 Restant: <strong>{{ location.montantRestant|number_format(0, ',', ' ') }} FCFA</strong>
                             </small>
                         </td>
@@ -116,7 +116,7 @@
             </div>
             <div>
                 <p><strong>Référence:</strong> {{ location.face.panneau.reference }}</p>
-                <p><strong>Type:</strong> 
+                <p><strong>Type:</strong>
                     {% if location.face.panneau.type == 'double' %}
                         <span class="table-badge info">Double</span>
                     {% else %}
@@ -152,9 +152,15 @@
         <div class="table-card">
             <div class="table-header">
                 <h3 class="table-title">Paiements</h3>
-                <a href="{{ path('app_paiement_new', {location_id: location.id}) }}" class="btn-primary-modern" style="padding: 0.5rem 1rem; font-size: 0.8125rem;">
-                    <i class="bi bi-plus-circle"></i> Ajouter
-                </a>
+                {% if location.isCompletementPaye %}
+                    <div class="alert alert-info" style="margin: 0; padding: 0.5rem 1rem; font-size: 0.8125rem;">
+                        <i class="bi bi-check-circle"></i> Location entièrement payée
+                    </div>
+                {% else %}
+                    <a href="{{ path('app_paiement_new', {location_id: location.id}) }}" class="btn-primary-modern" style="padding: 0.5rem 1rem; font-size: 0.8125rem;">
+                        <i class="bi bi-plus-circle"></i> Ajouter
+                    </a>
+                {% endif %}
             </div>
             {% if location.paiements|length > 0 %}
                 <table class="modern-table">

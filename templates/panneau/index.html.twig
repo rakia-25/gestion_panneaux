@@ -89,7 +89,7 @@
                         data-reference="{{ panneau.reference|lower }}"
                         data-emplacement="{{ panneau.emplacement|lower }}"
                         data-quartier="{{ (panneau.quartier ?? '')|lower }}"
-                        data-rue="{{ (panneau.rue ?? '')|lower }}">
+                        data-visibilite="{{ (panneau.visibilite ?? '')|lower }}">
                         <td><strong>{{ panneau.reference }}</strong></td>
                         <td>{{ panneau.emplacement }}</td>
                         <td>{{ panneau.getTailleFormatee() }}</td>
@@ -175,7 +175,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const rowReference = row.dataset.reference || '';
             const rowEmplacement = row.dataset.emplacement || '';
             const rowQuartier = row.dataset.quartier || '';
-            const rowRue = row.dataset.rue || '';
+            const rowVisibilite = row.dataset.visibilite || '';
 
             // Vérifier les filtres
             const typeMatch = !type || rowType === type;
@@ -185,7 +185,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 rowReference.includes(recherche) ||
                 rowEmplacement.includes(recherche) ||
                 rowQuartier.includes(recherche) ||
-                rowRue.includes(recherche);
+                rowVisibilite.includes(recherche);
 
             // Afficher ou cacher la ligne
             if (typeMatch && etatMatch && eclairageMatch && rechercheMatch) {

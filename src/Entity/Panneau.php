@@ -27,7 +27,7 @@ class Panneau
     private ?string $quartier = null;
 
     #[ORM\Column(length: 100, nullable: true)]
-    private ?string $rue = null;
+    private ?string $visibilite = null;
 
     #[ORM\Column(length: 50, nullable: true)]
     private ?string $coordonneesGps = null; // Format: "latitude,longitude"
@@ -44,7 +44,7 @@ class Panneau
     #[ORM\Column(length: 50)]
     private ?string $etat = null; // 'excellent', 'bon', 'moyen', 'mauvais', 'hors_service'
 
-    #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
+    #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 0)]
     private ?string $prixMensuel = null;
 
     #[ORM\Column(length: 255, nullable: true)]
@@ -259,14 +259,14 @@ class Panneau
         return $this;
     }
 
-    public function getRue(): ?string
+    public function getVisibilite(): ?string
     {
-        return $this->rue;
+        return $this->visibilite;
     }
 
-    public function setRue(?string $rue): static
+    public function setVisibilite(?string $visibilite): static
     {
-        $this->rue = $rue;
+        $this->visibilite = $visibilite;
 
         return $this;
     }

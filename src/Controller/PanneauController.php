@@ -41,13 +41,26 @@ class PanneauController extends AbstractController
     }
 
     #[Route('/new', name: 'app_panneau_new', methods: ['GET', 'POST'])]
-    public function new(Request $request, EntityManagerInterface $entityManager, SluggerInterface $slugger): Response
+    public function new(Request $request, EntityManagerInterface $entityManager, SluggerInterface $slugger, PanneauRepository $panneauRepository): Response
     {
         $panneau = new Panneau();
+        
+        // Pré-remplir la référence (sera générée automatiquement)
+        $lastNumber = $panneauRepository->findLastReferenceNumber();
+        $newNumber = $lastNumber + 1;
+        $panneau->setReference(sprintf('PAN-%03d', $newNumber));
+        
         $form = $this->createForm(PanneauType::class, $panneau);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
+            // Générer automatiquement la référence si elle n'est pas définie
+            if (empty($panneau->getReference())) {
+                $lastNumber = $panneauRepository->findLastReferenceNumber();
+                $newNumber = $lastNumber + 1;
+                $panneau->setReference(sprintf('PAN-%03d', $newNumber));
+            }
+
             // Gérer l'upload de la photo
             $photoFile = $form->get('photo')->getData();
             if ($photoFile) {
@@ -91,7 +104,7 @@ class PanneauController extends AbstractController
             $entityManager->flush();
 
             $this->addFlash('success', 'Panneau créé avec succès.');
-            return $this->redirectToRoute('app_panneau_index', [], Response::HTTP_SEE_OTHER);
+            return $this->redirectToRoute('app_panneau_show', ['id' => $panneau->getId()], Response::HTTP_SEE_OTHER);
         }
 
         return $this->render('panneau/new.html.twig', [
