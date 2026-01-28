@@ -26,8 +26,9 @@ class PanneauController extends AbstractController
         $etat = $request->query->get('etat');
         $eclairage = $request->query->get('eclairage');
         $recherche = $request->query->get('recherche');
+        $statutActif = $request->query->get('statut_actif'); // '1' = actifs, '0' = archivés, null = tous
 
-        $panneaux = $panneauRepository->findWithFilters($type, $etat, $eclairage, $recherche);
+        $panneaux = $panneauRepository->findWithFilters($type, $etat, $eclairage, $recherche, $statutActif);
 
         return $this->render('panneau/index.html.twig', [
             'panneaux' => $panneaux,
@@ -36,6 +37,7 @@ class PanneauController extends AbstractController
                 'etat' => $etat,
                 'eclairage' => $eclairage,
                 'recherche' => $recherche,
+                'statut_actif' => $statutActif,
             ],
         ]);
     }
@@ -174,9 +176,22 @@ class PanneauController extends AbstractController
     public function delete(Request $request, Panneau $panneau, EntityManagerInterface $entityManager): Response
     {
         if ($this->isCsrfTokenValid('delete'.$panneau->getId(), $request->request->get('_token'))) {
-            $entityManager->remove($panneau);
+            // Ne plus supprimer définitivement : on désactive le panneau (soft delete)
+            $panneau->setActif(false);
             $entityManager->flush();
-            $this->addFlash('success', 'Panneau supprimé avec succès.');
+            $this->addFlash('success', 'Panneau archivé avec succès. Il n\'est plus disponible à la location, mais reste présent dans l\'historique.');
+        }
+
+        return $this->redirectToRoute('app_panneau_index', [], Response::HTTP_SEE_OTHER);
+    }
+
+    #[Route('/{id}/restore', name: 'app_panneau_restore', methods: ['POST'])]
+    public function restore(Request $request, Panneau $panneau, EntityManagerInterface $entityManager): Response
+    {
+        if ($this->isCsrfTokenValid('restore'.$panneau->getId(), $request->request->get('_token'))) {
+            $panneau->setActif(true);
+            $entityManager->flush();
+            $this->addFlash('success', 'Panneau réactivé avec succès. Il est à nouveau disponible à la location.');
         }
 
         return $this->redirectToRoute('app_panneau_index', [], Response::HTTP_SEE_OTHER);

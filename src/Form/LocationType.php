@@ -20,6 +20,7 @@ class LocationType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
+        /** @var Location|null $currentLocation */
         $currentLocation = $options['data'] ?? null;
         $currentFaceId = $currentLocation && $currentLocation->getFace() ? $currentLocation->getFace()->getId() : null;
         $facePreselectionnee = $options['face_preselectionnee'] ?? false;
@@ -34,26 +35,27 @@ class LocationType extends AbstractType
                 'label' => 'Face du panneau',
                 'placeholder' => 'Sélectionner une face',
                 'disabled' => $facePreselectionnee,
-                'query_builder' => function (FaceRepository $er) use ($currentFaceId, $facePreselectionnee) {
-                    $qb = $er->createQueryBuilder('f');
+                'query_builder' => function (FaceRepository $er) use ($currentFaceId, $facePreselectionnee, $currentLocation) {
+                    $qb = $er->createQueryBuilder('f')
+                        ->leftJoin('f.panneau', 'p');
                     
-                    // Si on édite une location, inclure la face actuelle
+                    // Si on édite une location, inclure la face actuelle (même si le panneau a été archivé)
                     if ($currentFaceId) {
                         $qb->where('f.id = :currentFaceId')
                            ->setParameter('currentFaceId', $currentFaceId);
                     } elseif ($facePreselectionnee && $currentLocation && $currentLocation->getFace()) {
-                        // Si la face est présélectionnée, limiter aux faces du même panneau ou à la face sélectionnée
+                        // Si la face est présélectionnée, limiter à cette face
                         $facePreselectionneeId = $currentLocation->getFace()->getId();
                         $qb->where('f.id = :facePreselectionneeId')
                            ->setParameter('facePreselectionneeId', $facePreselectionneeId);
                     } else {
-                        // Pour une nouvelle location, on affiche toutes les faces
-                        // La vérification de disponibilité se fera côté contrôleur
-                        // Cela permet de réserver une face même si elle est actuellement occupée
-                        // (par exemple, réserver après la fin de la location actuelle)
+                        // Pour une nouvelle location, on affiche uniquement les faces dont le panneau est actif
+                        $qb->where('p.actif = :actif')
+                           ->setParameter('actif', true);
                     }
                     
-                    return $qb->orderBy('f.lettre', 'ASC');
+                    return $qb->orderBy('p.reference', 'ASC')
+                              ->addOrderBy('f.lettre', 'ASC');
                 },
                 'group_by' => function (Face $face) {
                     return $face->getPanneau()->getReference();
@@ -64,19 +66,15 @@ class LocationType extends AbstractType
                 'choice_label' => 'nom',
                 'label' => 'Client',
                 'placeholder' => 'Sélectionner un client',
+                // En création avec client_id, le client est présélectionné et non modifiable
                 'disabled' => $clientPreselectionne,
                 'query_builder' => function (ClientRepository $er) use ($currentLocation, $clientPreselectionne) {
-                    $qb = $er->createQueryBuilder('c');
-                    
-                    // Si le client est présélectionné, limiter au client sélectionné
+                    $qb = $er->createQueryBuilder('c')->orderBy('c.nom', 'ASC');
                     if ($clientPreselectionne && $currentLocation && $currentLocation->getClient()) {
-                        $clientPreselectionneId = $currentLocation->getClient()->getId();
-                        $qb->where('c.id = :clientPreselectionneId')
-                           ->setParameter('clientPreselectionneId', $clientPreselectionneId);
+                        $qb->where('c.id = :clientId')->setParameter('clientId', $currentLocation->getClient()->getId());
                     }
-                    
-                    return $qb->orderBy('c.nom', 'ASC');
-                }
+                    return $qb;
+                },
             ])
             ->add('dateDebut', DateType::class, [
                 'label' => 'Date de début',
@@ -118,6 +116,7 @@ class LocationType extends AbstractType
                 'label' => 'Montant mensuel (FCFA)',
                 'currency' => 'XOF',
                 'divisor' => 1,
+                'scale' => 0, // affichage sans décimales
                 'attr' => [
                     'placeholder' => '150000',
                     'id' => 'location_montantMensuel',
@@ -126,6 +125,10 @@ class LocationType extends AbstractType
                     'pattern' => '[0-9]*',
                     'min' => '0',
                     'step' => '1',
+                    // Prix original injecté pour JS (si édition)
+                    'data-original-price' => $currentLocation && $currentLocation->getMontantMensuel()
+                        ? $currentLocation->getMontantMensuel()
+                        : '',
                 ],
                 'help' => 'Le montant sera pré-rempli automatiquement depuis le panneau sélectionné. Vous pouvez le modifier si nécessaire.'
             ])
@@ -136,6 +139,7 @@ class LocationType extends AbstractType
                 'choices' => [
                     'Remise pour fidélité client' => 'Remise pour fidélité client',
                     'Remise pour location longue durée' => 'Remise pour location longue durée',
+                    'Remise pour location courte durée' => 'Remise pour location courte durée',
                     'Remise commerciale' => 'Remise commerciale',
                     'Tarif spécial événement' => 'Tarif spécial événement',
                     'Majoration pour emplacement premium' => 'Majoration pour emplacement premium',
@@ -144,7 +148,7 @@ class LocationType extends AbstractType
                 ],
                 'attr' => [
                     'id' => 'location_notes',
-                    'class' => 'form-select'
+                    'class' => 'form-select',
                 ],
                 'help' => 'Ce champ devient obligatoire si le prix est modifié.'
             ]);
@@ -159,3 +163,4 @@ class LocationType extends AbstractType
         ]);
     }
 }
+

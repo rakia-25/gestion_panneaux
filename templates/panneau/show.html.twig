@@ -20,6 +20,14 @@
     </div>
 </div>
 
+{% if not panneau.actif %}
+    <div class="alert alert-warning" style="margin-bottom: 1.5rem;">
+        <i class="bi bi-archive"></i>
+        <strong>Ce panneau est archivé.</strong>
+        <span style="margin-left: 0.25rem;">Il n'est plus disponible pour de nouvelles locations.</span>
+    </div>
+{% endif %}
+
 <div class="row">
     <div class="col-md-8">
         <div class="section-card" style="margin-bottom: 1.5rem;">
@@ -176,9 +184,11 @@
                                         <a href="{{ path('app_face_locations', {id: face.id}) }}" class="action-btn" title="Voir les locations">
                                             <i class="bi bi-list-ul"></i>
                                         </a>
-                                        <a href="{{ path('app_location_new', {face_id: face.id}) }}" class="action-btn" title="Créer une location" style="color: var(--success-color);">
-                                            <i class="bi bi-plus"></i>
-                                        </a>
+                                        {% if panneau.actif %}
+                                            <a href="{{ path('app_location_new', {face_id: face.id}) }}" class="action-btn" title="Créer une location" style="color: var(--success-color);">
+                                                <i class="bi bi-plus"></i>
+                                            </a>
+                                        {% endif %}
                                     </div>
                                 </td>
                             </tr>
