@@ -18,10 +18,23 @@ class PanneauRepository extends ServiceEntityRepository
 
     /**
      * Recherche avec filtres
+     *
+     * @param string|null $statutActif '1' = uniquement actifs, '0' = uniquement archivés, null = tous
      */
-    public function findWithFilters(?string $type = null, ?string $etat = null, ?string $eclairage = null, ?string $recherche = null): array
+    public function findWithFilters(?string $type = null, ?string $etat = null, ?string $eclairage = null, ?string $recherche = null, ?string $statutActif = null): array
     {
         $qb = $this->createQueryBuilder('p');
+
+        // Filtre sur le statut actif/archivé
+        if ($statutActif === '1') {
+            // Uniquement actifs
+            $qb->andWhere('p.actif = :actif')
+               ->setParameter('actif', true);
+        } elseif ($statutActif === '0') {
+            // Uniquement archivés
+            $qb->andWhere('p.actif = :actif')
+               ->setParameter('actif', false);
+        }
 
         if ($type) {
             $qb->andWhere('p.type = :type')

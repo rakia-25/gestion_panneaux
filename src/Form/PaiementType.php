@@ -19,10 +19,14 @@ class PaiementType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
+        /** @var Location|null $location */
         $location = $options['location'] ?? null;
         $locationPreselectionnee = $location !== null;
+        /** @var Paiement|null $currentPaiement */
         $currentPaiement = $options['data'] ?? null;
-        $currentLocationId = $currentPaiement && $currentPaiement->getLocation() ? $currentPaiement->getLocation()->getId() : null;
+        $currentLocationId = $currentPaiement && $currentPaiement->getLocation()
+            ? $currentPaiement->getLocation()->getId()
+            : null;
 
         $builder
             ->add('location', EntityType::class, [
@@ -40,11 +44,11 @@ class PaiementType extends AbstractType
                     // Exclure les locations annulées (sauf si c'est la location actuelle en édition)
                     if ($locationPreselectionnee && $location) {
                         // Si la location est présélectionnée, limiter à cette location
-                        // Mais vérifier qu'elle n'est pas annulée (sera vérifié dans le contrôleur)
+                        // (le contrôleur vérifie déjà qu'elle est valide)
                         $qb->where('l.id = :locationId')
                            ->setParameter('locationId', $location->getId());
                     } elseif ($currentLocationId) {
-                        // En édition, limiter à la location actuelle (même si annulée, pour permettre la consultation)
+                        // En édition, limiter à la location actuelle (même si annulée, pour consultation)
                         $qb->where('l.id = :currentLocationId')
                            ->setParameter('currentLocationId', $currentLocationId);
                     } else {
@@ -63,6 +67,7 @@ class PaiementType extends AbstractType
                 'label' => 'Montant (FCFA)',
                 'currency' => 'XOF',
                 'divisor' => 1,
+                'scale' => 0, // affichage sans décimales
                 'attr' => [
                     'placeholder' => '150000',
                     'id' => 'paiement_montant',
@@ -80,7 +85,6 @@ class PaiementType extends AbstractType
                                 
                                 // En édition, exclure le montant du paiement actuel du calcul
                                 if ($currentPaiement && $currentPaiement->getId()) {
-                                    // Récupérer l'ancien montant depuis l'entité (avant modification)
                                     $ancienMontant = floatval($currentPaiement->getMontant());
                                     $montantTotalPaye = floatval($location->getMontantTotalPaye());
                                     $montantTotalPayeSansActuel = $montantTotalPaye - $ancienMontant;
@@ -144,3 +148,4 @@ class PaiementType extends AbstractType
         ]);
     }
 }
+

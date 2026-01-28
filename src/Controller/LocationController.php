@@ -52,6 +52,12 @@ class LocationController extends AbstractController
         if ($faceId) {
             $face = $faceRepository->find($faceId);
             if ($face) {
+                // Empêcher de créer une location sur un panneau archivé
+                if (!$face->getPanneau()->isActif()) {
+                    $this->addFlash('error', 'Ce panneau est archivé. Vous ne pouvez plus créer de nouvelle location sur ce panneau.');
+                    return $this->redirectToRoute('app_panneau_show', ['id' => $face->getPanneau()->getId()], Response::HTTP_SEE_OTHER);
+                }
+
                 $location->setFace($face);
                 // Pré-remplir le montant mensuel avec le prix du panneau
                 $location->setMontantMensuel($face->getPanneau()->getPrixMensuel());
@@ -248,12 +254,16 @@ class LocationController extends AbstractController
     #[Route('/{id}/edit', name: 'app_location_edit', methods: ['GET', 'POST'])]
     public function edit(Request $request, Location $location, EntityManagerInterface $entityManager): Response
     {
-        // En édition, la face et le client sont toujours présélectionnés (désactivés)
+        // Sauvegarder les valeurs originales avant modification
+        $originalFace = $location->getFace();
+        $originalClient = $location->getClient();
+        $originalDateFin = $location->getDateFin();
+
+        // En édition, on garde la face présélectionnée (non modifiable), mais le client doit être modifiable
         $form = $this->createForm(LocationType::class, $location, [
             'face_preselectionnee' => true,
-            'client_preselectionne' => true,
+            'client_preselectionne' => false,
         ]);
-
         // Pré-remplir la durée en mois si les dates existent
         if ($location->getDateDebut() && $location->getDateFin()) {
             $dateDebut = $location->getDateDebut();
@@ -267,21 +277,11 @@ class LocationController extends AbstractController
 
         $form->handleRequest($request);
 
-        // Sauvegarder les valeurs originales avant handleRequest
-        $originalFace = $location->getFace();
-        $originalClient = $location->getClient();
-        $originalDateFin = $location->getDateFin();
-        
-        $form->handleRequest($request);
-
         // Restaurer les valeurs présélectionnées si les champs sont désactivés
         if ($form->isSubmitted()) {
             // Restaurer la face et le client (toujours présélectionnés en édition)
             if (!$location->getFace() && $originalFace) {
                 $location->setFace($originalFace);
-            }
-            if (!$location->getClient() && $originalClient) {
-                $location->setClient($originalClient);
             }
             // Restaurer la date de fin si elle est désactivée
             if ($location->getDateFin() === null) {

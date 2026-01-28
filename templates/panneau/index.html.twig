@@ -55,7 +55,15 @@
                         <option value="0" {{ filters.eclairage == '0' ? 'selected' : '' }}>Sans éclairage</option>
                     </select>
                 </div>
-                <div class="col-md-3 d-flex align-items-end gap-2">
+                <div class="col-md-2">
+                    <label for="statut_actif" class="form-label">Statut</label>
+                    <select class="form-select" id="statut_actif" name="statut_actif">
+                        <option value="">Tous (actifs + archivés)</option>
+                        <option value="1" {{ filters.statut_actif == '1' ? 'selected' : '' }}>Actifs uniquement</option>
+                        <option value="0" {{ filters.statut_actif == '0' ? 'selected' : '' }}>Archivés uniquement</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end gap-2">
                     <a href="{{ path('app_panneau_index') }}" class="btn-secondary-modern">
                         <i class="bi bi-x-circle"></i> Réinitialiser
                     </a>
@@ -65,9 +73,9 @@
 </div>
 
 <div class="table-card">
-    <div class="table-header">
-        <h3 class="table-title">Panneaux</h3>
-    </div>
+            <div class="table-header">
+                <h3 class="table-title">Panneaux</h3>
+            </div>
     {% if panneaux|length > 0 %}
         <table class="modern-table">
             <thead>
@@ -83,14 +91,21 @@
             </thead>
             <tbody>
                 {% for panneau in panneaux %}
-                    <tr data-type="{{ panneau.type }}"
+                    <tr {% if not panneau.actif %}style="opacity: 0.6;"{% endif %}
+                        data-type="{{ panneau.type }}"
                         data-etat="{{ panneau.etat }}"
                         data-eclairage="{{ panneau.eclairage ? '1' : '0' }}"
+                        data-actif="{{ panneau.actif ? '1' : '0' }}"
                         data-reference="{{ panneau.reference|lower }}"
                         data-emplacement="{{ panneau.emplacement|lower }}"
                         data-quartier="{{ (panneau.quartier ?? '')|lower }}"
                         data-visibilite="{{ (panneau.visibilite ?? '')|lower }}">
-                        <td><strong>{{ panneau.reference }}</strong></td>
+                        <td>
+                            <strong>{{ panneau.reference }}</strong>
+                            {% if not panneau.actif %}
+                                <br><small class="text-danger">(Archivé)</small>
+                            {% endif %}
+                        </td>
                         <td>{{ panneau.emplacement }}</td>
                         <td>{{ panneau.getTailleFormatee() }}</td>
                         <td>
@@ -128,12 +143,21 @@
                                 <a href="{{ path('app_panneau_edit', {id: panneau.id}) }}" class="action-btn" title="Modifier">
                                     <i class="bi bi-pencil"></i>
                                 </a>
-                                <form method="post" action="{{ path('app_panneau_delete', {id: panneau.id}) }}" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce panneau ?');">
-                                    <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ panneau.id) }}">
-                                    <button type="submit" class="action-btn" title="Supprimer" style="color: var(--danger-color);">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </form>
+                                {% if panneau.actif %}
+                                    <form method="post" action="{{ path('app_panneau_delete', {id: panneau.id}) }}" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir archiver ce panneau ? Il ne sera plus disponible à la location.');">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ panneau.id) }}">
+                                        <button type="submit" class="action-btn" title="Archiver" style="color: var(--danger-color);">
+                                            <i class="bi bi-archive"></i>
+                                        </button>
+                                    </form>
+                                {% else %}
+                                    <form method="post" action="{{ path('app_panneau_restore', {id: panneau.id}) }}" class="d-inline" onsubmit="return confirm('Réactiver ce panneau ? Il sera de nouveau disponible à la location.');">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('restore' ~ panneau.id) }}">
+                                        <button type="submit" class="action-btn" title="Réactiver" style="color: var(--success-color);">
+                                            <i class="bi bi-arrow-counterclockwise"></i>
+                                        </button>
+                                    </form>
+                                {% endif %}
                             </div>
                         </td>
                     </tr>
@@ -155,6 +179,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const typeSelect = document.getElementById('type');
     const etatSelect = document.getElementById('etat');
     const eclairageSelect = document.getElementById('eclairage');
+    const statutActifSelect = document.getElementById('statut_actif');
     const tableRows = document.querySelectorAll('tbody tr');
 
     let searchTimeout;
@@ -165,6 +190,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const type = typeSelect?.value || '';
         const etat = etatSelect?.value || '';
         const eclairage = eclairageSelect?.value || '';
+        const statutActif = statutActifSelect?.value || '';
 
         let visibleCount = 0;
 
@@ -172,6 +198,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const rowType = row.dataset.type || '';
             const rowEtat = row.dataset.etat || '';
             const rowEclairage = row.dataset.eclairage || '';
+            const rowActif = row.dataset.actif || '';
             const rowReference = row.dataset.reference || '';
             const rowEmplacement = row.dataset.emplacement || '';
             const rowQuartier = row.dataset.quartier || '';
@@ -181,6 +208,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const typeMatch = !type || rowType === type;
             const etatMatch = !etat || rowEtat === etat;
             const eclairageMatch = !eclairage || rowEclairage === eclairage;
+            const statutActifMatch = !statutActif || rowActif === statutActif;
             const rechercheMatch = !recherche ||
                 rowReference.includes(recherche) ||
                 rowEmplacement.includes(recherche) ||
@@ -188,7 +216,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 rowVisibilite.includes(recherche);
 
             // Afficher ou cacher la ligne
-            if (typeMatch && etatMatch && eclairageMatch && rechercheMatch) {
+            if (typeMatch && etatMatch && eclairageMatch && statutActifMatch && rechercheMatch) {
                 row.style.display = '';
                 visibleCount++;
             } else {
@@ -221,6 +249,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     if (eclairageSelect) {
         eclairageSelect.addEventListener('change', filterRows);
+    }
+    if (statutActifSelect) {
+        statutActifSelect.addEventListener('change', filterRows);
     }
 
     // Écouter les changements dans le champ de recherche avec debounce (300ms)

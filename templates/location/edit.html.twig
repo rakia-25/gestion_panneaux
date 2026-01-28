@@ -66,6 +66,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const dateFinInput = document.getElementById('location_dateFin');
 
     if (faceSelect && montantInput && notesSelect) {
+        // Désactiver la justification tant que le prix n'est pas modifié
+        notesSelect.disabled = true;
+
         let prixOriginal = null;
 
         // Fonction pour récupérer le prix du panneau
@@ -76,7 +79,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 .catch(() => 0);
         }
 
-        // Vérifier si le prix a été modifié et rendre le champ notes requis si nécessaire
+        // Vérifier si le prix a été modifié et activer/désactiver la justification
         async function verifierModificationPrix() {
             if (!prixOriginal && faceSelect.value) {
                 prixOriginal = await getPrixPanneau(faceSelect.value);
@@ -86,15 +89,19 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             if (prixOriginal) {
-                const prixActuelStr = montantInput.value.toString().replace(/\s/g, '').replace(/,/g, '.').replace(/[^\d.]/g, '');
+                const prixActuelStr = montantInput.value.toString()
+                    .replace(/\s/g, '')
+                    .replace(/,/g, '.')
+                    .replace(/[^\d.]/g, '');
                 const prixActuel = parseFloat(prixActuelStr) || 0;
                 const difference = Math.abs(prixActuel - prixOriginal);
 
-                // Si le prix a été modifié (différence > 0.01 pour éviter les erreurs d'arrondi)
                 if (difference > 0.01 && prixActuel > 0) {
+                    // Prix modifié : activer et exiger une justification
+                    notesSelect.disabled = false;
                     notesSelect.setAttribute('required', 'required');
                     notesSelect.classList.add('is-invalid');
-                    // Ajouter un message d'aide visuel
+
                     const formGroup = notesSelect.closest('.mb-3');
                     if (formGroup) {
                         let helpText = formGroup.querySelector('.form-text.text-danger');
@@ -106,9 +113,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         helpText.textContent = 'Ce champ est obligatoire car le prix a été modifié.';
                     }
                 } else {
+                    // Prix identique : désactiver et vider la justification
+                    notesSelect.disabled = true;
                     notesSelect.removeAttribute('required');
                     notesSelect.classList.remove('is-invalid');
-                    // Retirer le message d'aide
+                    notesSelect.value = '';
+
                     const formGroup = notesSelect.closest('.mb-3');
                     if (formGroup) {
                         const helpText = formGroup.querySelector('.form-text.text-danger');
@@ -124,10 +134,14 @@ document.addEventListener('DOMContentLoaded', function() {
         if (faceSelect.value) {
             getPrixPanneau(faceSelect.value).then(prix => {
                 prixOriginal = prix;
+                montantInput.dataset.prixOriginal = prix;
                 verifierModificationPrix();
             });
         } else if (montantInput.value) {
-            let valeurActuelle = montantInput.value.toString().replace(/\s/g, '').replace(/,/g, '.').replace(/[^\d.]/g, '');
+            let valeurActuelle = montantInput.value.toString()
+                .replace(/\s/g, '')
+                .replace(/,/g, '.')
+                .replace(/[^\d.]/g, '');
             prixOriginal = parseFloat(valeurActuelle) || 0;
             if (prixOriginal > 0) {
                 montantInput.dataset.prixOriginal = prixOriginal;
@@ -140,6 +154,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (this.value) {
                 getPrixPanneau(this.value).then(prix => {
                     prixOriginal = prix;
+                    montantInput.dataset.prixOriginal = prix;
                     verifierModificationPrix();
                 });
             }
@@ -150,7 +165,7 @@ document.addEventListener('DOMContentLoaded', function() {
             verifierModificationPrix();
         });
 
-        // Vérifier au chargement de la page
+        // Vérifier au chargement
         setTimeout(() => verifierModificationPrix(), 500);
     }
 
@@ -162,9 +177,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 const dateDebut = new Date(dateDebutInput.value);
                 const dateFin = new Date(dateFinInput.value);
 
-                // Calculer la différence en mois
                 const diffTime = Math.abs(dateFin - dateDebut);
-                const diffMonths = Math.round(diffTime / (1000 * 60 * 60 * 24 * 30.44)); // Moyenne de jours par mois
+                const diffMonths = Math.round(diffTime / (1000 * 60 * 60 * 24 * 30.44));
 
                 if (diffMonths > 0) {
                     dureeMoisInput.value = diffMonths;
@@ -178,10 +192,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (dateDebut && dureeMois > 0) {
                 const date = new Date(dateDebut);
-                // Ajouter le nombre de mois
                 date.setMonth(date.getMonth() + dureeMois);
 
-                // Formater la date au format YYYY-MM-DD
                 const annee = date.getFullYear();
                 const mois = String(date.getMonth() + 1).padStart(2, '0');
                 const jour = String(date.getDate()).padStart(2, '0');
@@ -191,22 +203,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 dateFinInput.setAttribute('readonly', 'readonly');
                 dateFinInput.dataset.autoCalculated = 'true';
             } else {
-                // Toujours garder le champ en readonly
                 dateFinInput.setAttribute('readonly', 'readonly');
             }
         }
 
-        // Calculer la durée initiale au chargement
         setTimeout(() => {
             calculerDureeInitiale();
         }, 100);
 
-        // Écouter les changements de la date de début
         dateDebutInput.addEventListener('change', function() {
             calculerDateFin();
         });
 
-        // Écouter les changements de la durée
         dureeMoisInput.addEventListener('input', function() {
             calculerDateFin();
         });
@@ -216,13 +224,9 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             this.blur();
         });
-
-        // Empêcher la saisie dans le champ date de fin
         dateFinInput.addEventListener('keydown', function(e) {
             e.preventDefault();
         });
-
-        // Empêcher le clic pour ouvrir le calendrier
         dateFinInput.addEventListener('click', function(e) {
             e.preventDefault();
             this.blur();
@@ -231,3 +235,4 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 {% endblock %}
+

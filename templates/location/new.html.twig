@@ -105,6 +105,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const dateFinInput = document.getElementById('location_dateFin');
 
     if (faceSelect && montantInput && notesSelect) {
+        // Désactiver la justification tant que le prix n'est pas modifié
+        notesSelect.disabled = true;
         let prixOriginal = null;
 
         // Fonction pour récupérer et définir le prix d'une face
@@ -148,6 +150,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 // Si le prix a été modifié (différence > 0.01 pour éviter les erreurs d'arrondi)
                 if (difference > 0.01 && prixActuel > 0) {
+                    notesSelect.disabled = false;
                     notesSelect.setAttribute('required', 'required');
                     notesSelect.classList.add('is-invalid');
                     // Ajouter un message d'aide visuel
@@ -162,6 +165,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         helpText.textContent = 'Ce champ est obligatoire car le prix a été modifié.';
                     }
                 } else {
+                    notesSelect.disabled = true;
+                    notesSelect.value = '';
                     notesSelect.removeAttribute('required');
                     notesSelect.classList.remove('is-invalid');
                     // Retirer le message d'aide

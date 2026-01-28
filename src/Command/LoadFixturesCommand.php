@@ -204,6 +204,7 @@ class LoadFixturesCommand extends Command
             $panneau->setEtat($data['etat']);
             $panneau->setPrixMensuel($data['prix']);
             $panneau->setDescription('Panneau publicitaire situé à ' . $data['emplacement'] . ' dans le quartier ' . $data['quartier']);
+            $panneau->setActif(true); // Tous les panneaux de base sont actifs
             $this->entityManager->persist($panneau);
             $panneaux[] = $panneau;
 
@@ -225,6 +226,14 @@ class LoadFixturesCommand extends Command
                 $this->entityManager->persist($faceA);
             }
         }
+        // Exemple : archiver un panneau pour les tests (le dernier créé)
+        if (!empty($panneaux)) {
+            $panneauArchive = end($panneaux); // ex: PAN-007
+            $panneauArchive->setActif(false);
+            $this->entityManager->persist($panneauArchive);
+            $io->text(sprintf('Panneau %s archivé pour les tests.', $panneauArchive->getReference()));
+        }
+
         $io->success(sprintf('%d panneaux créés', count($panneaux)));
 
         // 4. Créer les locations

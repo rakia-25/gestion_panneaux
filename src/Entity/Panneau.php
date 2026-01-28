@@ -62,11 +62,15 @@ class Panneau
     #[ORM\Column]
     private ?\DateTimeImmutable $updatedAt = null;
 
+    #[ORM\Column(options: ['default' => true])]
+    private bool $actif = true;
+
     public function __construct()
     {
         $this->faces = new ArrayCollection();
         $this->createdAt = new \DateTimeImmutable();
         $this->updatedAt = new \DateTimeImmutable();
+        $this->actif = true;
     }
 
     public function getId(): ?int
@@ -279,6 +283,18 @@ class Panneau
     public function setCoordonneesGps(?string $coordonneesGps): static
     {
         $this->coordonneesGps = $coordonneesGps;
+
+        return $this;
+    }
+
+    public function isActif(): bool
+    {
+        return $this->actif;
+    }
+
+    public function setActif(bool $actif): static
+    {
+        $this->actif = $actif;
 
         return $this;
     }

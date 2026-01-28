@@ -28,12 +28,15 @@ class PanneauType extends AbstractType
             ->add('reference', TextType::class, [
                 'label' => 'Référence',
                 'required' => false,
-                'disabled' => $isNew, // Désactivé lors de la création (sera généré automatiquement)
+                // Référence jamais modifiable (générée automatiquement)
+                'disabled' => true,
                 'attr' => [
                     'placeholder' => 'Générée automatiquement',
-                    'readonly' => $isNew,
+                    'readonly' => true,
                 ],
-                'help' => $isNew ? 'La référence sera générée automatiquement lors de la création.' : 'Référence du panneau'
+                'help' => $isNew
+                    ? 'La référence sera générée automatiquement lors de la création.'
+                    : 'Référence du panneau (non modifiable).'
             ])
             ->add('emplacement', TextType::class, [
                 'label' => 'Emplacement',
@@ -135,6 +138,7 @@ class PanneauType extends AbstractType
                 'label' => 'Prix mensuel (FCFA)',
                 'currency' => 'XOF',
                 'divisor' => 1,
+                'scale' => 0, // affichage sans décimales
                 'attr' => [
                     'placeholder' => '150000',
                     'type' => 'number',
@@ -174,3 +178,4 @@ class PanneauType extends AbstractType
         ]);
     }
 }
+
