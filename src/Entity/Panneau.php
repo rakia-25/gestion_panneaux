@@ -41,9 +41,6 @@ class Panneau
     #[ORM\Column]
     private ?bool $eclairage = false;
 
-    #[ORM\Column(length: 50)]
-    private ?string $etat = null; // 'excellent', 'bon', 'moyen', 'mauvais', 'hors_service'
-
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 0)]
     private ?string $prixMensuel = null;
 
@@ -239,16 +236,19 @@ class Panneau
         return $this;
     }
 
-    public function getEtat(): ?string
+    /**
+     * État global du panneau, dérivé des états de chaque face.
+     * Si toutes les faces ont le même état, le retourne ; sinon "variable".
+     */
+    public function getEtatGlobal(): string
     {
-        return $this->etat;
-    }
-
-    public function setEtat(string $etat): static
-    {
-        $this->etat = $etat;
-
-        return $this;
+        $faces = $this->faces->toArray();
+        if (\count($faces) === 0) {
+            return '—';
+        }
+        $etats = array_map(fn (Face $f) => $f->getEtat() ?? 'bon', $faces);
+        $unique = array_unique($etats);
+        return \count($unique) === 1 ? (string) reset($unique) : 'variable';
     }
 
     public function getQuartier(): ?string

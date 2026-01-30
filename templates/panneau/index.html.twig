@@ -45,6 +45,7 @@
                         <option value="moyen" {{ filters.etat == 'moyen' ? 'selected' : '' }}>Moyen</option>
                         <option value="mauvais" {{ filters.etat == 'mauvais' ? 'selected' : '' }}>Mauvais</option>
                         <option value="hors_service" {{ filters.etat == 'hors_service' ? 'selected' : '' }}>Hors service</option>
+                        <option value="variable" {{ filters.etat == 'variable' ? 'selected' : '' }}>Variable (faces différentes)</option>
                     </select>
                 </div>
                 <div class="col-md-2">
@@ -81,9 +82,11 @@
             <thead>
                 <tr>
                     <th>Référence</th>
-                    <th>Emplacement</th>
+                    <th>Quartier</th>
                     <th>Taille</th>
                     <th>Type</th>
+                    <th>État</th>
+                    <th>Statut</th>
                     <th>Prix mensuel</th>
                     <th>Faces</th>
                     <th>Actions</th>
@@ -93,7 +96,7 @@
                 {% for panneau in panneaux %}
                     <tr {% if not panneau.actif %}style="opacity: 0.6;"{% endif %}
                         data-type="{{ panneau.type }}"
-                        data-etat="{{ panneau.etat }}"
+                        data-etat="{{ panneau.etatGlobal }}"
                         data-eclairage="{{ panneau.eclairage ? '1' : '0' }}"
                         data-actif="{{ panneau.actif ? '1' : '0' }}"
                         data-reference="{{ panneau.reference|lower }}"
@@ -106,7 +109,7 @@
                                 <br><small class="text-danger">(Archivé)</small>
                             {% endif %}
                         </td>
-                        <td>{{ panneau.emplacement }}</td>
+                        <td>{{ panneau.quartier ?? '—' }}</td>
                         <td>{{ panneau.getTailleFormatee() }}</td>
                         <td>
                             {% if panneau.type == 'double' %}
@@ -115,22 +118,47 @@
                                 <span class="table-badge warning">Simple</span>
                             {% endif %}
                         </td>
+                        <td>
+                            {% if panneau.etatGlobal == 'excellent' %}
+                                <span class="table-badge success" title="Excellent (toutes les faces)">Excellent</span>
+                            {% elseif panneau.etatGlobal == 'bon' %}
+                                <span class="table-badge success" title="Bon (toutes les faces)">Bon</span>
+                            {% elseif panneau.etatGlobal == 'moyen' %}
+                                <span class="table-badge warning" title="Moyen">Moyen</span>
+                            {% elseif panneau.etatGlobal == 'mauvais' %}
+                                <span class="table-badge warning" title="Mauvais - confirmation requise pour location">Mauvais</span>
+                            {% elseif panneau.etatGlobal == 'hors_service' %}
+                                <span class="table-badge" style="background: var(--danger-color); color: white;" title="Hors service">Hors service</span>
+                            {% elseif panneau.etatGlobal == 'variable' %}
+                                <span class="table-badge info" title="États différents selon les faces">Variable</span>
+                            {% else %}
+                                <span class="table-badge info">{{ panneau.etatGlobal ?? '—' }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if panneau.actif %}
+                                <span class="table-badge success" title="Disponible à la location">Actif</span>
+                            {% else %}
+                                <span class="table-badge" style="background: var(--text-gray); color: white;" title="Archivé - non disponible à la location">Archivé</span>
+                            {% endif %}
+                        </td>
                         <td>{{ panneau.prixMensuel|number_format(0, ',', ' ') }} FCFA</td>
                         <td>
                             {% for face in panneau.faces %}
                                 {% set locationActive = face.getLocationActive() %}
                                 {% set locationsFutures = face.getLocationsActivesOuFutures() %}
+                                {% set etatLabel = face.etat == 'excellent' ? 'Excellent' : (face.etat == 'bon' ? 'Bon' : (face.etat == 'moyen' ? 'Moyen' : (face.etat == 'mauvais' ? 'Mauvais' : (face.etat == 'hors_service' ? 'Hors service' : face.etat)))) %}
                                 {% if locationActive %}
-                                    <span class="table-badge warning" title="Occupée jusqu'au {{ locationActive.dateFin|date('d/m/Y') }}">
-                                        {{ face.lettre }} (Occupée)
+                                    <span class="table-badge warning" title="Occupée jusqu'au {{ locationActive.dateFin|date('d/m/Y') }} - État: {{ etatLabel }}">
+                                        {{ face.lettre }} (Occupée - {{ etatLabel }})
                                     </span>
                                 {% elseif locationsFutures|length > 0 %}
-                                    <span class="table-badge info" title="Réservée du {{ locationsFutures[0].dateDebut|date('d/m/Y') }} au {{ locationsFutures[0].dateFin|date('d/m/Y') }}">
-                                        {{ face.lettre }} (Réservée)
+                                    <span class="table-badge info" title="Réservée - État: {{ etatLabel }}">
+                                        {{ face.lettre }} (Réservée - {{ etatLabel }})
                                     </span>
                                 {% else %}
-                                    <span class="table-badge success">
-                                        {{ face.lettre }} (Disponible)
+                                    <span class="table-badge success" title="État: {{ etatLabel }}">
+                                        {{ face.lettre }} (Disponible - {{ etatLabel }})
                                     </span>
                                 {% endif %}
                             {% endfor %}
@@ -231,7 +259,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!noResultsMsg) {
                 noResultsMsg = document.createElement('tr');
                 noResultsMsg.id = 'no-results-message';
-                noResultsMsg.innerHTML = '<td colspan="7" class="text-center py-4"><em>Aucun résultat trouvé</em></td>';
+                noResultsMsg.innerHTML = '<td colspan="9" class="text-center py-4"><em>Aucun résultat trouvé</em></td>';
                 tbody.appendChild(noResultsMsg);
             }
             noResultsMsg.style.display = '';

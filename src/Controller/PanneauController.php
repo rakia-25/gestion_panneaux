@@ -7,7 +7,6 @@ use App\Entity\Panneau;
 use App\Form\PanneauType;
 use App\Repository\FaceRepository;
 use App\Repository\PanneauRepository;
-use App\Service\PanneauPhotoUploader;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\Exception\FileException;
@@ -42,7 +41,7 @@ class PanneauController extends AbstractController
     }
 
     #[Route('/new', name: 'app_panneau_new', methods: ['GET', 'POST'])]
-    public function new(Request $request, EntityManagerInterface $entityManager, PanneauPhotoUploader $photoUploader, PanneauRepository $panneauRepository): Response
+    public function new(Request $request, EntityManagerInterface $entityManager, PanneauPhotoUploaderInterface $photoUploader, PanneauRepository $panneauRepository): Response
     {
         $panneau = new Panneau();
 
@@ -73,7 +72,9 @@ class PanneauController extends AbstractController
                 }
             }
 
-            $this->persistFacesForPanneau($panneau, $entityManager);
+            $etatFaceA = $form->has('etatFaceA') ? ($form->get('etatFaceA')->getData() ?? 'bon') : 'bon';
+            $etatFaceB = $form->has('etatFaceB') ? ($form->get('etatFaceB')->getData() ?? 'bon') : 'bon';
+            $this->persistFacesForPanneau($panneau, $entityManager, $etatFaceA, $etatFaceB);
             $entityManager->persist($panneau);
             $entityManager->flush();
 
@@ -96,7 +97,7 @@ class PanneauController extends AbstractController
     }
 
     #[Route('/{id}/edit', name: 'app_panneau_edit', methods: ['GET', 'POST'])]
-    public function edit(Request $request, Panneau $panneau, EntityManagerInterface $entityManager, PanneauPhotoUploader $photoUploader): Response
+    public function edit(Request $request, Panneau $panneau, EntityManagerInterface $entityManager, PanneauPhotoUploaderInterface $photoUploader): Response
     {
         $oldPhoto = $panneau->getPhoto();
         $form = $this->createForm(PanneauType::class, $panneau);
@@ -111,6 +112,35 @@ class PanneauController extends AbstractController
                     $panneau->setPhoto($newFilename);
                 } catch (FileException $e) {
                     $this->addFlash('error', 'Erreur lors de l\'upload de la photo: ' . $e->getMessage());
+                }
+            }
+
+            // Adapter les faces au type (simple ↔ double)
+            $faces = $panneau->getFaces()->toArray();
+            usort($faces, fn ($a, $b) => strcmp($a->getLettre(), $b->getLettre()));
+            $faceA = $faces[0] ?? null;
+            $faceB = $faces[1] ?? null;
+
+            if ($panneau->getType() === 'simple') {
+                if ($faceB !== null) {
+                    if ($faceB->getLocations()->count() > 0) {
+                        $this->addFlash('error', 'Impossible de passer en panneau simple : la face B a des locations. Supprimez ou transférez les locations avant de modifier le type.');
+                        return $this->render('panneau/edit.html.twig', [
+                            'panneau' => $panneau,
+                            'form' => $form,
+                        ]);
+                    }
+                    $entityManager->remove($faceB);
+                }
+            } else {
+                // type === 'double'
+                if ($faceB === null) {
+                    $etatFaceB = $form->has('etatFaceB') ? ($form->get('etatFaceB')->getData() ?? 'bon') : 'bon';
+                    $newFaceB = new Face();
+                    $newFaceB->setLettre('B');
+                    $newFaceB->setPanneau($panneau);
+                    $newFaceB->setEtat($etatFaceB);
+                    $entityManager->persist($newFaceB);
                 }
             }
 
@@ -171,17 +201,19 @@ class PanneauController extends AbstractController
     /**
      * Crée et persiste les faces du panneau selon son type (simple = face A, double = faces A et B).
      */
-    private function persistFacesForPanneau(Panneau $panneau, EntityManagerInterface $entityManager): void
+    private function persistFacesForPanneau(Panneau $panneau, EntityManagerInterface $entityManager, string $etatFaceA = 'bon', string $etatFaceB = 'bon'): void
     {
         $faceA = new Face();
         $faceA->setLettre('A');
         $faceA->setPanneau($panneau);
+        $faceA->setEtat($etatFaceA);
         $entityManager->persist($faceA);
 
         if ($panneau->getType() === 'double') {
             $faceB = new Face();
             $faceB->setLettre('B');
             $faceB->setPanneau($panneau);
+            $faceB->setEtat($etatFaceB);
             $entityManager->persist($faceB);
         }
     }

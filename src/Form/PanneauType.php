@@ -6,12 +6,15 @@ use App\Entity\Panneau;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
+use Symfony\Component\Form\Extension\Core\Type\CollectionType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\Extension\Core\Type\MoneyType;
 use Symfony\Component\Form\Extension\Core\Type\NumberType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\Form\FormEvent;
+use Symfony\Component\Form\FormEvents;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints\Callback;
 use Symfony\Component\Validator\Constraints\File;
@@ -23,7 +26,36 @@ class PanneauType extends AbstractType
     {
         $panneau = $options['data'] ?? null;
         $isNew = $panneau === null || $panneau->getId() === null;
-        
+
+        $builder->addEventListener(FormEvents::PRE_SET_DATA, function (FormEvent $event) {
+            $panneau = $event->getData();
+            if ($panneau && $panneau->getId() !== null && $panneau->getFaces()->count() > 0) {
+                $event->getForm()->add('faces', CollectionType::class, [
+                    'entry_type' => FaceEtatType::class,
+                    'entry_options' => ['label' => false],
+                    'by_reference' => false,
+                    'label' => 'État de chaque face',
+                    'help' => 'Sur un panneau double, chaque face peut avoir son propre état. Passez le type à "Double" pour afficher la face B.',
+                ]);
+                // Panneau actuellement simple : champ pour créer la face B si l'utilisateur passe en double
+                if ($panneau->getFaces()->count() === 1) {
+                    $event->getForm()->add('etatFaceB', ChoiceType::class, [
+                        'mapped' => false,
+                        'label' => 'État face B',
+                        'choices' => [
+                            'Excellent' => 'excellent',
+                            'Bon' => 'bon',
+                            'Moyen' => 'moyen',
+                            'Mauvais' => 'mauvais',
+                            'Hors service' => 'hors_service',
+                        ],
+                        'data' => 'bon',
+                        'help' => 'Sera utilisé pour la face B si vous passez le panneau en type double.',
+                    ]);
+                }
+            }
+        });
+
         $builder
             ->add('reference', TextType::class, [
                 'label' => 'Référence',
@@ -122,18 +154,34 @@ class PanneauType extends AbstractType
                 'label' => 'Éclairage',
                 'required' => false,
                 'help' => 'Cocher si le panneau est éclairé'
-            ])
-            ->add('etat', ChoiceType::class, [
-                'label' => 'État du panneau',
-                'choices' => [
-                    'Excellent' => 'excellent',
-                    'Bon' => 'bon',
-                    'Moyen' => 'moyen',
-                    'Mauvais' => 'mauvais',
-                    'Hors service' => 'hors_service',
-                ],
-                'placeholder' => 'Sélectionner un état'
-            ])
+            ]);
+
+        if ($isNew) {
+            $etatChoices = [
+                'Excellent' => 'excellent',
+                'Bon' => 'bon',
+                'Moyen' => 'moyen',
+                'Mauvais' => 'mauvais',
+                'Hors service' => 'hors_service',
+            ];
+            $builder
+                ->add('etatFaceA', ChoiceType::class, [
+                    'mapped' => false,
+                    'label' => 'État face A',
+                    'choices' => $etatChoices,
+                    'data' => 'bon',
+                    'help' => 'État de la face A du panneau.',
+                ])
+                ->add('etatFaceB', ChoiceType::class, [
+                    'mapped' => false,
+                    'label' => 'État face B',
+                    'choices' => $etatChoices,
+                    'data' => 'bon',
+                    'help' => 'Pour un panneau double uniquement. Ignoré si panneau simple.',
+                ]);
+        }
+
+        $builder
             ->add('prixMensuel', MoneyType::class, [
                 'label' => 'Prix mensuel (FCFA)',
                 'currency' => 'XOF',
