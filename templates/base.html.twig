@@ -823,6 +823,10 @@
                         </div>
                         <div class="nav-section">
                             <div class="nav-section-title">Admin</div>
+                            <a href="{{ path('app_export_index') }}" class="nav-item {% if 'export' in app.request.attributes.get('_route') %}active{% endif %}">
+                                <i class="bi bi-download"></i>
+                                <span>Exporter</span>
+                            </a>
                             <a href="{{ path('app_logout') }}" class="nav-item">
                                 <i class="bi bi-box-arrow-right"></i>
                                 <span>Déconnexion</span>

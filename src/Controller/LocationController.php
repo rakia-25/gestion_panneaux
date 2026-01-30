@@ -52,9 +52,12 @@ class LocationController extends AbstractController
         if ($faceId) {
             $face = $faceRepository->find($faceId);
             if ($face) {
-                // Empêcher de créer une location sur un panneau archivé
                 if (!$face->getPanneau()->isActif()) {
                     $this->addFlash('error', 'Ce panneau est archivé. Vous ne pouvez plus créer de nouvelle location sur ce panneau.');
+                    return $this->redirectToRoute('app_panneau_show', ['id' => $face->getPanneau()->getId()], Response::HTTP_SEE_OTHER);
+                }
+                if ($face->getEtat() === 'hors_service') {
+                    $this->addFlash('error', 'Cette face est hors service et ne peut pas être louée.');
                     return $this->redirectToRoute('app_panneau_show', ['id' => $face->getPanneau()->getId()], Response::HTTP_SEE_OTHER);
                 }
 
@@ -103,10 +106,13 @@ class LocationController extends AbstractController
         }
 
         if ($form->isSubmitted() && $form->isValid()) {
-            // Vérifier que la face est disponible pour la période
             $face = $location->getFace();
             if (!$face) {
                 $this->addFlash('error', 'Veuillez sélectionner une face.');
+                return $this->render('location/new.html.twig', $this->getNewLocationContext($location, $form, $faceId, $clientId));
+            }
+            if ($face->getEtat() === 'mauvais' && !$form->get('confirmerEtatMauvais')->getData()) {
+                $this->addFlash('error', 'Veuillez confirmer que vous souhaitez louer ce panneau malgré son état dégradé.');
                 return $this->render('location/new.html.twig', $this->getNewLocationContext($location, $form, $faceId, $clientId));
             }
 
@@ -223,9 +229,12 @@ class LocationController extends AbstractController
         }
 
         if ($form->isSubmitted() && $form->isValid()) {
-            // Vérifier que la face est disponible pour la période (en excluant la location actuelle)
             $face = $location->getFace();
-            
+            if ($face && $face->getEtat() === 'mauvais' && !$form->get('confirmerEtatMauvais')->getData()) {
+                $this->addFlash('error', 'Veuillez confirmer que vous souhaitez louer ce panneau malgré son état dégradé.');
+                return $this->render('location/edit.html.twig', ['location' => $location, 'form' => $form]);
+            }
+
             if (!$face->isDisponible($location->getDateDebut(), $location->getDateFin(), $location)) {
                 $this->addFlash('error', 'Cette face est déjà louée sur cette période. Veuillez choisir une autre période.');
                 return $this->render('location/edit.html.twig', ['location' => $location, 'form' => $form]);

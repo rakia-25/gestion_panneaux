@@ -42,8 +42,16 @@ class PanneauRepository extends ServiceEntityRepository
         }
 
         if ($etat) {
-            $qb->andWhere('p.etat = :etat')
-               ->setParameter('etat', $etat);
+            if ($etat === 'variable') {
+                $qb->leftJoin('p.faces', 'f_etat')
+                   ->groupBy('p.id')
+                   ->andWhere('COUNT(DISTINCT f_etat.etat) > 1');
+            } else {
+                $qb->leftJoin('p.faces', 'f_etat')
+                   ->andWhere('f_etat.etat = :etat')
+                   ->setParameter('etat', $etat)
+                   ->distinct();
+            }
         }
 
         if ($eclairage !== null && $eclairage !== '') {

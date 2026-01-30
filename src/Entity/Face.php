@@ -18,6 +18,10 @@ class Face
     #[ORM\Column(length: 1)]
     private ?string $lettre = null; // 'A' ou 'B'
 
+    /** État de la face : excellent, bon, moyen, mauvais, hors_service (chaque face peut avoir son propre état sur un panneau double) */
+    #[ORM\Column(length: 50)]
+    private ?string $etat = 'bon';
+
     #[ORM\ManyToOne(inversedBy: 'faces')]
     #[ORM\JoinColumn(nullable: false)]
     private ?Panneau $panneau = null;
@@ -47,6 +51,18 @@ class Face
     public function setLettre(string $lettre): static
     {
         $this->lettre = $lettre;
+
+        return $this;
+    }
+
+    public function getEtat(): ?string
+    {
+        return $this->etat;
+    }
+
+    public function setEtat(string $etat): static
+    {
+        $this->etat = $etat;
 
         return $this;
     }

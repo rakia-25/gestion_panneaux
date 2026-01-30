@@ -2,6 +2,7 @@
 
 namespace App\Service;
 
+use App\Controller\PanneauPhotoUploaderInterface;
 use Symfony\Component\HttpFoundation\File\Exception\FileException;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\String\Slugger\SluggerInterface;
@@ -9,7 +10,7 @@ use Symfony\Component\String\Slugger\SluggerInterface;
 /**
  * Gère l'upload des photos de panneaux (sauvegarde, suppression de l'ancienne, nom unique).
  */
-class PanneauPhotoUploader
+class PanneauPhotoUploader implements PanneauPhotoUploaderInterface
 {
     public function __construct(
         private readonly SluggerInterface $slugger,

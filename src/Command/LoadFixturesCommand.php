@@ -94,7 +94,8 @@ class LoadFixturesCommand extends Command
                 'taille' => '12.00',
                 'type' => 'double',
                 'eclairage' => true,
-                'etat' => 'excellent',
+                'etatFaceA' => 'excellent',
+                'etatFaceB' => 'excellent',
                 'prix' => '150000'
             ],
             [
@@ -105,7 +106,7 @@ class LoadFixturesCommand extends Command
                 'taille' => '6.00',
                 'type' => 'simple',
                 'eclairage' => false,
-                'etat' => 'bon',
+                'etatFaceA' => 'bon',
                 'prix' => '100000'
             ],
             [
@@ -116,7 +117,8 @@ class LoadFixturesCommand extends Command
                 'taille' => '24.00',
                 'type' => 'double',
                 'eclairage' => true,
-                'etat' => 'excellent',
+                'etatFaceA' => 'excellent',
+                'etatFaceB' => 'excellent',
                 'prix' => '200000'
             ],
             [
@@ -127,18 +129,19 @@ class LoadFixturesCommand extends Command
                 'taille' => '12.00',
                 'type' => 'double',
                 'eclairage' => true,
-                'etat' => 'bon',
+                'etatFaceA' => 'bon',
+                'etatFaceB' => 'bon',
                 'prix' => '180000'
             ],
             [
                 'emplacement' => 'Quartier Plateau, route principale',
                 'quartier' => 'Plateau',
                 'visibilite' => 'Moyenne',
-                'coordonneesGps' => null, // Optionnel - pas de coordonnées GPS
+                'coordonneesGps' => null,
                 'taille' => '6.00',
                 'type' => 'simple',
                 'eclairage' => false,
-                'etat' => 'moyen',
+                'etatFaceA' => 'moyen',
                 'prix' => '90000'
             ],
             [
@@ -149,18 +152,19 @@ class LoadFixturesCommand extends Command
                 'taille' => '15.00',
                 'type' => 'double',
                 'eclairage' => true,
-                'etat' => 'bon',
+                'etatFaceA' => 'bon',
+                'etatFaceB' => 'bon',
                 'prix' => '170000'
             ],
             [
                 'emplacement' => 'Avenue du Général de Gaulle',
                 'quartier' => 'Plateau',
                 'visibilite' => 'Moyenne',
-                'coordonneesGps' => null, // Optionnel - pas de coordonnées GPS
+                'coordonneesGps' => null,
                 'taille' => '12.00',
                 'type' => 'simple',
                 'eclairage' => false,
-                'etat' => 'moyen',
+                'etatFaceA' => 'moyen',
                 'prix' => '110000'
             ],
             [
@@ -171,7 +175,8 @@ class LoadFixturesCommand extends Command
                 'taille' => '24.00',
                 'type' => 'double',
                 'eclairage' => true,
-                'etat' => 'excellent',
+                'etatFaceA' => 'excellent',
+                'etatFaceB' => 'mauvais',
                 'prix' => '220000'
             ],
         ];
@@ -201,28 +206,32 @@ class LoadFixturesCommand extends Command
             $panneau->setTaille($data['taille']);
             $panneau->setType($data['type']);
             $panneau->setEclairage($data['eclairage']);
-            $panneau->setEtat($data['etat']);
             $panneau->setPrixMensuel($data['prix']);
             $panneau->setDescription('Panneau publicitaire situé à ' . $data['emplacement'] . ' dans le quartier ' . $data['quartier']);
             $panneau->setActif(true); // Tous les panneaux de base sont actifs
             $this->entityManager->persist($panneau);
             $panneaux[] = $panneau;
 
-            // Créer les faces selon le type
+            // Créer les faces selon le type (état par face, plus sur le panneau)
+            $etatFaceA = $data['etatFaceA'] ?? 'bon';
+            $etatFaceB = $data['etatFaceB'] ?? $etatFaceA;
             if ($data['type'] === 'double') {
                 $faceA = new Face();
                 $faceA->setLettre('A');
                 $faceA->setPanneau($panneau);
+                $faceA->setEtat($etatFaceA);
                 $this->entityManager->persist($faceA);
 
                 $faceB = new Face();
                 $faceB->setLettre('B');
                 $faceB->setPanneau($panneau);
+                $faceB->setEtat($etatFaceB);
                 $this->entityManager->persist($faceB);
             } else {
                 $faceA = new Face();
                 $faceA->setLettre('A');
                 $faceA->setPanneau($panneau);
+                $faceA->setEtat($etatFaceA);
                 $this->entityManager->persist($faceA);
             }
         }

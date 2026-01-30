@@ -9,6 +9,7 @@ use App\Repository\ClientRepository;
 use App\Repository\FaceRepository;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
@@ -35,31 +36,40 @@ class LocationType extends AbstractType
                 'label' => 'Face du panneau',
                 'placeholder' => 'Sélectionner une face',
                 'disabled' => $facePreselectionnee,
+                'choice_attr' => function (Face $face) {
+                    return ['data-etat' => $face->getEtat() ?? ''];
+                },
                 'query_builder' => function (FaceRepository $er) use ($currentFaceId, $facePreselectionnee, $currentLocation) {
                     $qb = $er->createQueryBuilder('f')
                         ->leftJoin('f.panneau', 'p');
-                    
-                    // Si on édite une location, inclure la face actuelle (même si le panneau a été archivé)
+
                     if ($currentFaceId) {
                         $qb->where('f.id = :currentFaceId')
                            ->setParameter('currentFaceId', $currentFaceId);
                     } elseif ($facePreselectionnee && $currentLocation && $currentLocation->getFace()) {
-                        // Si la face est présélectionnée, limiter à cette face
                         $facePreselectionneeId = $currentLocation->getFace()->getId();
                         $qb->where('f.id = :facePreselectionneeId')
                            ->setParameter('facePreselectionneeId', $facePreselectionneeId);
                     } else {
-                        // Pour une nouvelle location, on affiche uniquement les faces dont le panneau est actif
+                        // Panneaux actifs ; faces louables (exclut les faces hors service)
                         $qb->where('p.actif = :actif')
-                           ->setParameter('actif', true);
+                           ->andWhere('f.etat != :horsService')
+                           ->setParameter('actif', true)
+                           ->setParameter('horsService', 'hors_service');
                     }
-                    
+
                     return $qb->orderBy('p.reference', 'ASC')
                               ->addOrderBy('f.lettre', 'ASC');
                 },
                 'group_by' => function (Face $face) {
                     return $face->getPanneau()->getReference();
-                }
+                },
+            ])
+            ->add('confirmerEtatMauvais', CheckboxType::class, [
+                'mapped' => false,
+                'required' => false,
+                'label' => 'Je confirme vouloir louer ce panneau malgré son état dégradé',
+                'attr' => ['id' => 'location_confirmerEtatMauvais'],
             ])
             ->add('client', EntityType::class, [
                 'class' => Client::class,
@@ -150,7 +160,7 @@ class LocationType extends AbstractType
                     'id' => 'location_notes',
                     'class' => 'form-select',
                 ],
-                'help' => 'Ce champ devient obligatoire si le prix est modifié.'
+                'help' => 'Ce champ devient obligatoire si le prix est modifié.',
             ]);
     }
 

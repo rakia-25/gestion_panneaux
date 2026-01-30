@@ -88,22 +88,9 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>État</th>
+                        <th>État global</th>
                         <td>
-                            {% if panneau.etat == 'excellent' %}
-                                <span class="table-badge success">Excellent</span>
-                            {% elseif panneau.etat == 'bon' %}
-                                <span class="table-badge info">Bon</span>
-                            {% elseif panneau.etat == 'moyen' %}
-                                <span class="table-badge warning">Moyen</span>
-                            {% elseif panneau.etat == 'mauvais' %}
-                                <span class="table-badge danger">Mauvais</span>
-                            {% elseif panneau.etat == 'hors_service' %}
-                                <span class="table-badge" style="background: rgba(0, 0, 0, 0.1); color: #1e293b;">Hors service</span>
-                            {% else %}
-                                <span class="table-badge warning">{{ panneau.etat }}</span>
-                            {% endif %}
-                        </td>
+                            {% set etatG = panneau.etatGlobal %}{% if etatG == 'excellent' %}<span class="table-badge success">Excellent</span>{% elseif etatG == 'bon' %}<span class="table-badge success">Bon</span>{% elseif etatG == 'moyen' %}<span class="table-badge warning">Moyen</span>{% elseif etatG == 'mauvais' %}<span class="table-badge warning">Mauvais</span>{% elseif etatG == 'hors_service' %}<span class="table-badge" style="background: var(--danger-color); color: white;">Hors service</span>{% elseif etatG == 'variable' %}<span class="table-badge info">Variable</span> <span class="text-muted small">(dérivé des états de chaque face)</span>{% else %}{{ etatG }}{% endif %} l’                        </td>
                     </tr>
                     <tr>
                         <th>Prix mensuel</th>
@@ -129,6 +116,7 @@
                         <tr>
                             <th>Face</th>
                             <th>Nom complet</th>
+                            <th>État</th>
                             <th>Statut</th>
                             <th>Location active</th>
                             <th>Actions</th>
@@ -141,6 +129,21 @@
                             <tr>
                                 <td><span class="table-badge info" style="font-size: 0.875rem;">{{ face.lettre }}</span></td>
                                 <td><strong>{{ face.nomComplet }}</strong></td>
+                                <td>
+                                    {% if face.etat == 'excellent' %}
+                                        <span class="table-badge success">Excellent</span>
+                                    {% elseif face.etat == 'bon' %}
+                                        <span class="table-badge success">Bon</span>
+                                    {% elseif face.etat == 'moyen' %}
+                                        <span class="table-badge warning">Moyen</span>
+                                    {% elseif face.etat == 'mauvais' %}
+                                        <span class="table-badge warning">Mauvais</span>
+                                    {% elseif face.etat == 'hors_service' %}
+                                        <span class="table-badge" style="background: var(--danger-color); color: white;">Hors service</span>
+                                    {% else %}
+                                        <span class="table-badge info">{{ face.etat ?? '—' }}</span>
+                                    {% endif %}
+                                </td>
                                 <td>
                                     {% if locationActive %}
                                         <span class="table-badge warning">Occupée</span>

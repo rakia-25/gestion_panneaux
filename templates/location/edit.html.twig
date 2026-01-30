@@ -34,6 +34,13 @@
                     {{ form_row(form.montantMensuel) }}
                     {{ form_row(form.notes) }}
 
+                    <div id="confirmer-mauvais-wrapper" class="mb-3" {% if not (location.face and location.face.etat == 'mauvais') %}style="display: none;"{% endif %}>
+                        <div class="alert alert-warning mb-2">
+                            <i class="bi bi-exclamation-triangle"></i> Ce panneau est en état dégradé. Souhaitez-vous quand même le louer ?
+                        </div>
+                        {{ form_row(form.confirmerEtatMauvais) }}
+                    </div>
+
                     <div class="alert alert-info">
                         <i class="bi bi-info-circle"></i> Le montant mensuel peut être modifié pour appliquer une remise ou un tarif spécial.
                         <br>

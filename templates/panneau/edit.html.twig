@@ -35,14 +35,31 @@
                             {{ form_row(form.type) }}
                         </div>
                     </div>
-                    <div class="row">
-                        <div class="col-md-6">
-                            {{ form_row(form.eclairage) }}
+                    {{ form_row(form.eclairage) }}
+                    {% if form.faces is defined %}
+                        <div class="mb-3" data-edit-faces>
+                            {{ form_label(form.faces) }}
+                            {{ form_help(form.faces) }}
+                            <div class="row g-2 mt-1">
+                                <div class="col-md-6">
+                                    <label class="form-label small text-muted">Face A</label>
+                                    {{ form_widget(form.faces[0].etat) }}
+                                    {{ form_errors(form.faces[0].etat) }}
+                                </div>
+                                <div class="col-md-6" id="edit-face-b-wrapper" style="display: {{ panneau.type == 'double' ? 'block' : 'none' }};">
+                                    <label class="form-label small text-muted">Face B</label>
+                                    {% if form.etatFaceB is defined %}
+                                        {{ form_widget(form.etatFaceB) }}
+                                        {{ form_errors(form.etatFaceB) }}
+                                    {% elseif form.faces[1] is defined %}
+                                        {{ form_widget(form.faces[1].etat) }}
+                                        {{ form_errors(form.faces[1].etat) }}
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {{ form_errors(form.faces) }}
                         </div>
-                        <div class="col-md-6">
-                            {{ form_row(form.etat) }}
-                        </div>
-                    </div>
+                    {% endif %}
                     {{ form_row(form.prixMensuel) }}
                     {{ form_row(form.photo) }}
                     {{ form_row(form.description) }}
@@ -60,4 +77,16 @@
         </div>
     </div>
 </div>
+<script>
+(function () {
+    var typeSelect = document.querySelector('[name="{{ form.type.vars.full_name }}"]');
+    var faceBWrapper = document.getElementById('edit-face-b-wrapper');
+    if (!typeSelect || !faceBWrapper) return;
+    function toggleFaceB() {
+        faceBWrapper.style.display = typeSelect.value === 'double' ? 'block' : 'none';
+    }
+    typeSelect.addEventListener('change', toggleFaceB);
+    toggleFaceB();
+})();
+</script>
 {% endblock %}

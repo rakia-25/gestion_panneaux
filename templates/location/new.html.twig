@@ -62,6 +62,13 @@
                     {{ form_row(form.montantMensuel) }}
                     {{ form_row(form.notes) }}
 
+                    <div id="confirmer-mauvais-wrapper" class="mb-3" {% if not (face_obj and face_obj.etat == 'mauvais') %}style="display: none;"{% endif %}>
+                        <div class="alert alert-warning mb-2">
+                            <i class="bi bi-exclamation-triangle"></i> Ce panneau est en état dégradé. Souhaitez-vous quand même le louer ?
+                        </div>
+                        {{ form_row(form.confirmerEtatMauvais) }}
+                    </div>
+
                     <div class="alert alert-info">
                         <i class="bi bi-info-circle"></i> Le montant mensuel est pré-rempli automatiquement depuis le prix du panneau. Vous pouvez le modifier pour appliquer une remise ou un tarif spécial.
                         <br>
@@ -103,6 +110,23 @@ document.addEventListener('DOMContentLoaded', function() {
     const dateDebutInput = document.getElementById('location_dateDebut');
     const dureeMoisInput = document.getElementById('location_dureeMois');
     const dateFinInput = document.getElementById('location_dateFin');
+    const confirmerMauvaisWrapper = document.getElementById('confirmer-mauvais-wrapper');
+    const confirmerMauvaisCheckbox = document.getElementById('location_confirmerEtatMauvais');
+
+    if (faceSelect && confirmerMauvaisWrapper) {
+        function toggleConfirmerMauvais() {
+            const opt = faceSelect.options[faceSelect.selectedIndex];
+            const etat = opt ? opt.getAttribute('data-etat') : '';
+            if (etat === 'mauvais') {
+                confirmerMauvaisWrapper.style.display = 'block';
+            } else {
+                confirmerMauvaisWrapper.style.display = 'none';
+                if (confirmerMauvaisCheckbox) confirmerMauvaisCheckbox.checked = false;
+            }
+        }
+        faceSelect.addEventListener('change', toggleConfirmerMauvais);
+        toggleConfirmerMauvais();
+    }
 
     if (faceSelect && montantInput && notesSelect) {
         // Désactiver la justification tant que le prix n'est pas modifié

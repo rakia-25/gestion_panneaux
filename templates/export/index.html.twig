@@ -1,0 +1,53 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Exporter les données{% endblock %}
+
+{% block body %}
+<div class="page-header">
+    <h1 class="page-title">Exporter les données</h1>
+    <p class="page-description">Téléchargez les données au format CSV (compatible Excel)</p>
+</div>
+
+<div class="row">
+    <div class="col-md-10 offset-md-1">
+        <div class="section-card">
+            <div class="section-header">
+                <h3 class="section-title"><i class="bi bi-download"></i> Exports disponibles</h3>
+            </div>
+            <div class="p-4">
+                <p class="text-muted mb-4">Choisissez le type de données à exporter. Les fichiers CSV utilisent le séparateur point-virgule (;) et l’encodage UTF-8 pour une ouverture correcte dans Excel.</p>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <a href="{{ path('app_export_panneaux') }}" class="btn btn-outline-primary w-100 d-flex align-items-center justify-content-between py-3">
+                            <span><i class="bi bi-grid me-2"></i> Panneaux</span>
+                            <i class="bi bi-download"></i>
+                        </a>
+                        <small class="text-muted d-block mt-1">Référence, emplacement, quartier, type, état, prix, etc.</small>
+                    </div>
+                    <div class="col-md-6">
+                        <a href="{{ path('app_export_clients') }}" class="btn btn-outline-primary w-100 d-flex align-items-center justify-content-between py-3">
+                            <span><i class="bi bi-people me-2"></i> Clients</span>
+                            <i class="bi bi-download"></i>
+                        </a>
+                        <small class="text-muted d-block mt-1">Nom, type, email, téléphone, adresse, ville, pays.</small>
+                    </div>
+                    <div class="col-md-6">
+                        <a href="{{ path('app_export_locations') }}" class="btn btn-outline-primary w-100 d-flex align-items-center justify-content-between py-3">
+                            <span><i class="bi bi-calendar-check me-2"></i> Locations</span>
+                            <i class="bi bi-download"></i>
+                        </a>
+                        <small class="text-muted d-block mt-1">Panneau, face, client, dates, montant, statut.</small>
+                    </div>
+                    <div class="col-md-6">
+                        <a href="{{ path('app_export_paiements') }}" class="btn btn-outline-primary w-100 d-flex align-items-center justify-content-between py-3">
+                            <span><i class="bi bi-cash-stack me-2"></i> Paiements</span>
+                            <i class="bi bi-download"></i>
+                        </a>
+                        <small class="text-muted d-block mt-1">Date, montant, type, statut, location associée.</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
