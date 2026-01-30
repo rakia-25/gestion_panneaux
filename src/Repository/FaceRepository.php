@@ -16,6 +16,22 @@ class FaceRepository extends ServiceEntityRepository
         parent::__construct($registry, Face::class);
     }
 
+    /**
+     * Retourne une face par ID avec ses locations et leurs paiements chargés.
+     */
+    public function findOneWithLocationsAndPaiements(int $id): ?Face
+    {
+        return $this->createQueryBuilder('f')
+            ->leftJoin('f.locations', 'l')
+            ->leftJoin('l.paiements', 'p')
+            ->addSelect('l')
+            ->addSelect('p')
+            ->where('f.id = :id')
+            ->setParameter('id', $id)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
     //    /**
     //     * @return Face[] Returns an array of Face objects
     //     */

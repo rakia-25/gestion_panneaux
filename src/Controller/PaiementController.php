@@ -19,14 +19,8 @@ class PaiementController extends AbstractController
     #[Route('/', name: 'app_paiement_index', methods: ['GET'])]
     public function index(PaiementRepository $paiementRepository): Response
     {
-        // Charger tous les paiements avec leurs locations
-        $paiements = $paiementRepository->createQueryBuilder('p')
-            ->leftJoin('p.location', 'l')
-            ->addSelect('l')
-            ->orderBy('p.datePaiement', 'DESC')
-            ->getQuery()
-            ->getResult();
-        
+        $paiements = $paiementRepository->findAllOrderedByDateWithLocation();
+
         return $this->render('paiement/index.html.twig', [
             'paiements' => $paiements,
         ]);
@@ -80,41 +74,23 @@ class PaiementController extends AbstractController
             $locationPaiement = $paiement->getLocation();
             if ($locationPaiement && $locationPaiement->isAnnulee()) {
                 $this->addFlash('error', 'Cette location a été annulée. Vous ne pouvez pas créer de paiement pour une location annulée.');
-                return $this->render('paiement/new.html.twig', [
-                    'paiement' => $paiement,
-                    'form' => $form,
-                    'location_id' => $locationId,
-                    'location_obj' => $locationId ? $locationRepository->find($locationId) : null,
-                ]);
+                return $this->render('paiement/new.html.twig', $this->getNewPaiementContext($paiement, $form, $locationId, $locationRepository));
             }
-            // Vérifier que la location n'est pas complètement payée
             if ($locationPaiement && $locationPaiement->isCompletementPaye()) {
                 $this->addFlash('error', 'Cette location est déjà entièrement payée. Vous ne pouvez pas créer un nouveau paiement.');
-                return $this->render('paiement/new.html.twig', [
-                    'paiement' => $paiement,
-                    'form' => $form,
-                    'location_id' => $locationId,
-                    'location_obj' => $locationId ? $locationRepository->find($locationId) : null,
-                ]);
+                return $this->render('paiement/new.html.twig', $this->getNewPaiementContext($paiement, $form, $locationId, $locationRepository));
             }
-            
-            // Vérifier que le montant ne dépasse pas le montant restant
+
             if ($locationPaiement) {
-                $montantRestant = floatval($locationPaiement->getMontantRestant());
-                $montantPaiement = floatval($paiement->getMontant());
-                
+                $montantRestant = (float) $locationPaiement->getMontantRestant();
+                $montantPaiement = (float) $paiement->getMontant();
                 if ($montantPaiement > $montantRestant) {
                     $this->addFlash('error', sprintf(
                         'Le montant du paiement (%.0f FCFA) ne peut pas dépasser le montant restant à payer (%.0f FCFA).',
                         $montantPaiement,
                         $montantRestant
                     ));
-                    return $this->render('paiement/new.html.twig', [
-                        'paiement' => $paiement,
-                        'form' => $form,
-                        'location_id' => $locationId,
-                        'location_obj' => $locationId ? $locationRepository->find($locationId) : null,
-                    ]);
+                    return $this->render('paiement/new.html.twig', $this->getNewPaiementContext($paiement, $form, $locationId, $locationRepository));
                 }
             }
             
@@ -131,12 +107,7 @@ class PaiementController extends AbstractController
             return $this->redirectToRoute('app_paiement_index', [], Response::HTTP_SEE_OTHER);
         }
 
-        return $this->render('paiement/new.html.twig', [
-            'paiement' => $paiement,
-            'form' => $form,
-            'location_id' => $locationId,
-            'location_obj' => $locationId ? $locationRepository->find($locationId) : null,
-        ]);
+        return $this->render('paiement/new.html.twig', $this->getNewPaiementContext($paiement, $form, $locationId, $locationRepository));
     }
 
     #[Route('/{id}', name: 'app_paiement_show', methods: ['GET'])]
@@ -257,5 +228,18 @@ class PaiementController extends AbstractController
             'paiement' => $paiement,
             'location_id' => $locationId,
         ]);
+    }
+
+    /**
+     * Contexte commun pour le rendu du formulaire de création de paiement.
+     */
+    private function getNewPaiementContext(Paiement $paiement, $form, ?string $locationId, LocationRepository $locationRepository): array
+    {
+        return [
+            'paiement' => $paiement,
+            'form' => $form,
+            'location_id' => $locationId,
+            'location_obj' => $locationId ? $locationRepository->find($locationId) : null,
+        ];
     }
 }
