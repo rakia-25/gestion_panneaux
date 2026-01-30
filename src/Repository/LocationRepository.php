@@ -17,12 +17,26 @@ class LocationRepository extends ServiceEntityRepository
     }
 
     /**
-     * Retourne les locations actives (exclut les annulées)
+     * Retourne une location par ID avec ses paiements chargés.
+     */
+    public function findOneWithPaiements(int $id): ?Location
+    {
+        return $this->createQueryBuilder('l')
+            ->leftJoin('l.paiements', 'p')
+            ->addSelect('p')
+            ->where('l.id = :id')
+            ->setParameter('id', $id)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
+    /**
+     * Retourne les locations actives (exclut les annulées).
      */
     public function findActive(): array
     {
         $now = new \DateTime();
-        
+
         return $this->createQueryBuilder('l')
             ->where('l.dateDebut <= :now')
             ->andWhere('l.dateFin >= :now')
@@ -35,19 +49,72 @@ class LocationRepository extends ServiceEntityRepository
     }
 
     /**
-     * Retourne les locations se terminant bientôt (dans les X jours)
+     * Retourne le revenu mensuel total des locations actives (exclut les annulées).
+     */
+    public function getRevenuMensuelActif(): float
+    {
+        $now = new \DateTime();
+        $result = $this->createQueryBuilder('l')
+            ->select('SUM(l.montantMensuel) as total')
+            ->where('l.dateDebut <= :now')
+            ->andWhere('l.dateFin >= :now')
+            ->andWhere('l.statut != :annulee')
+            ->setParameter('now', $now)
+            ->setParameter('annulee', 'annulee')
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        return (float) ($result ?? 0);
+    }
+
+    /**
+     * Retourne les locations se terminant bientôt (dans les X jours).
      */
     public function findFinissantBientot(int $jours = 30): array
     {
         $now = new \DateTime();
         $dateLimite = (clone $now)->modify("+{$jours} days");
-        
+
         return $this->createQueryBuilder('l')
             ->where('l.dateFin >= :now')
             ->andWhere('l.dateFin <= :dateLimite')
             ->setParameter('now', $now)
             ->setParameter('dateLimite', $dateLimite)
             ->orderBy('l.dateFin', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Retourne les locations se terminant bientôt avec leurs paiements chargés.
+     */
+    public function findFinissantBientotWithPaiements(int $jours = 30): array
+    {
+        $now = new \DateTime();
+        $dateLimite = (clone $now)->modify("+{$jours} days");
+
+        return $this->createQueryBuilder('l')
+            ->leftJoin('l.paiements', 'p')
+            ->addSelect('p')
+            ->where('l.dateFin >= :now')
+            ->andWhere('l.dateFin <= :dateLimite')
+            ->setParameter('now', $now)
+            ->setParameter('dateLimite', $dateLimite)
+            ->orderBy('l.dateFin', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Retourne les N dernières locations avec leurs paiements.
+     */
+    public function findDernieresWithPaiements(int $maxResults = 5): array
+    {
+        return $this->createQueryBuilder('l')
+            ->leftJoin('l.paiements', 'p')
+            ->addSelect('p')
+            ->orderBy('l.createdAt', 'DESC')
+            ->setMaxResults($maxResults)
             ->getQuery()
             ->getResult();
     }

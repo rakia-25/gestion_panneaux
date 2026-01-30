@@ -16,6 +16,21 @@ class PaiementRepository extends ServiceEntityRepository
         parent::__construct($registry, Paiement::class);
     }
 
+    /**
+     * Retourne tous les paiements avec leur location, triés par date de paiement (plus récent en premier).
+     *
+     * @return Paiement[]
+     */
+    public function findAllOrderedByDateWithLocation(): array
+    {
+        return $this->createQueryBuilder('p')
+            ->leftJoin('p.location', 'l')
+            ->addSelect('l')
+            ->orderBy('p.datePaiement', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
+
 //    /**
 //     * @return Paiement[] Returns an array of Paiement objects
 //     */

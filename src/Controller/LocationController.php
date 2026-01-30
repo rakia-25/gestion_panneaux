@@ -93,30 +93,13 @@ class LocationController extends AbstractController
             if ($clientPreselectionne && $clientPreselectionneObj && !$location->getClient()) {
                 $location->setClient($clientPreselectionneObj);
             }
-            // Restaurer la date de fin si elle est désactivée
-            if ($location->getDateFin() === null && $form->get('dateFin')->getData() === null) {
-                // Calculer la date de fin si la durée est fournie
-                if ($form->has('dureeMois')) {
-                    $dureeMois = $form->get('dureeMois')->getData();
-                    if ($dureeMois && $location->getDateDebut()) {
-                        $dateDebut = $location->getDateDebut();
-                        $dateFin = new \DateTime($dateDebut->format('Y-m-d'));
-                        $dateFin->modify('+' . $dureeMois . ' months');
-                        $location->setDateFin($dateFin);
-                    }
-                }
+            if ($location->getDateFin() === null && $form->get('dateFin')->getData() === null && $form->has('dureeMois')) {
+                $this->applyDureeMoisToDateFin($location, $form->get('dureeMois')->getData());
             }
         }
 
-        // Calculer la date de fin si la durée est fournie (pour l'affichage initial)
         if (!$form->isSubmitted() && $form->has('dureeMois')) {
-            $dureeMois = $form->get('dureeMois')->getData();
-            if ($dureeMois && $location->getDateDebut()) {
-                $dateDebut = $location->getDateDebut();
-                $dateFin = new \DateTime($dateDebut->format('Y-m-d'));
-                $dateFin->modify('+' . $dureeMois . ' months');
-                $location->setDateFin($dateFin);
-            }
+            $this->applyDureeMoisToDateFin($location, $form->get('dureeMois')->getData());
         }
 
         if ($form->isSubmitted() && $form->isValid()) {
@@ -124,14 +107,7 @@ class LocationController extends AbstractController
             $face = $location->getFace();
             if (!$face) {
                 $this->addFlash('error', 'Veuillez sélectionner une face.');
-                return $this->render('location/new.html.twig', [
-                    'location' => $location,
-                    'form' => $form,
-                    'face_id' => $faceId,
-                    'client_id' => $clientId,
-                    'face_obj' => $location->getFace(),
-                    'client_obj' => $location->getClient(),
-                ]);
+                return $this->render('location/new.html.twig', $this->getNewLocationContext($location, $form, $faceId, $clientId));
             }
 
             if (!$face->isDisponible($location->getDateDebut(), $location->getDateFin())) {
@@ -160,44 +136,19 @@ class LocationController extends AbstractController
                 }
                 
                 $this->addFlash('error', $message);
-                return $this->render('location/new.html.twig', [
-                    'location' => $location,
-                    'form' => $form,
-                    'face_id' => $faceId,
-                    'client_id' => $clientId,
-                    'face_obj' => $location->getFace(),
-                    'client_obj' => $location->getClient(),
-                ]);
+                return $this->render('location/new.html.twig', $this->getNewLocationContext($location, $form, $faceId, $clientId));
             }
 
-            // Vérifier que la date de début est avant la date de fin
-            if ($location->getDateDebut() >= $location->getDateFin()) {
-                $this->addFlash('error', 'La date de début doit être antérieure à la date de fin.');
-                return $this->render('location/new.html.twig', [
-                    'location' => $location,
-                    'form' => $form,
-                    'face_id' => $faceId,
-                    'client_id' => $clientId,
-                    'face_obj' => $location->getFace(),
-                    'client_obj' => $location->getClient(),
-                ]);
+            $erreurDates = $this->getValidationErreurDateDebutAvantDateFin($location);
+            if ($erreurDates) {
+                $this->addFlash('error', $erreurDates);
+                return $this->render('location/new.html.twig', $this->getNewLocationContext($location, $form, $faceId, $clientId));
             }
 
-            // Vérifier que si le prix diffère du prix du panneau, les notes sont fournies
-            $prixPanneau = $face->getPanneau()->getPrixMensuel();
-            $prixLocation = $location->getMontantMensuel();
-            $difference = abs(floatval($prixLocation) - floatval($prixPanneau));
-
-            if ($difference > 0.01 && empty($location->getNotes())) {
-                $this->addFlash('error', 'Veuillez indiquer une justification car le prix a été modifié.');
-                return $this->render('location/new.html.twig', [
-                    'location' => $location,
-                    'form' => $form,
-                    'face_id' => $faceId,
-                    'client_id' => $clientId,
-                    'face_obj' => $location->getFace(),
-                    'client_obj' => $location->getClient(),
-                ]);
+            $erreurPrix = $this->getValidationErreurPrixJustification($location);
+            if ($erreurPrix) {
+                $this->addFlash('error', $erreurPrix);
+                return $this->render('location/new.html.twig', $this->getNewLocationContext($location, $form, $faceId, $clientId));
             }
 
             $entityManager->persist($location);
@@ -216,36 +167,17 @@ class LocationController extends AbstractController
             return $this->redirectToRoute('app_location_index', [], Response::HTTP_SEE_OTHER);
         }
 
-        // Récupérer les objets pour l'affichage dans le template
-        $face = $location->getFace();
-        $client = $location->getClient();
-
-        return $this->render('location/new.html.twig', [
-            'location' => $location,
-            'form' => $form,
-            'face_id' => $faceId,
-            'client_id' => $clientId,
-            'face_obj' => $face,
-            'client_obj' => $client,
-        ]);
+        return $this->render('location/new.html.twig', $this->getNewLocationContext($location, $form, $faceId, $clientId));
     }
 
     #[Route('/{id}', name: 'app_location_show', methods: ['GET'])]
     public function show(Location $location, LocationRepository $locationRepository): Response
     {
-        // Charger les paiements avec la location
-        $location = $locationRepository->createQueryBuilder('l')
-            ->leftJoin('l.paiements', 'p')
-            ->addSelect('p')
-            ->where('l.id = :id')
-            ->setParameter('id', $location->getId())
-            ->getQuery()
-            ->getOneOrNullResult();
-        
+        $location = $locationRepository->findOneWithPaiements($location->getId());
         if (!$location) {
             throw $this->createNotFoundException('Location non trouvée');
         }
-        
+
         return $this->render('location/show.html.twig', [
             'location' => $location,
         ]);
@@ -277,25 +209,14 @@ class LocationController extends AbstractController
 
         $form->handleRequest($request);
 
-        // Restaurer les valeurs présélectionnées si les champs sont désactivés
         if ($form->isSubmitted()) {
-            // Restaurer la face et le client (toujours présélectionnés en édition)
             if (!$location->getFace() && $originalFace) {
                 $location->setFace($originalFace);
             }
-            // Restaurer la date de fin si elle est désactivée
             if ($location->getDateFin() === null) {
-                // Calculer la date de fin si la durée est fournie
                 if ($form->has('dureeMois')) {
-                    $dureeMois = $form->get('dureeMois')->getData();
-                    if ($dureeMois && $location->getDateDebut()) {
-                        $dateDebut = $location->getDateDebut();
-                        $dateFin = new \DateTime($dateDebut->format('Y-m-d'));
-                        $dateFin->modify('+' . $dureeMois . ' months');
-                        $location->setDateFin($dateFin);
-                    }
+                    $this->applyDureeMoisToDateFin($location, $form->get('dureeMois')->getData());
                 } elseif ($originalDateFin) {
-                    // Restaurer la date de fin originale si pas de durée fournie
                     $location->setDateFin($originalDateFin);
                 }
             }
@@ -307,34 +228,19 @@ class LocationController extends AbstractController
             
             if (!$face->isDisponible($location->getDateDebut(), $location->getDateFin(), $location)) {
                 $this->addFlash('error', 'Cette face est déjà louée sur cette période. Veuillez choisir une autre période.');
-                return $this->render('location/edit.html.twig', [
-                    'location' => $location,
-                    'form' => $form,
-                ]);
+                return $this->render('location/edit.html.twig', ['location' => $location, 'form' => $form]);
             }
 
-            // Vérifier que la date de début est avant la date de fin
-            $dateDebut = $location->getDateDebut();
-            $dateFin = $location->getDateFin();
-            if ($dateDebut >= $dateFin) {
-                $this->addFlash('error', 'La date de début doit être antérieure à la date de fin.');
-                return $this->render('location/edit.html.twig', [
-                    'location' => $location,
-                    'form' => $form,
-                ]);
+            $erreurDates = $this->getValidationErreurDateDebutAvantDateFin($location);
+            if ($erreurDates) {
+                $this->addFlash('error', $erreurDates);
+                return $this->render('location/edit.html.twig', ['location' => $location, 'form' => $form]);
             }
 
-            // Vérifier que si le prix diffère du prix du panneau, les notes sont fournies
-            $prixPanneau = $face->getPanneau()->getPrixMensuel();
-            $prixLocation = $location->getMontantMensuel();
-            $difference = abs(floatval($prixLocation) - floatval($prixPanneau));
-
-            if ($difference > 0.01 && empty($location->getNotes())) {
-                $this->addFlash('error', 'Veuillez indiquer une justification car le prix a été modifié.');
-                return $this->render('location/edit.html.twig', [
-                    'location' => $location,
-                    'form' => $form,
-                ]);
+            $erreurPrix = $this->getValidationErreurPrixJustification($location);
+            if ($erreurPrix) {
+                $this->addFlash('error', $erreurPrix);
+                return $this->render('location/edit.html.twig', ['location' => $location, 'form' => $form]);
             }
 
             $entityManager->flush();
@@ -391,7 +297,63 @@ class LocationController extends AbstractController
     public function getPrixFace(Face $face): Response
     {
         return $this->json([
-            'prix' => $face->getPanneau()->getPrixMensuel()
+            'prix' => $face->getPanneau()->getPrixMensuel(),
         ]);
+    }
+
+    /**
+     * Contexte commun pour le rendu du formulaire de création de location.
+     */
+    private function getNewLocationContext(Location $location, $form, ?string $faceId, ?string $clientId): array
+    {
+        return [
+            'location' => $location,
+            'form' => $form,
+            'face_id' => $faceId,
+            'client_id' => $clientId,
+            'face_obj' => $location->getFace(),
+            'client_obj' => $location->getClient(),
+        ];
+    }
+
+    /**
+     * Calcule et assigne la date de fin à partir de la date de début et de la durée en mois.
+     */
+    private function applyDureeMoisToDateFin(Location $location, ?int $dureeMois): void
+    {
+        if ($dureeMois && $location->getDateDebut()) {
+            $dateFin = new \DateTime($location->getDateDebut()->format('Y-m-d'));
+            $dateFin->modify('+' . $dureeMois . ' months');
+            $location->setDateFin($dateFin);
+        }
+    }
+
+    /**
+     * Retourne un message d'erreur si la date de début n'est pas avant la date de fin, null sinon.
+     */
+    private function getValidationErreurDateDebutAvantDateFin(Location $location): ?string
+    {
+        if ($location->getDateDebut() && $location->getDateFin() && $location->getDateDebut() >= $location->getDateFin()) {
+            return 'La date de début doit être antérieure à la date de fin.';
+        }
+        return null;
+    }
+
+    /**
+     * Retourne un message d'erreur si le prix diffère du prix du panneau sans justification, null sinon.
+     */
+    private function getValidationErreurPrixJustification(Location $location): ?string
+    {
+        $face = $location->getFace();
+        if (!$face) {
+            return null;
+        }
+        $prixPanneau = (float) $face->getPanneau()->getPrixMensuel();
+        $prixLocation = (float) $location->getMontantMensuel();
+        $difference = abs($prixLocation - $prixPanneau);
+        if ($difference > 0.01 && empty($location->getNotes())) {
+            return 'Veuillez indiquer une justification car le prix a été modifié.';
+        }
+        return null;
     }
 }
