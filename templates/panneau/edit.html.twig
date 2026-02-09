@@ -1,82 +1,45 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Modifier panneau{% endblock %}
+{% block title %}Modifier {{ panneau.reference }}{% endblock %}
+
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" class="breadcrumb-nav mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Tableau de bord</a></li>
+            <li class="breadcrumb-item"><a href="{{ path('app_panneau_index') }}">Panneaux</a></li>
+            <li class="breadcrumb-item"><a href="{{ path('app_panneau_show', { id: panneau.id }) }}">{{ panneau.reference }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Modifier</li>
+        </ol>
+    </nav>
+{% endblock %}
 
 {% block body %}
-<div class="page-header">
-    <h1 class="page-title">Modifier panneau {{ panneau.reference }}</h1>
-    <p class="page-description">Modifiez les informations du panneau</p>
+<div class="page-header d-flex flex-wrap justify-content-between align-items-start gap-2">
+    <div>
+        <h1 class="page-title">Modifier {{ panneau.reference }}</h1>
+        <p class="page-description">Modifiez les informations du panneau</p>
+    </div>
+    <a href="{{ path('app_panneau_show', { id: panneau.id }) }}" class="btn-secondary-modern">
+        <i class="bi bi-arrow-left"></i> Retour à la fiche
+    </a>
 </div>
 
-<div class="row">
-    <div class="col-md-8 offset-md-2">
-        <div class="section-card">
-            <div class="section-header">
-                <h3 class="section-title"><i class="bi bi-pencil"></i> Informations du panneau</h3>
-            </div>
-            <div>
-                {{ form_start(form) }}
-                    {{ form_row(form.reference) }}
-                    {{ form_row(form.emplacement) }}
-                    <div class="row">
-                        <div class="col-md-6">
-                            {{ form_row(form.quartier) }}
-                        </div>
-                        <div class="col-md-6">
-                            {{ form_row(form.visibilite) }}
-                        </div>
-                    </div>
-                    {{ form_row(form.coordonneesGps) }}
-                    <div class="row">
-                        <div class="col-md-6">
-                            {{ form_row(form.taille) }}
-                        </div>
-                        <div class="col-md-6">
-                            {{ form_row(form.type) }}
-                        </div>
-                    </div>
-                    {{ form_row(form.eclairage) }}
-                    {% if form.faces is defined %}
-                        <div class="mb-3" data-edit-faces>
-                            {{ form_label(form.faces) }}
-                            {{ form_help(form.faces) }}
-                            <div class="row g-2 mt-1">
-                                <div class="col-md-6">
-                                    <label class="form-label small text-muted">Face A</label>
-                                    {{ form_widget(form.faces[0].etat) }}
-                                    {{ form_errors(form.faces[0].etat) }}
-                                </div>
-                                <div class="col-md-6" id="edit-face-b-wrapper" style="display: {{ panneau.type == 'double' ? 'block' : 'none' }};">
-                                    <label class="form-label small text-muted">Face B</label>
-                                    {% if form.etatFaceB is defined %}
-                                        {{ form_widget(form.etatFaceB) }}
-                                        {{ form_errors(form.etatFaceB) }}
-                                    {% elseif form.faces[1] is defined %}
-                                        {{ form_widget(form.faces[1].etat) }}
-                                        {{ form_errors(form.faces[1].etat) }}
-                                    {% endif %}
-                                </div>
-                            </div>
-                            {{ form_errors(form.faces) }}
-                        </div>
-                    {% endif %}
-                    {{ form_row(form.prixMensuel) }}
-                    {{ form_row(form.photo) }}
-                    {{ form_row(form.description) }}
-
-                    <div style="display: flex; justify-content: space-between; margin-top: 2rem;">
-                        <a href="{{ path('app_panneau_index') }}" class="btn-secondary-modern">
-                            <i class="bi bi-arrow-left"></i> Retour
-                        </a>
-                        <button type="submit" class="btn-primary-modern">
-                            <i class="bi bi-check"></i> Enregistrer
-                        </button>
-                    </div>
-                {{ form_end(form) }}
+<div class="row g-3 g-lg-4">
+    <div class="col-lg-8">
+        <div class="section-card panneau-new-form" role="region" aria-labelledby="panneau-form-title">
+            <div class="form-card-inner">
+                {% include 'panneau/_form.html.twig' with {
+                    form: form,
+                    edit_mode: true,
+                    panneau: panneau,
+                    cancel_path: path('app_panneau_show', { id: panneau.id })
+                } %}
             </div>
         </div>
     </div>
+    {% include 'panneau/_sidebar.html.twig' with { edit_mode: true } %}
 </div>
+
 <script>
 (function () {
     var typeSelect = document.querySelector('[name="{{ form.type.vars.full_name }}"]');

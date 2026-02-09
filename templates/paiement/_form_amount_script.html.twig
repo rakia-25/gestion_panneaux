@@ -1,0 +1,67 @@
+{#
+    Script barre de progression montant (nouveau paiement avec location_obj).
+    Variables : location_obj (doit être défini et non annulée / non complètement payée)
+#}
+<script>
+{% if location_obj is defined and location_obj and not location_obj.isAnnulee and not location_obj.isCompletementPaye %}
+document.addEventListener('DOMContentLoaded', function() {
+    const montantInput = document.getElementById('paiement_montant');
+    const montantRestant = parseFloat('{{ location_obj.montantRestant|number_format(2, '.', '') }}');
+    const form = montantInput ? montantInput.closest('form') : null;
+    const amountProgress = document.getElementById('amountProgress');
+    const amountProgressFill = document.getElementById('amountProgressFill');
+    const amountCurrent = document.getElementById('amountCurrent');
+
+    if (montantInput && form) {
+        function updateProgress() {
+            const montantSaisi = parseFloat(montantInput.value) || 0;
+            if (montantSaisi > 0) {
+                if (amountProgress) amountProgress.style.display = 'block';
+                if (amountProgressFill) {
+                    const percentage = Math.min((montantSaisi / montantRestant) * 100, 100);
+                    amountProgressFill.style.width = percentage + '%';
+                    amountProgressFill.style.background = montantSaisi > montantRestant
+                        ? 'linear-gradient(90deg, var(--danger-color), #f87171)'
+                        : 'linear-gradient(90deg, var(--success-color), #34d399)';
+                }
+                if (amountCurrent) amountCurrent.textContent = montantSaisi.toLocaleString('fr-FR') + ' FCFA';
+            } else {
+                if (amountProgress) amountProgress.style.display = 'none';
+            }
+        }
+        montantInput.addEventListener('input', function() {
+            const montantSaisi = parseFloat(this.value) || 0;
+            updateProgress();
+            if (montantSaisi > montantRestant) {
+                this.setCustomValidity('Le montant ne peut pas dépasser ' + montantRestant.toLocaleString('fr-FR') + ' FCFA');
+                this.classList.add('is-invalid');
+            } else {
+                this.setCustomValidity('');
+                this.classList.remove('is-invalid');
+            }
+        });
+        form.addEventListener('submit', function(e) {
+            const montantSaisi = parseFloat(montantInput.value) || 0;
+            if (montantSaisi > montantRestant) {
+                e.preventDefault();
+                alert('Le montant du paiement (' + montantSaisi.toLocaleString('fr-FR') + ' FCFA) ne peut pas dépasser le montant restant à payer (' + montantRestant.toLocaleString('fr-FR') + ' FCFA).');
+                montantInput.focus();
+                return false;
+            }
+        });
+        updateProgress();
+    }
+    const allInputs = document.querySelectorAll('.form-payment input, .form-payment select, .form-payment textarea');
+    allInputs.forEach(input => {
+        input.addEventListener('focus', function() {
+            const section = this.closest('.form-section-step');
+            if (section) section.style.background = 'rgba(99, 102, 241, 0.02)';
+        });
+        input.addEventListener('blur', function() {
+            const section = this.closest('.form-section-step');
+            if (section) section.style.background = '';
+        });
+    });
+});
+{% endif %}
+</script>

@@ -1,53 +1,55 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Modifier client{% endblock %}
+{% block title %}Modifier {{ client.nom }}{% endblock %}
+
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" class="breadcrumb-nav mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Tableau de bord</a></li>
+            <li class="breadcrumb-item"><a href="{{ path('app_client_index') }}">Clients</a></li>
+            <li class="breadcrumb-item"><a href="{{ path('app_client_show', { id: client.id }) }}">{{ client.nom }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Modifier</li>
+        </ol>
+    </nav>
+{% endblock %}
 
 {% block body %}
-<div class="page-header">
-    <h1 class="page-title">Modifier client {{ client.nom }}</h1>
-    <p class="page-description">Modifiez les informations du client</p>
+<div class="page-header d-flex flex-wrap justify-content-between align-items-start gap-2">
+    <div class="min-w-0">
+        <h1 class="page-title">Modifier {{ client.nom }}</h1>
+        <p class="page-description">Modifiez les informations du client</p>
+        <p class="page-hint text-muted small mt-1 mb-0">
+            Les champs marqués <span class="text-danger" aria-hidden="true">*</span> sont obligatoires
+        </p>
+    </div>
+    <a href="{{ path('app_client_show', { id: client.id }) }}" class="btn-secondary-modern flex-shrink-0" aria-label="Retour à la fiche client">
+        <i class="bi bi-arrow-left" aria-hidden="true"></i> Retour à la fiche
+    </a>
 </div>
 
-<div class="row">
-    <div class="col-md-8 offset-md-2">
-        <div class="section-card">
+<div class="row g-3">
+    <div class="col-lg-8 min-w-0">
+        <div class="section-card client-form-card overflow-hidden" role="region" aria-labelledby="client-form-title">
             <div class="section-header">
-                <h3 class="section-title"><i class="bi bi-pencil"></i> Informations du client</h3>
+                <h2 id="client-form-title" class="section-title mb-0 h5"><i class="bi bi-pencil" aria-hidden="true"></i> Informations du client</h2>
             </div>
-            <div>
-                {{ form_start(form) }}
-                    {{ form_row(form.nom) }}
-                    {{ form_row(form.type) }}
-                    <div class="row">
-                        <div class="col-md-6">
-                            {{ form_row(form.email) }}
-                        </div>
-                        <div class="col-md-6">
-                            {{ form_row(form.telephone) }}
-                        </div>
-                    </div>
-                    {{ form_row(form.adresse) }}
-                    <div class="row">
-                        <div class="col-md-6">
-                            {{ form_row(form.ville) }}
-                        </div>
-                        <div class="col-md-6">
-                            {{ form_row(form.pays) }}
-                        </div>
-                    </div>
-                    {{ form_row(form.notes) }}
-                    
-                    <div style="display: flex; justify-content: space-between; margin-top: 2rem;">
-                        <a href="{{ path('app_client_index') }}" class="btn-secondary-modern">
-                            <i class="bi bi-arrow-left"></i> Retour
-                        </a>
-                        <button type="submit" class="btn-primary-modern">
-                            <i class="bi bi-check"></i> Enregistrer
-                        </button>
-                    </div>
-                {{ form_end(form) }}
+            <div class="form-card-inner client-form-inner">
+                {% include 'client/_form.html.twig' with {
+                    form: form,
+                    cancel_path: path('app_client_show', { id: client.id }),
+                    cancel_label: 'Annuler',
+                    submit_label: 'Enregistrer',
+                    form_aria_label: 'Formulaire de modification du client'
+                } %}
             </div>
         </div>
     </div>
+
+    {% include 'client/_sidebar.html.twig' with {
+        cta_title: 'Après modification',
+        cta_text: 'Les changements seront enregistrés sur la fiche client et visibles dans les locations associées.'
+    } %}
 </div>
+
+{% include 'client/_form_preview_script.html.twig' %}
 {% endblock %}

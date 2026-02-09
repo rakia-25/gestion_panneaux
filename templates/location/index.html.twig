@@ -2,54 +2,153 @@
 
 {% block title %}Liste des locations{% endblock %}
 
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" class="breadcrumb-nav mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Tableau de bord</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Locations</li>
+        </ol>
+    </nav>
+{% endblock %}
+
 {% block body %}
-<div class="page-header">
-    <h1 class="page-title">Gestion des Locations</h1>
-    <p class="page-description">Gérez les locations de panneaux publicitaires et suivez les paiements</p>
-</div>
-
-{# Boutons d'action #}
-<div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
-    <a href="{{ path('app_location_new') }}" class="btn-primary-modern">
-        <i class="bi bi-plus"></i> Nouvelle Location
-    </a>
-</div>
-
-<!-- Filtres -->
-<div class="section-card" style="margin-bottom: 1.5rem;">
-    <div class="section-header">
-        <h3 class="section-title"><i class="bi bi-funnel"></i> Filtres</h3>
+<!-- En-tête avec statistiques -->
+<div class="page-header-with-stats">
+    <div class="page-header-content">
+        <div>
+            <h1 class="page-title">Gestion des Locations</h1>
+            <p class="page-description">Suivez vos locations et gérez les paiements</p>
+        </div>
+        <div class="page-header-actions">
+            <button class="btn-secondary-modern" id="exportBtn">
+                <i class="bi bi-download"></i> Exporter
+            </button>
+            <a href="{{ path('app_location_new') }}" class="btn-primary-modern">
+                <i class="bi bi-plus-lg"></i> Nouvelle Location
+            </a>
+        </div>
     </div>
-    <div>
-            <form method="GET" action="{{ path('app_location_index') }}" class="row g-3" onsubmit="return false;">
-                <div class="col-md-3">
-                    <label for="recherche" class="form-label">Recherche</label>
-                    <input type="text" class="form-control" id="recherche" name="recherche"
-                           value="{{ filters.recherche ?? '' }}"
-                           placeholder="Client, face, panneau...">
+
+    <!-- Statistiques rapides -->
+    <div class="stats-bar">
+        <div class="stat-item">
+            <div class="stat-icon primary">
+                <i class="bi bi-calendar-check"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value" id="totalLocations">{{ locations|length }}</div>
+                <div class="stat-label">Total locations</div>
+            </div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-icon success">
+                <i class="bi bi-circle-fill"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value" id="locationsActives">
+                    {% set actives = 0 %}
+                    {% for l in locations %}{% if l.isActive() and not l.isAnnulee %}{% set actives = actives + 1 %}{% endif %}{% endfor %}
+                    {{ actives }}
                 </div>
-                <div class="col-md-2">
-                    <label for="statut" class="form-label">Statut</label>
-                    <select class="form-select" id="statut" name="statut">
-                        <option value="">Tous</option>
+                <div class="stat-label">En cours</div>
+            </div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-icon warning">
+                <i class="bi bi-clock-history"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value" id="locationsAvenir">
+                    {% set avenir = 0 %}
+                    {% for l in locations %}{% if l.isAVenir() and not l.isAnnulee %}{% set avenir = avenir + 1 %}{% endif %}{% endfor %}
+                    {{ avenir }}
+                </div>
+                <div class="stat-label">À venir</div>
+            </div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-icon info">
+                <i class="bi bi-cash-stack"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value" id="montantTotal">
+                    {% set total = 0 %}
+                    {% for l in locations %}{% if not l.isAnnulee %}{% set total = total + l.montantTotal %}{% endif %}{% endfor %}
+                    {{ (total / 1000000)|number_format(1) }}M
+                </div>
+                <div class="stat-label">Revenu total (FCFA)</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtres améliorés -->
+<div class="filters-card">
+    <div class="filters-header">
+        <div class="filters-title">
+            <i class="bi bi-sliders"></i>
+            <span>Filtres</span>
+            <span class="filters-count" id="activeFiltersCount" style="display: none;"></span>
+        </div>
+        <button class="filters-toggle" id="filtersToggle">
+            <i class="bi bi-chevron-down"></i>
+        </button>
+    </div>
+
+    <div class="filters-body" id="filtersBody">
+        <form method="GET" action="{{ path('app_location_index') }}" id="filtersForm">
+            <div class="filters-grid">
+                <!-- Recherche -->
+                <div class="filter-group filter-search">
+                    <label for="recherche" class="filter-label">
+                        <i class="bi bi-search"></i> Recherche
+                    </label>
+                    <div class="search-input-wrapper">
+                        <input type="text"
+                               class="filter-input"
+                               id="recherche"
+                               name="recherche"
+                               value="{{ filters.recherche ?? '' }}"
+                               placeholder="Client, face, panneau...">
+                        <button type="button" class="search-clear" id="clearSearch" style="display: none;">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Statut -->
+                <div class="filter-group">
+                    <label for="statut" class="filter-label">
+                        <i class="bi bi-calendar-event"></i> Statut
+                    </label>
+                    <select class="filter-select" id="statut" name="statut">
+                        <option value="">Tous les statuts</option>
                         <option value="active" {{ filters.statut == 'active' ? 'selected' : '' }}>En cours</option>
                         <option value="terminee" {{ filters.statut == 'terminee' ? 'selected' : '' }}>Terminée</option>
                         <option value="avenir" {{ filters.statut == 'avenir' ? 'selected' : '' }}>À venir</option>
                         <option value="annulee" {{ filters.statut == 'annulee' ? 'selected' : '' }}>Annulée</option>
                     </select>
                 </div>
-                <div class="col-md-2">
-                    <label for="estPaye" class="form-label">Paiement</label>
-                    <select class="form-select" id="estPaye" name="estPaye">
+
+                <!-- Paiement -->
+                <div class="filter-group">
+                    <label for="estPaye" class="filter-label">
+                        <i class="bi bi-cash"></i> Paiement
+                    </label>
+                    <select class="filter-select" id="estPaye" name="estPaye">
                         <option value="">Tous</option>
                         <option value="1" {{ filters.estPaye == '1' ? 'selected' : '' }}>Payé</option>
-                        <option value="2" {{ filters.estPaye == '2' ? 'selected' : '' }}>Partiellement payé</option>
+                        <option value="2" {{ filters.estPaye == '2' ? 'selected' : '' }}>Partiel</option>
                         <option value="0" {{ filters.estPaye == '0' ? 'selected' : '' }}>Impayé</option>
                     </select>
                 </div>
-                <div class="col-md-3">
-                    <label for="client" class="form-label">Client</label>
-                    <select class="form-select" id="client" name="client">
+
+                <!-- Client -->
+                <div class="filter-group">
+                    <label for="client" class="filter-label">
+                        <i class="bi bi-person"></i> Client
+                    </label>
+                    <select class="filter-select" id="client" name="client">
                         <option value="">Tous les clients</option>
                         {% for client in clients %}
                             <option value="{{ client.id }}" {{ filters.client|default('') == (client.id ~ '') ? 'selected' : '' }}>
@@ -58,147 +157,1397 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-2 d-flex align-items-end gap-2">
-                    <a href="{{ path('app_location_index') }}" class="btn-secondary-modern">
-                        <i class="bi bi-x-circle"></i> Réinitialiser
-                    </a>
+            </div>
+
+            <div class="filters-actions">
+                <button type="button" class="btn-reset" id="resetFilters">
+                    <i class="bi bi-arrow-counterclockwise"></i> Réinitialiser
+                </button>
+                <div class="filters-info">
+                    <span id="resultsCount">{{ locations|length }}</span> résultat(s)
                 </div>
-            </form>
+            </div>
+        </form>
     </div>
 </div>
 
-<div class="table-card">
-    <div class="table-header">
-        <h3 class="table-title">Locations</h3>
-    </div>
+<!-- Vue en cartes (mobile) -->
+<div class="cards-view d-lg-none">
     {% if locations|length > 0 %}
-        <table class="modern-table">
-            <thead>
-                <tr>
-                    <th>Face</th>
-                    <th>Client</th>
-                    <th>Date début</th>
-                    <th>Date fin</th>
-                    <th>Montant mensuel</th>
-                    <th>Montant total</th>
-                    <th>Statut</th>
-                    <th>Paiement</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for location in locations %}
-                    <tr {% if location.isAnnulee %}style="opacity: 0.6;"{% endif %}
-                        data-statut="{% if location.isAnnulee %}annulee{% elseif location.isActive() %}active{% elseif location.isTerminee() %}terminee{% else %}avenir{% endif %}"
-                        data-est-paye="{% if location.isCompletementPaye() %}1{% elseif location.isPartiellementPaye() %}2{% else %}0{% endif %}"
-                        data-client-id="{{ location.client.id }}"
-                        data-face="{{ location.face.nomComplet|lower }}"
-                        data-client="{{ location.client.nom|lower }}"
-                        data-panneau="{{ location.face.panneau.reference|lower }}"
-                        data-emplacement="{{ location.face.panneau.emplacement|lower }}">
-                        <td>
-                            <strong>{{ location.face.nomComplet }}</strong>
+        <div class="locations-cards" id="locationsCards">
+            {% for location in locations %}
+                <div class="location-card"
+                     data-statut="{% if location.isAnnulee %}annulee{% elseif location.isActive() %}active{% elseif location.isTerminee() %}terminee{% else %}avenir{% endif %}"
+                     data-est-paye="{% if location.isCompletementPaye() %}1{% elseif location.isPartiellementPaye() %}2{% else %}0{% endif %}"
+                     data-client-id="{{ location.client.id }}"
+                     data-face="{{ location.face.nomComplet|lower }}"
+                     data-client="{{ location.client.nom|lower }}"
+                     data-panneau="{{ location.face.panneau.reference|lower }}"
+                     data-emplacement="{{ location.face.panneau.emplacement|lower }}">
+
+                    <div class="location-card-header">
+                        <div class="location-card-title">
+                            <h3>{{ location.face.nomComplet }}</h3>
+                            <p>{{ location.client.nom }}</p>
+                        </div>
+                        <div class="location-card-status">
                             {% if location.isAnnulee %}
-                                <br><small class="text-danger">(Annulée)</small>
-                            {% endif %}
-                        </td>
-                        <td>{{ location.client.nom }}</td>
-                        <td>{{ location.dateDebut|date('d/m/Y') }}</td>
-                        <td>{{ location.dateFin|date('d/m/Y') }}</td>
-                        <td>{{ location.montantMensuel|number_format(0, ',', ' ') }} FCFA</td>
-                        <td><strong>{{ location.montantTotal|number_format(0, ',', ' ') }} FCFA</strong></td>
-                        <td>
-                            {% if location.isAnnulee %}
-                                <span class="table-badge danger">Annulée</span>
+                                <span class="status-badge-card cancelled">
+                                    <i class="bi bi-x-circle-fill"></i> Annulée
+                                </span>
                             {% elseif location.isActive() %}
-                                <span class="table-badge success">En cours</span>
+                                <span class="status-badge-card active">
+                                    <i class="bi bi-circle-fill"></i> En cours
+                                </span>
                             {% elseif location.isTerminee() %}
-                                <span class="table-badge warning">Terminée</span>
+                                <span class="status-badge-card finished">
+                                    <i class="bi bi-check-circle-fill"></i> Terminée
+                                </span>
                             {% else %}
-                                <span class="table-badge info">À venir</span>
+                                <span class="status-badge-card future">
+                                    <i class="bi bi-clock-fill"></i> À venir
+                                </span>
                             {% endif %}
-                        </td>
-                        <td>
-                            {% set statutPaiement = location.statutPaiement %}
-                            {% if statutPaiement == 'paye' %}
-                                <span class="table-badge success">Payé</span>
-                            {% elseif statutPaiement == 'partiellement_paye' %}
-                                <span class="table-badge warning">Partiellement payé</span>
-                            {% else %}
-                                <span class="table-badge pending">Impayé</span>
-                            {% endif %}
-                            <br>
-                            <small style="color: var(--text-gray); font-size: 0.75rem;">{{ location.montantTotalPaye|number_format(0, ',', ' ') }} / {{ location.montantTotal|number_format(0, ',', ' ') }} FCFA</small>
-                        </td>
-                        <td>
-                            <div class="action-menu">
-                                <a href="{{ path('app_location_show', {id: location.id}) }}" class="action-btn" title="Voir">
-                                    <i class="bi bi-eye"></i>
-                                </a>
-                                {% if not location.isAnnulee %}
-                                    <a href="{{ path('app_location_edit', {id: location.id}) }}" class="action-btn" title="Modifier">
-                                        <i class="bi bi-pencil"></i>
-                                    </a>
-                                    <a href="{{ path('app_location_annuler', {id: location.id}) }}" class="action-btn text-danger" title="Annuler">
-                                        <i class="bi bi-x-circle"></i>
-                                    </a>
+                        </div>
+                    </div>
+
+                    <div class="location-card-body">
+                        <div class="location-info-row">
+                            <i class="bi bi-calendar-range"></i>
+                            <span>{{ location.dateDebut|date('d/m/Y') }} → {{ location.dateFin|date('d/m/Y') }}</span>
+                        </div>
+                        <div class="location-info-row">
+                            <i class="bi bi-cash-stack"></i>
+                            <strong>{{ location.montantTotal|number_format(0, ',', ' ') }} FCFA</strong>
+                        </div>
+                        <div class="location-info-row">
+                            <i class="bi bi-credit-card"></i>
+                            <span>
+                                {% set statutPaiement = location.statutPaiement %}
+                                {% if statutPaiement == 'paye' %}
+                                    <span class="payment-status paid">Payé</span>
+                                {% elseif statutPaiement == 'partiellement_paye' %}
+                                    <span class="payment-status partial">Partiel</span>
+                                {% else %}
+                                    <span class="payment-status unpaid">Impayé</span>
                                 {% endif %}
-                            </div>
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                                <small>({{ location.montantTotalPaye|number_format(0, ',', ' ') }} FCFA)</small>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="location-card-actions">
+                        <a href="{{ path('app_location_show', {id: location.id}) }}" class="card-action-btn">
+                            <i class="bi bi-eye"></i> Voir
+                        </a>
+                        {% if not location.isAnnulee %}
+                            <a href="{{ path('app_location_edit', {id: location.id}) }}" class="card-action-btn">
+                                <i class="bi bi-pencil"></i> Modifier
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
     {% else %}
-        <div style="text-align: center; padding: 2rem; color: var(--text-gray);">
-            <i class="bi bi-info-circle"></i> Aucune location enregistrée. <a href="{{ path('app_location_new') }}">Créer la première location</a>
+        <div class="empty-state-card">
+            <i class="bi bi-calendar-x"></i>
+            <h3>Aucune location</h3>
+            <p>Commencez par créer votre première location</p>
+            <a href="{{ path('app_location_new') }}" class="btn-primary-modern">
+                <i class="bi bi-plus-lg"></i> Créer une location
+            </a>
         </div>
     {% endif %}
 </div>
-{% endblock %}
 
-{% block javascripts %}
+<!-- Vue en tableau (desktop) -->
+<div class="table-view d-none d-lg-block">
+    <div class="table-card-modern">
+        <div class="table-header-modern">
+            <h3 class="table-title">Liste des locations</h3>
+            <div class="table-controls">
+                <div class="view-mode">
+                    <button class="view-btn active" data-view="table">
+                        <i class="bi bi-table"></i>
+                    </button>
+                    <button class="view-btn" data-view="grid">
+                        <i class="bi bi-grid-3x3"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        {% if locations|length > 0 %}
+            <div class="table-responsive">
+                <table class="modern-table-enhanced" id="locationsTable">
+                    <thead>
+                        <tr>
+                            <th class="sortable" data-sort="face">
+                                <div class="th-content">
+                                    Face / Panneau
+                                    <i class="bi bi-chevron-expand"></i>
+                                </div>
+                            </th>
+                            <th class="sortable" data-sort="client">
+                                <div class="th-content">
+                                    Client
+                                    <i class="bi bi-chevron-expand"></i>
+                                </div>
+                            </th>
+                            <th class="sortable" data-sort="debut">
+                                <div class="th-content">
+                                    Période
+                                    <i class="bi bi-chevron-expand"></i>
+                                </div>
+                            </th>
+                            <th class="sortable" data-sort="montant">
+                                <div class="th-content">
+                                    Montant
+                                    <i class="bi bi-chevron-expand"></i>
+                                </div>
+                            </th>
+                            <th>Statut</th>
+                            <th>Paiement</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for location in locations %}
+                            <tr class="table-row-enhanced {{ location.isAnnulee ? 'row-cancelled' : '' }}"
+                                data-statut="{% if location.isAnnulee %}annulee{% elseif location.isActive() %}active{% elseif location.isTerminee() %}terminee{% else %}avenir{% endif %}"
+                                data-est-paye="{% if location.isCompletementPaye() %}1{% elseif location.isPartiellementPaye() %}2{% else %}0{% endif %}"
+                                data-client-id="{{ location.client.id }}"
+                                data-face="{{ location.face.nomComplet|lower }}"
+                                data-client="{{ location.client.nom|lower }}"
+                                data-panneau="{{ location.face.panneau.reference|lower }}"
+                                data-emplacement="{{ location.face.panneau.emplacement|lower }}"
+                                data-debut="{{ location.dateDebut|date('Y-m-d') }}"
+                                data-montant="{{ location.montantTotal }}">
+
+                                <td>
+                                    <div class="cell-face">
+                                        <div class="face-icon">
+                                            <i class="bi bi-square"></i>
+                                        </div>
+                                        <div class="face-content">
+                                            <strong>{{ location.face.nomComplet }}</strong>
+                                            <small class="text-muted">{{ location.face.panneau.reference }}</small>
+                                            {% if location.isAnnulee %}
+                                                <span class="cancelled-label">Annulée</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </td>
+
+                                <td>
+                                    <div class="cell-client">
+                                        <div class="client-avatar-small">
+                                            {{ location.client.nom|first|upper }}
+                                        </div>
+                                        <div>
+                                            <strong>{{ location.client.nom }}</strong>
+                                            {% if location.client.telephone %}
+                                                <br><small class="text-muted">{{ location.client.telephone }}</small>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </td>
+
+                                <td>
+                                    <div class="cell-period">
+                                        <div class="period-dates">
+                                            <i class="bi bi-calendar-event"></i>
+                                            <span>{{ location.dateDebut|date('d/m/Y') }}</span>
+                                        </div>
+                                        <div class="period-arrow">→</div>
+                                        <div class="period-dates">
+                                            <i class="bi bi-calendar-check"></i>
+                                            <span>{{ location.dateFin|date('d/m/Y') }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="period-duration">
+                                        <small class="text-muted">
+                                            {% set diff = date(location.dateFin).diff(date(location.dateDebut)) %}
+                                            {{ diff.days }} jours
+                                        </small>
+                                    </div>
+                                </td>
+
+                                <td>
+                                    <div class="cell-amount">
+                                        <strong class="amount-total">{{ location.montantTotal|number_format(0, ',', ' ') }} FCFA</strong>
+                                        <small class="amount-monthly">{{ location.montantMensuel|number_format(0, ',', ' ') }} FCFA/mois</small>
+                                    </div>
+                                </td>
+
+                                <td>
+                                    {% if location.isAnnulee %}
+                                        <span class="badge-modern cancelled">
+                                            <i class="bi bi-x-circle-fill"></i> Annulée
+                                        </span>
+                                    {% elseif location.isActive() %}
+                                        <span class="badge-modern active">
+                                            <i class="bi bi-circle-fill pulse"></i> En cours
+                                        </span>
+                                    {% elseif location.isTerminee() %}
+                                        <span class="badge-modern finished">
+                                            <i class="bi bi-check-circle-fill"></i> Terminée
+                                        </span>
+                                    {% else %}
+                                        <span class="badge-modern future">
+                                            <i class="bi bi-clock-fill"></i> À venir
+                                        </span>
+                                    {% endif %}
+                                </td>
+
+                                <td>
+                                    {% set statutPaiement = location.statutPaiement %}
+                                    <div class="cell-payment">
+                                        {% if statutPaiement == 'paye' %}
+                                            <span class="badge-payment paid">
+                                                <i class="bi bi-check-circle-fill"></i> Payé
+                                            </span>
+                                        {% elseif statutPaiement == 'partiellement_paye' %}
+                                            <span class="badge-payment partial">
+                                                <i class="bi bi-exclamation-circle-fill"></i> Partiel
+                                            </span>
+                                        {% else %}
+                                            <span class="badge-payment unpaid">
+                                                <i class="bi bi-x-circle-fill"></i> Impayé
+                                            </span>
+                                        {% endif %}
+                                        <div class="payment-progress">
+                                            <div class="progress-bar-mini">
+                                                {% set pourcent = location.montantTotal > 0 ? (location.montantTotalPaye / location.montantTotal * 100) : 0 %}
+                                                <div class="progress-fill" style="width: {{ pourcent }}%"></div>
+                                            </div>
+                                            <small class="payment-amount">
+                                                {{ location.montantTotalPaye|number_format(0, ',', ' ') }} / {{ location.montantTotal|number_format(0, ',', ' ') }}
+                                            </small>
+                                        </div>
+                                    </div>
+                                </td>
+
+                                <td>
+                                    <div class="action-buttons">
+                                        <a href="{{ path('app_location_show', {id: location.id}) }}"
+                                           class="action-btn-modern view"
+                                           title="Voir">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        {% if not location.isAnnulee %}
+                                            <a href="{{ path('app_location_edit', {id: location.id}) }}"
+                                               class="action-btn-modern edit"
+                                               title="Modifier">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <a href="{{ path('app_location_annuler', {id: location.id}) }}"
+                                               class="action-btn-modern cancel"
+                                               title="Annuler"
+                                               onclick="return confirm('Annuler cette location ?');">
+                                                <i class="bi bi-x-circle"></i>
+                                            </a>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="empty-state-table">
+                <i class="bi bi-calendar-x"></i>
+                <h3>Aucune location</h3>
+                <p>Commencez par créer votre première location</p>
+                <a href="{{ path('app_location_new') }}" class="btn-primary-modern">
+                    <i class="bi bi-plus-lg"></i> Créer une location
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+/* Réutilisation des styles de l'index panneaux */
+.page-header-with-stats {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.page-header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+}
+
+.page-header-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.stats-bar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+}
+
+.stat-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.25rem;
+    background: var(--bg-light);
+    border-radius: 12px;
+    transition: all 0.3s;
+}
+
+.stat-item:hover {
+    background: #f1f5f9;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.stat-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.stat-icon.primary {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+    color: white;
+}
+
+.stat-icon.success {
+    background: linear-gradient(135deg, #10b981, #34d399);
+    color: white;
+}
+
+.stat-icon.warning {
+    background: linear-gradient(135deg, #f59e0b, #fbbf24);
+    color: white;
+}
+
+.stat-icon.info {
+    background: linear-gradient(135deg, #3b82f6, #60a5fa);
+    color: white;
+}
+
+.stat-content {
+    flex: 1;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    line-height: 1;
+    margin-bottom: 0.25rem;
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    color: var(--text-gray);
+    font-weight: 500;
+}
+
+/* Filtres */
+.filters-card {
+    background: white;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+}
+
+.filters-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 1.5rem;
+    background: var(--bg-light);
+    cursor: pointer;
+    user-select: none;
+}
+
+.filters-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    font-size: 1rem;
+}
+
+.filters-title i {
+    color: var(--primary-color);
+    font-size: 1.125rem;
+}
+
+.filters-count {
+    background: var(--primary-color);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.filters-toggle {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: white;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.filters-toggle:hover {
+    background: #f1f5f9;
+}
+
+.filters-toggle i {
+    transition: transform 0.3s;
+}
+
+.filters-toggle.collapsed i {
+    transform: rotate(180deg);
+}
+
+.filters-body {
+    padding: 1.5rem;
+    border-top: 1px solid var(--border-color);
+    max-height: 500px;
+    overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s ease;
+}
+
+.filters-body.collapsed {
+    max-height: 0;
+    padding: 0 1.5rem;
+}
+
+.filters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 1.25rem;
+}
+
+.filter-search {
+    grid-column: span 2;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.filter-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.filter-label i {
+    color: var(--primary-color);
+    font-size: 1rem;
+}
+
+.search-input-wrapper {
+    position: relative;
+}
+
+.filter-input {
+    width: 100%;
+    padding: 0.625rem 2.5rem 0.625rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 0.9375rem;
+    transition: all 0.2s;
+}
+
+.filter-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.search-clear {
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: var(--bg-light);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-gray);
+    transition: all 0.2s;
+}
+
+.search-clear:hover {
+    background: #e2e8f0;
+    color: var(--text-dark);
+}
+
+.filter-select {
+    padding: 0.625rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 0.9375rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: white;
+}
+
+.filter-select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.filters-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.btn-reset {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: var(--bg-light);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-dark);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-reset:hover {
+    background: #f1f5f9;
+    border-color: var(--text-gray);
+}
+
+.filters-info {
+    font-size: 0.875rem;
+    color: var(--text-gray);
+    font-weight: 500;
+}
+
+.filters-info span {
+    color: var(--primary-color);
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+/* ========== Timeline ========== */
+.timeline-container {
+    padding: 1rem 0;
+}
+
+.timeline-legend {
+    display: flex;
+    gap: 2rem;
+    margin-bottom: 1.5rem;
+    padding: 0.75rem 1rem;
+    background: var(--bg-light);
+    border-radius: 8px;
+}
+
+.timeline-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--text-dark);
+    font-weight: 500;
+}
+
+.timeline-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.timeline-dot.active {
+    background: var(--success-color);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+
+.timeline-dot.future {
+    background: var(--info-color);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+.timeline-dot.past {
+    background: var(--text-gray);
+    box-shadow: 0 0 0 3px rgba(100, 116, 139, 0.2);
+}
+
+.timeline-scroll {
+    overflow-x: auto;
+    padding-bottom: 1rem;
+}
+
+.timeline-item {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    background: var(--bg-light);
+    border-radius: 10px;
+    border-left: 4px solid transparent;
+    transition: all 0.2s;
+}
+
+.timeline-item:hover {
+    background: #f1f5f9;
+    transform: translateX(4px);
+}
+
+.timeline-item.active {
+    border-left-color: var(--success-color);
+    background: rgba(16, 185, 129, 0.05);
+}
+
+.timeline-item.future {
+    border-left-color: var(--info-color);
+    background: rgba(59, 130, 246, 0.05);
+}
+
+.timeline-item.past {
+    border-left-color: var(--text-gray);
+    opacity: 0.7;
+}
+
+.timeline-marker {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-top: 0.25rem;
+    flex-shrink: 0;
+}
+
+.timeline-item.active .timeline-marker {
+    background: var(--success-color);
+    animation: pulse 2s infinite;
+}
+
+.timeline-item.future .timeline-marker {
+    background: var(--info-color);
+}
+
+.timeline-item.past .timeline-marker {
+    background: var(--text-gray);
+}
+
+.timeline-content {
+    flex: 1;
+}
+
+.timeline-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.timeline-client {
+    font-size: 0.875rem;
+    color: var(--text-gray);
+}
+
+.timeline-dates {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+    color: var(--text-gray);
+    margin-bottom: 0.25rem;
+}
+
+.timeline-price {
+    font-weight: 600;
+    color: var(--success-color);
+    font-size: 0.9375rem;
+}
+
+/* ========== Cartes mobile ========== */
+.locations-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.location-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.25rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s;
+}
+
+.location-card:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    transform: translateY(-2px);
+}
+
+.location-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+    gap: 1rem;
+}
+
+.location-card-title h3 {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin-bottom: 0.25rem;
+}
+
+.location-card-title p {
+    font-size: 0.9375rem;
+    color: var(--text-gray);
+    margin: 0;
+}
+
+.status-badge-card {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.status-badge-card.active {
+    background: rgba(16, 185, 129, 0.1);
+    color: #047857;
+}
+
+.status-badge-card.future {
+    background: rgba(59, 130, 246, 0.1);
+    color: #1e40af;
+}
+
+.status-badge-card.finished {
+    background: rgba(100, 116, 139, 0.1);
+    color: #475569;
+}
+
+.status-badge-card.cancelled {
+    background: rgba(239, 68, 68, 0.1);
+    color: #b91c1c;
+}
+
+.location-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+    margin-bottom: 1rem;
+}
+
+.location-info-row {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    font-size: 0.9375rem;
+    color: var(--text-dark);
+}
+
+.location-info-row i {
+    color: var(--text-gray);
+    font-size: 1rem;
+}
+
+.payment-status {
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.payment-status.paid {
+    background: rgba(16, 185, 129, 0.1);
+    color: #047857;
+}
+
+.payment-status.partial {
+    background: rgba(245, 158, 11, 0.1);
+    color: #b45309;
+}
+
+.payment-status.unpaid {
+    background: rgba(239, 68, 68, 0.1);
+    color: #b91c1c;
+}
+
+.location-card-actions {
+    display: flex;
+    gap: 0.75rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.card-action-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1rem;
+    background: var(--bg-light);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-dark);
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.card-action-btn:hover {
+    background: white;
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+/* ========== Tableau ========== */
+.table-card-modern {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+}
+
+.table-header-modern {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    background: var(--bg-light);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.table-controls {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.view-mode {
+    display: flex;
+    gap: 0.25rem;
+    background: white;
+    border-radius: 8px;
+    padding: 0.25rem;
+    border: 1px solid var(--border-color);
+}
+
+.view-btn {
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-gray);
+    transition: all 0.2s;
+}
+
+.view-btn:hover {
+    background: var(--bg-light);
+}
+
+.view-btn.active {
+    background: var(--primary-color);
+    color: white;
+}
+
+.modern-table-enhanced {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.modern-table-enhanced thead {
+    background: var(--bg-light);
+}
+
+.modern-table-enhanced th {
+    padding: 1rem 1.25rem;
+    text-align: left;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-gray);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.modern-table-enhanced th.sortable {
+    cursor: pointer;
+    user-select: none;
+}
+
+.th-content {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.th-content i {
+    font-size: 0.75rem;
+    opacity: 0.5;
+    transition: opacity 0.2s;
+}
+
+.sortable:hover .th-content i {
+    opacity: 1;
+}
+
+.modern-table-enhanced tbody tr {
+    border-bottom: 1px solid var(--border-color);
+    transition: all 0.2s;
+}
+
+.modern-table-enhanced tbody tr:hover {
+    background: var(--bg-light);
+}
+
+.modern-table-enhanced tbody tr.row-cancelled {
+    opacity: 0.5;
+}
+
+.modern-table-enhanced td {
+    padding: 1rem 1.25rem;
+    font-size: 0.9375rem;
+    vertical-align: middle;
+}
+
+/* Cellules personnalisées */
+.cell-face {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.face-icon {
+    width: 40px;
+    height: 40px;
+    background: var(--bg-light);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary-color);
+    flex-shrink: 0;
+}
+
+.face-content strong {
+    display: block;
+    color: var(--text-dark);
+    font-weight: 600;
+}
+
+.face-content small {
+    display: block;
+    font-size: 0.75rem;
+}
+
+.cancelled-label {
+    display: block;
+    font-size: 0.75rem;
+    color: #b91c1c;
+    font-weight: 500;
+}
+
+.cell-client {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.client-avatar-small {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.875rem;
+    flex-shrink: 0;
+}
+
+.cell-period {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.period-dates {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.875rem;
+}
+
+.period-arrow {
+    color: var(--text-gray);
+    font-weight: 600;
+}
+
+.period-duration {
+    margin-top: 0.25rem;
+}
+
+.cell-amount {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.amount-total {
+    color: var(--success-color);
+    font-weight: 700;
+}
+
+.amount-monthly {
+    font-size: 0.75rem;
+    color: var(--text-gray);
+}
+
+/* Badges */
+.badge-modern {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.badge-modern.active {
+    background: rgba(16, 185, 129, 0.1);
+    color: #047857;
+}
+
+.badge-modern.future {
+    background: rgba(59, 130, 246, 0.1);
+    color: #1e40af;
+}
+
+.badge-modern.finished {
+    background: rgba(100, 116, 139, 0.1);
+    color: #475569;
+}
+
+.badge-modern.cancelled {
+    background: rgba(239, 68, 68, 0.1);
+    color: #b91c1c;
+}
+
+.pulse {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.cell-payment {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.badge-payment {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    width: fit-content;
+}
+
+.badge-payment.paid {
+    background: rgba(16, 185, 129, 0.1);
+    color: #047857;
+}
+
+.badge-payment.partial {
+    background: rgba(245, 158, 11, 0.1);
+    color: #b45309;
+}
+
+.badge-payment.unpaid {
+    background: rgba(239, 68, 68, 0.1);
+    color: #b91c1c;
+}
+
+.payment-progress {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.progress-bar-mini {
+    height: 4px;
+    background: var(--border-color);
+    border-radius: 2px;
+    overflow: hidden;
+    width: 120px;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--success-color), #34d399);
+    transition: width 0.3s ease;
+}
+
+.payment-amount {
+    font-size: 0.75rem;
+    color: var(--text-gray);
+}
+
+/* Actions */
+.action-buttons {
+    display: flex;
+    gap: 0.375rem;
+    justify-content: flex-end;
+}
+
+.action-btn-modern {
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--border-color);
+    background: white;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    color: var(--text-gray);
+}
+
+.action-btn-modern:hover {
+    border-color: var(--primary-color);
+    background: var(--bg-light);
+    color: var(--primary-color);
+}
+
+.action-btn-modern.cancel:hover {
+    border-color: var(--danger-color);
+    background: rgba(239, 68, 68, 0.05);
+    color: var(--danger-color);
+}
+
+/* États vides */
+.empty-state-card,
+.empty-state-table {
+    padding: 4rem 2rem;
+    text-align: center;
+    color: var(--text-gray);
+}
+
+.empty-state-card i,
+.empty-state-table i {
+    font-size: 4rem;
+    opacity: 0.3;
+    margin-bottom: 1rem;
+}
+
+.empty-state-card h3,
+.empty-state-table h3 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin-bottom: 0.5rem;
+}
+
+.empty-state-card p,
+.empty-state-table p {
+    margin-bottom: 1.5rem;
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+    .page-header-with-stats {
+        padding: 1.5rem;
+    }
+
+    .stats-bar {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
+
+    .stat-item {
+        padding: 1rem;
+    }
+
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        font-size: 1.25rem;
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .page-header-content {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .page-header-actions {
+        width: 100%;
+    }
+
+    .page-header-actions .btn-primary-modern,
+    .page-header-actions .btn-secondary-modern {
+        flex: 1;
+    }
+
+    .stats-bar {
+        grid-template-columns: 1fr;
+    }
+
+    .filters-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .filter-search {
+        grid-column: span 1;
+    }
+
+    .filters-actions {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .btn-reset,
+    .filters-info {
+        width: 100%;
+        text-align: center;
+    }
+
+    .timeline-legend {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+}
+</style>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Gestion du toggle des filtres
+    const filtersToggle = document.getElementById('filtersToggle');
+    const filtersBody = document.getElementById('filtersBody');
+
+    if (filtersToggle && filtersBody) {
+        filtersToggle.addEventListener('click', function() {
+            filtersBody.classList.toggle('collapsed');
+            filtersToggle.classList.toggle('collapsed');
+        });
+    }
+
+    // Éléments du formulaire
     const rechercheInput = document.getElementById('recherche');
     const statutSelect = document.getElementById('statut');
     const estPayeSelect = document.getElementById('estPaye');
     const clientSelect = document.getElementById('client');
-    const tableRows = document.querySelectorAll('tbody tr');
+    const resetBtn = document.getElementById('resetFilters');
+    const clearSearchBtn = document.getElementById('clearSearch');
+    const resultsCount = document.getElementById('resultsCount');
+    const activeFiltersCount = document.getElementById('activeFiltersCount');
+
+    // Toutes les lignes/cartes
+    const tableRows = document.querySelectorAll('#locationsTable tbody tr');
+    const cards = document.querySelectorAll('.location-card');
 
     let searchTimeout;
 
-    // Fonction pour filtrer les lignes sans recharger la page
-    function filterRows() {
+    // Fonction pour compter les filtres actifs
+    function updateActiveFiltersCount() {
+        let count = 0;
+        if (rechercheInput && rechercheInput.value) count++;
+        if (statutSelect && statutSelect.value) count++;
+        if (estPayeSelect && estPayeSelect.value) count++;
+        if (clientSelect && clientSelect.value) count++;
+
+        if (count > 0) {
+            activeFiltersCount.textContent = count;
+            activeFiltersCount.style.display = 'inline-block';
+        } else {
+            activeFiltersCount.style.display = 'none';
+        }
+    }
+
+    // Fonction de filtrage
+    function filterElements() {
         const recherche = (rechercheInput?.value || '').toLowerCase();
         const statut = statutSelect?.value || '';
         const estPaye = estPayeSelect?.value || '';
-        const clientId = clientSelect?.value || '';
+        const client = clientSelect?.value || '';
 
         let visibleCount = 0;
 
+        // Filtrer les lignes du tableau
         tableRows.forEach(row => {
-            const rowStatut = row.dataset.statut || '';
-            const rowEstPaye = row.dataset.estPaye || '';
-            const rowClientId = row.dataset.clientId || '';
-            const rowFace = row.dataset.face || '';
-            const rowClient = row.dataset.client || '';
-            const rowPanneau = row.dataset.panneau || '';
-            const rowEmplacement = row.dataset.emplacement || '';
-
-            // Vérifier les filtres
-            const statutMatch = !statut || rowStatut === statut;
-            // estPaye: 0=impayé, 1=payé, 2=partiellement payé
-            const estPayeMatch = !estPaye || rowEstPaye === estPaye;
-            const clientMatch = !clientId || rowClientId === clientId;
-            const rechercheMatch = !recherche ||
-                rowFace.includes(recherche) ||
-                rowClient.includes(recherche) ||
-                rowPanneau.includes(recherche) ||
-                rowEmplacement.includes(recherche);
-
-            // Afficher ou cacher la ligne
-            if (statutMatch && estPayeMatch && clientMatch && rechercheMatch) {
+            if (matchesFilters(row, { recherche, statut, estPaye, client })) {
                 row.style.display = '';
                 visibleCount++;
             } else {
@@ -206,40 +1555,163 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        // Afficher un message si aucun résultat
-        const tbody = document.querySelector('tbody');
-        let noResultsMsg = document.getElementById('no-results-message');
-        if (visibleCount === 0 && tableRows.length > 0) {
-            if (!noResultsMsg) {
-                noResultsMsg = document.createElement('tr');
-                noResultsMsg.id = 'no-results-message';
-                noResultsMsg.innerHTML = '<td colspan="9" class="text-center py-4"><em>Aucun résultat trouvé</em></td>';
-                tbody.appendChild(noResultsMsg);
+        // Filtrer les cartes
+        cards.forEach(card => {
+            if (matchesFilters(card, { recherche, statut, estPaye, client })) {
+                card.style.display = '';
+            } else {
+                card.style.display = 'none';
             }
-            noResultsMsg.style.display = '';
-        } else if (noResultsMsg) {
-            noResultsMsg.style.display = 'none';
+        });
+
+        // Mettre à jour le compteur
+        if (resultsCount) {
+            resultsCount.textContent = visibleCount || cards.length;
         }
+
+        // Afficher/masquer le bouton clear
+        if (clearSearchBtn) {
+            clearSearchBtn.style.display = recherche ? 'flex' : 'none';
+        }
+
+        // Mettre à jour le compteur de filtres actifs
+        updateActiveFiltersCount();
     }
 
-    // Écouter les changements dans les selects (filtrage immédiat)
-    if (statutSelect) {
-        statutSelect.addEventListener('change', filterRows);
-    }
-    if (estPayeSelect) {
-        estPayeSelect.addEventListener('change', filterRows);
-    }
-    if (clientSelect) {
-        clientSelect.addEventListener('change', filterRows);
+    // Vérifier si un élément correspond aux filtres
+    function matchesFilters(element, filters) {
+        const { recherche, statut, estPaye, client } = filters;
+
+        const elStatut = element.dataset.statut || '';
+        const elEstPaye = element.dataset.estPaye || '';
+        const elClientId = element.dataset.clientId || '';
+        const elFace = element.dataset.face || '';
+        const elClient = element.dataset.client || '';
+        const elPanneau = element.dataset.panneau || '';
+        const elEmplacement = element.dataset.emplacement || '';
+
+        const statutMatch = !statut || elStatut === statut;
+        const estPayeMatch = !estPaye || elEstPaye === estPaye;
+        const clientMatch = !client || elClientId === client;
+        const rechercheMatch = !recherche ||
+            elFace.includes(recherche) ||
+            elClient.includes(recherche) ||
+            elPanneau.includes(recherche) ||
+            elEmplacement.includes(recherche);
+
+        return statutMatch && estPayeMatch && clientMatch && rechercheMatch;
     }
 
-    // Écouter les changements dans le champ de recherche avec debounce (300ms)
+    // Écouter les changements
+    if (statutSelect) statutSelect.addEventListener('change', filterElements);
+    if (estPayeSelect) estPayeSelect.addEventListener('change', filterElements);
+    if (clientSelect) clientSelect.addEventListener('change', filterElements);
+
     if (rechercheInput) {
         rechercheInput.addEventListener('input', function() {
             clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(filterRows, 300);
+            searchTimeout = setTimeout(filterElements, 300);
         });
     }
+
+    // Bouton clear search
+    if (clearSearchBtn) {
+        clearSearchBtn.addEventListener('click', function() {
+            if (rechercheInput) {
+                rechercheInput.value = '';
+                filterElements();
+            }
+        });
+    }
+
+    // Bouton reset
+    if (resetBtn) {
+        resetBtn.addEventListener('click', function() {
+            if (rechercheInput) rechercheInput.value = '';
+            if (statutSelect) statutSelect.value = '';
+            if (estPayeSelect) estPayeSelect.value = '';
+            if (clientSelect) clientSelect.value = '';
+            filterElements();
+        });
+    }
+
+    // Tri du tableau
+    const sortButtons = document.querySelectorAll('.sortable');
+    let currentSort = { column: null, direction: 'asc' };
+
+    sortButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const column = this.dataset.sort;
+
+            if (currentSort.column === column) {
+                currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSort.column = column;
+                currentSort.direction = 'asc';
+            }
+
+            sortTable(column, currentSort.direction);
+            updateSortIndicators(this, currentSort.direction);
+        });
+    });
+
+    function sortTable(column, direction) {
+        const tbody = document.querySelector('#locationsTable tbody');
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+
+        rows.sort((a, b) => {
+            let aVal, bVal;
+
+            switch(column) {
+                case 'face':
+                    aVal = a.dataset.face;
+                    bVal = b.dataset.face;
+                    break;
+                case 'client':
+                    aVal = a.dataset.client;
+                    bVal = b.dataset.client;
+                    break;
+                case 'debut':
+                    aVal = a.dataset.debut;
+                    bVal = b.dataset.debut;
+                    break;
+                case 'montant':
+                    aVal = parseFloat(a.dataset.montant) || 0;
+                    bVal = parseFloat(b.dataset.montant) || 0;
+                    break;
+                default:
+                    return 0;
+            }
+
+            if (typeof aVal === 'string') {
+                return direction === 'asc' ?
+                    aVal.localeCompare(bVal) :
+                    bVal.localeCompare(aVal);
+            } else {
+                return direction === 'asc' ? aVal - bVal : bVal - aVal;
+            }
+        });
+
+        rows.forEach(row => tbody.appendChild(row));
+    }
+
+    function updateSortIndicators(activeButton, direction) {
+        sortButtons.forEach(btn => {
+            const icon = btn.querySelector('i');
+            if (icon) {
+                icon.className = 'bi bi-chevron-expand';
+            }
+        });
+
+        const icon = activeButton.querySelector('i');
+        if (icon) {
+            icon.className = direction === 'asc' ? 'bi bi-chevron-up' : 'bi bi-chevron-down';
+        }
+    }
+
+    // Initialiser
+    updateActiveFiltersCount();
+    filterElements();
 });
 </script>
 {% endblock %}

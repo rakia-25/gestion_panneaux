@@ -2,218 +2,1427 @@
 
 {% block title %}Liste des panneaux{% endblock %}
 
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" class="breadcrumb-nav mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Tableau de bord</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Panneaux</li>
+        </ol>
+    </nav>
+{% endblock %}
+
 {% block body %}
-<div class="page-header">
-    <h1 class="page-title">Gestion des Panneaux</h1>
-    <p class="page-description">Gérez vos panneaux publicitaires, leurs faces et leurs disponibilités</p>
-</div>
-
-{# Boutons d'action #}
-<div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
-    <a href="{{ path('app_panneau_new') }}" class="btn-primary-modern">
-        <i class="bi bi-plus"></i> Nouveau Panneau
-    </a>
-</div>
-
-<!-- Filtres -->
-<div class="section-card" style="margin-bottom: 1.5rem;">
-    <div class="section-header">
-        <h3 class="section-title"><i class="bi bi-funnel"></i> Filtres</h3>
+<!-- En-tête avec statistiques -->
+<div class="page-header-with-stats">
+    <div class="page-header-content">
+        <div>
+            <h1 class="page-title">Gestion des Panneaux</h1>
+            <p class="page-description">Vue d'ensemble de vos panneaux publicitaires</p>
+        </div>
+        <div class="page-header-actions">
+            <button class="btn-secondary-modern" id="exportBtn">
+                <i class="bi bi-download"></i> Exporter
+            </button>
+            <a href="{{ path('app_panneau_new') }}" class="btn-primary-modern">
+                <i class="bi bi-plus-lg"></i> Nouveau Panneau
+            </a>
+        </div>
     </div>
-    <div>
-            <form method="GET" action="{{ path('app_panneau_index') }}" class="row g-3" onsubmit="return false;">
-                <div class="col-md-3">
-                    <label for="recherche" class="form-label">Recherche</label>
-                    <input type="text" class="form-control" id="recherche" name="recherche"
-                           value="{{ filters.recherche ?? '' }}"
-                           placeholder="Référence, emplacement, quartier...">
+
+    <!-- Statistiques rapides -->
+    <div class="stats-bar">
+        <div class="stat-item">
+            <div class="stat-icon primary">
+                <i class="bi bi-grid-3x3"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value" id="totalPanneaux">{{ panneaux|length }}</div>
+                <div class="stat-label">Total panneaux</div>
+            </div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-icon success">
+                <i class="bi bi-check-circle"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value" id="panneauxActifs">
+                    {% set actifs = 0 %}
+                    {% for p in panneaux %}{% if p.actif %}{% set actifs = actifs + 1 %}{% endif %}{% endfor %}
+                    {{ actifs }}
                 </div>
-                <div class="col-md-2">
-                    <label for="type" class="form-label">Type</label>
-                    <select class="form-select" id="type" name="type">
-                        <option value="">Tous</option>
-                        <option value="simple" {{ filters.type == 'simple' ? 'selected' : '' }}>Simple</option>
-                        <option value="double" {{ filters.type == 'double' ? 'selected' : '' }}>Double</option>
+                <div class="stat-label">Actifs</div>
+            </div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-icon warning">
+                <i class="bi bi-lock"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value" id="facesOccupees">
+                    {% set occupees = 0 %}
+                    {% for p in panneaux %}
+                        {% for face in p.faces %}
+                            {% if face.getLocationActive() %}{% set occupees = occupees + 1 %}{% endif %}
+                        {% endfor %}
+                    {% endfor %}
+                    {{ occupees }}
+                </div>
+                <div class="stat-label">Faces occupées</div>
+            </div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-icon info">
+                <i class="bi bi-unlock"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value" id="facesDisponibles">
+                    {% set disponibles = 0 %}
+                    {% for p in panneaux %}
+                        {% for face in p.faces %}
+                            {% if not face.getLocationActive() and face.getLocationsActivesOuFutures()|length == 0 %}
+                                {% set disponibles = disponibles + 1 %}
+                            {% endif %}
+                        {% endfor %}
+                    {% endfor %}
+                    {{ disponibles }}
+                </div>
+                <div class="stat-label">Faces disponibles</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtres améliorés -->
+<div class="filters-card">
+    <div class="filters-header">
+        <div class="filters-title">
+            <i class="bi bi-sliders"></i>
+            <span>Filtres</span>
+            <span class="filters-count" id="activeFiltersCount" style="display: none;"></span>
+        </div>
+        <button class="filters-toggle" id="filtersToggle">
+            <i class="bi bi-chevron-down"></i>
+        </button>
+    </div>
+
+    <div class="filters-body" id="filtersBody">
+        <form method="GET" action="{{ path('app_panneau_index') }}" id="filtersForm">
+            <div class="filters-grid">
+                <!-- Recherche -->
+                <div class="filter-group filter-search">
+                    <label for="recherche" class="filter-label">
+                        <i class="bi bi-search"></i> Recherche
+                    </label>
+                    <div class="search-input-wrapper">
+                        <input type="text"
+                               class="filter-input"
+                               id="recherche"
+                               name="recherche"
+                               value="{{ filters.recherche ?? '' }}"
+                               placeholder="Référence, emplacement, quartier...">
+                        <button type="button" class="search-clear" id="clearSearch" style="display: none;">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Type -->
+                <div class="filter-group">
+                    <label for="type" class="filter-label">
+                        <i class="bi bi-layers"></i> Type
+                    </label>
+                    <select class="filter-select" id="type" name="type">
+                        <option value="">Tous les types</option>
+                        <option value="simple" {{ filters.type == 'simple' ? 'selected' : '' }}>Simple face</option>
+                        <option value="double" {{ filters.type == 'double' ? 'selected' : '' }}>Double face</option>
                     </select>
                 </div>
-                <div class="col-md-2">
-                    <label for="etat" class="form-label">État</label>
-                    <select class="form-select" id="etat" name="etat">
-                        <option value="">Tous</option>
+
+                <!-- État -->
+                <div class="filter-group">
+                    <label for="etat" class="filter-label">
+                        <i class="bi bi-speedometer2"></i> État
+                    </label>
+                    <select class="filter-select" id="etat" name="etat">
+                        <option value="">Tous les états</option>
                         <option value="excellent" {{ filters.etat == 'excellent' ? 'selected' : '' }}>Excellent</option>
                         <option value="bon" {{ filters.etat == 'bon' ? 'selected' : '' }}>Bon</option>
                         <option value="moyen" {{ filters.etat == 'moyen' ? 'selected' : '' }}>Moyen</option>
                         <option value="mauvais" {{ filters.etat == 'mauvais' ? 'selected' : '' }}>Mauvais</option>
                         <option value="hors_service" {{ filters.etat == 'hors_service' ? 'selected' : '' }}>Hors service</option>
-                        <option value="variable" {{ filters.etat == 'variable' ? 'selected' : '' }}>Variable (faces différentes)</option>
+                        <option value="variable" {{ filters.etat == 'variable' ? 'selected' : '' }}>Variable</option>
                     </select>
                 </div>
-                <div class="col-md-2">
-                    <label for="eclairage" class="form-label">Éclairage</label>
-                    <select class="form-select" id="eclairage" name="eclairage">
+
+                <!-- Éclairage -->
+                <div class="filter-group">
+                    <label for="eclairage" class="filter-label">
+                        <i class="bi bi-lightbulb"></i> Éclairage
+                    </label>
+                    <select class="filter-select" id="eclairage" name="eclairage">
                         <option value="">Tous</option>
                         <option value="1" {{ filters.eclairage == '1' ? 'selected' : '' }}>Avec éclairage</option>
                         <option value="0" {{ filters.eclairage == '0' ? 'selected' : '' }}>Sans éclairage</option>
                     </select>
                 </div>
-                <div class="col-md-2">
-                    <label for="statut_actif" class="form-label">Statut</label>
-                    <select class="form-select" id="statut_actif" name="statut_actif">
-                        <option value="">Tous (actifs + archivés)</option>
+
+                <!-- Statut -->
+                <div class="filter-group">
+                    <label for="statut_actif" class="filter-label">
+                        <i class="bi bi-toggle-on"></i> Statut
+                    </label>
+                    <select class="filter-select" id="statut_actif" name="statut_actif">
+                        <option value="">Tous</option>
                         <option value="1" {{ filters.statut_actif == '1' ? 'selected' : '' }}>Actifs uniquement</option>
                         <option value="0" {{ filters.statut_actif == '0' ? 'selected' : '' }}>Archivés uniquement</option>
                     </select>
                 </div>
-                <div class="col-md-2 d-flex align-items-end gap-2">
-                    <a href="{{ path('app_panneau_index') }}" class="btn-secondary-modern">
-                        <i class="bi bi-x-circle"></i> Réinitialiser
-                    </a>
+            </div>
+
+            <div class="filters-actions">
+                <button type="button" class="btn-reset" id="resetFilters">
+                    <i class="bi bi-arrow-counterclockwise"></i> Réinitialiser
+                </button>
+                <div class="filters-info">
+                    <span id="resultsCount">{{ panneaux|length }}</span> résultat(s)
                 </div>
-            </form>
+            </div>
+        </form>
     </div>
 </div>
 
-<div class="table-card">
-            <div class="table-header">
-                <h3 class="table-title">Panneaux</h3>
-            </div>
+<!-- Vue en cartes (mobile-first) -->
+<div class="cards-view d-lg-none">
     {% if panneaux|length > 0 %}
-        <table class="modern-table">
-            <thead>
-                <tr>
-                    <th>Référence</th>
-                    <th>Quartier</th>
-                    <th>Taille</th>
-                    <th>Type</th>
-                    <th>État</th>
-                    <th>Statut</th>
-                    <th>Prix mensuel</th>
-                    <th>Faces</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for panneau in panneaux %}
-                    <tr {% if not panneau.actif %}style="opacity: 0.6;"{% endif %}
-                        data-type="{{ panneau.type }}"
-                        data-etat="{{ panneau.etatGlobal }}"
-                        data-eclairage="{{ panneau.eclairage ? '1' : '0' }}"
-                        data-actif="{{ panneau.actif ? '1' : '0' }}"
-                        data-reference="{{ panneau.reference|lower }}"
-                        data-emplacement="{{ panneau.emplacement|lower }}"
-                        data-quartier="{{ (panneau.quartier ?? '')|lower }}"
-                        data-visibilite="{{ (panneau.visibilite ?? '')|lower }}">
-                        <td>
-                            <strong>{{ panneau.reference }}</strong>
+        <div class="panneaux-cards" id="panneauxCards">
+            {% for panneau in panneaux %}
+                <div class="panneau-card"
+                     data-type="{{ panneau.type }}"
+                     data-etat="{{ panneau.etatGlobal }}"
+                     data-eclairage="{{ panneau.eclairage ? '1' : '0' }}"
+                     data-actif="{{ panneau.actif ? '1' : '0' }}"
+                     data-reference="{{ panneau.reference|lower }}"
+                     data-emplacement="{{ panneau.emplacement|lower }}"
+                     data-quartier="{{ (panneau.quartier ?? '')|lower }}"
+                     data-visibilite="{{ (panneau.visibilite ?? '')|lower }}">
+
+                    <div class="panneau-card-header">
+                        <div class="panneau-card-title">
+                            <h3>{{ panneau.reference }}</h3>
                             {% if not panneau.actif %}
-                                <br><small class="text-danger">(Archivé)</small>
+                                <span class="badge-archived">Archivé</span>
                             {% endif %}
-                        </td>
-                        <td>{{ panneau.quartier ?? '—' }}</td>
-                        <td>{{ panneau.getTailleFormatee() }}</td>
-                        <td>
+                        </div>
+                        <div class="panneau-card-badges">
                             {% if panneau.type == 'double' %}
-                                <span class="table-badge info">Double</span>
+                                <span class="mini-badge info">
+                                    <i class="bi bi-layers"></i> Double
+                                </span>
                             {% else %}
-                                <span class="table-badge warning">Simple</span>
+                                <span class="mini-badge warning">
+                                    <i class="bi bi-square"></i> Simple
+                                </span>
                             {% endif %}
-                        </td>
-                        <td>
-                            {% if panneau.etatGlobal == 'excellent' %}
-                                <span class="table-badge success" title="Excellent (toutes les faces)">Excellent</span>
-                            {% elseif panneau.etatGlobal == 'bon' %}
-                                <span class="table-badge success" title="Bon (toutes les faces)">Bon</span>
-                            {% elseif panneau.etatGlobal == 'moyen' %}
-                                <span class="table-badge warning" title="Moyen">Moyen</span>
-                            {% elseif panneau.etatGlobal == 'mauvais' %}
-                                <span class="table-badge warning" title="Mauvais - confirmation requise pour location">Mauvais</span>
-                            {% elseif panneau.etatGlobal == 'hors_service' %}
-                                <span class="table-badge" style="background: var(--danger-color); color: white;" title="Hors service">Hors service</span>
-                            {% elseif panneau.etatGlobal == 'variable' %}
-                                <span class="table-badge info" title="États différents selon les faces">Variable</span>
+                            {% if panneau.eclairage %}
+                                <span class="mini-badge success">
+                                    <i class="bi bi-lightbulb-fill"></i>
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="panneau-card-body">
+                        <div class="panneau-info-row">
+                            <i class="bi bi-geo-alt"></i>
+                            <span>{{ panneau.quartier ?? panneau.emplacement }}</span>
+                        </div>
+                        <div class="panneau-info-row">
+                            <i class="bi bi-rulers"></i>
+                            <span>{{ panneau.getTailleFormatee() }}</span>
+                        </div>
+                        <div class="panneau-info-row">
+                            <i class="bi bi-cash"></i>
+                            <strong>{{ panneau.prixMensuel|number_format(0, ',', ' ') }} FCFA/mois</strong>
+                        </div>
+                    </div>
+
+                    <div class="panneau-card-faces">
+                        {% for face in panneau.faces %}
+                            {% set locationActive = face.getLocationActive() %}
+                            {% if locationActive %}
+                                <span class="face-badge occupied">
+                                    {{ face.lettre }} <i class="bi bi-lock-fill"></i>
+                                </span>
                             {% else %}
-                                <span class="table-badge info">{{ panneau.etatGlobal ?? '—' }}</span>
+                                <span class="face-badge available">
+                                    {{ face.lettre }} <i class="bi bi-unlock-fill"></i>
+                                </span>
                             {% endif %}
-                        </td>
-                        <td>
-                            {% if panneau.actif %}
-                                <span class="table-badge success" title="Disponible à la location">Actif</span>
-                            {% else %}
-                                <span class="table-badge" style="background: var(--text-gray); color: white;" title="Archivé - non disponible à la location">Archivé</span>
-                            {% endif %}
-                        </td>
-                        <td>{{ panneau.prixMensuel|number_format(0, ',', ' ') }} FCFA</td>
-                        <td>
-                            {% for face in panneau.faces %}
-                                {% set locationActive = face.getLocationActive() %}
-                                {% set locationsFutures = face.getLocationsActivesOuFutures() %}
-                                {% set etatLabel = face.etat == 'excellent' ? 'Excellent' : (face.etat == 'bon' ? 'Bon' : (face.etat == 'moyen' ? 'Moyen' : (face.etat == 'mauvais' ? 'Mauvais' : (face.etat == 'hors_service' ? 'Hors service' : face.etat)))) %}
-                                {% if locationActive %}
-                                    <span class="table-badge warning" title="Occupée jusqu'au {{ locationActive.dateFin|date('d/m/Y') }} - État: {{ etatLabel }}">
-                                        {{ face.lettre }} (Occupée - {{ etatLabel }})
-                                    </span>
-                                {% elseif locationsFutures|length > 0 %}
-                                    <span class="table-badge info" title="Réservée - État: {{ etatLabel }}">
-                                        {{ face.lettre }} (Réservée - {{ etatLabel }})
-                                    </span>
-                                {% else %}
-                                    <span class="table-badge success" title="État: {{ etatLabel }}">
-                                        {{ face.lettre }} (Disponible - {{ etatLabel }})
-                                    </span>
-                                {% endif %}
-                            {% endfor %}
-                        </td>
-                        <td>
-                            <div class="action-menu">
-                                <a href="{{ path('app_panneau_show', {id: panneau.id}) }}" class="action-btn" title="Voir">
-                                    <i class="bi bi-eye"></i>
-                                </a>
-                                <a href="{{ path('app_panneau_edit', {id: panneau.id}) }}" class="action-btn" title="Modifier">
-                                    <i class="bi bi-pencil"></i>
-                                </a>
-                                {% if panneau.actif %}
-                                    <form method="post" action="{{ path('app_panneau_delete', {id: panneau.id}) }}" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir archiver ce panneau ? Il ne sera plus disponible à la location.');">
-                                        <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ panneau.id) }}">
-                                        <button type="submit" class="action-btn" title="Archiver" style="color: var(--danger-color);">
-                                            <i class="bi bi-archive"></i>
-                                        </button>
-                                    </form>
-                                {% else %}
-                                    <form method="post" action="{{ path('app_panneau_restore', {id: panneau.id}) }}" class="d-inline" onsubmit="return confirm('Réactiver ce panneau ? Il sera de nouveau disponible à la location.');">
-                                        <input type="hidden" name="_token" value="{{ csrf_token('restore' ~ panneau.id) }}">
-                                        <button type="submit" class="action-btn" title="Réactiver" style="color: var(--success-color);">
-                                            <i class="bi bi-arrow-counterclockwise"></i>
-                                        </button>
-                                    </form>
-                                {% endif %}
-                            </div>
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                        {% endfor %}
+                    </div>
+
+                    <div class="panneau-card-actions">
+                        <a href="{{ path('app_panneau_show', {id: panneau.id}) }}" class="card-action-btn">
+                            <i class="bi bi-eye"></i> Voir
+                        </a>
+                        <a href="{{ path('app_panneau_edit', {id: panneau.id}) }}" class="card-action-btn">
+                            <i class="bi bi-pencil"></i> Modifier
+                        </a>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
     {% else %}
-        <div style="text-align: center; padding: 2rem; color: var(--text-gray);">
-            <i class="bi bi-info-circle"></i> Aucun panneau enregistré. <a href="{{ path('app_panneau_new') }}">Créer le premier panneau</a>
+        <div class="empty-state-card">
+            <i class="bi bi-inbox"></i>
+            <h3>Aucun panneau</h3>
+            <p>Commencez par créer votre premier panneau publicitaire</p>
+            <a href="{{ path('app_panneau_new') }}" class="btn-primary-modern">
+                <i class="bi bi-plus-lg"></i> Créer un panneau
+            </a>
         </div>
     {% endif %}
 </div>
-{% endblock %}
 
-{% block javascripts %}
+<!-- Vue en tableau (desktop) -->
+<div class="table-view d-none d-lg-block">
+    <div class="table-card-modern">
+        <div class="table-header-modern">
+            <h3 class="table-title">Liste des panneaux</h3>
+            <div class="table-controls">
+                <div class="view-mode">
+                    <button class="view-btn active" data-view="table">
+                        <i class="bi bi-table"></i>
+                    </button>
+                    <button class="view-btn" data-view="grid">
+                        <i class="bi bi-grid-3x3"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        {% if panneaux|length > 0 %}
+            <div class="table-responsive">
+                <table class="modern-table-enhanced" id="panneauxTable">
+                    <thead>
+                        <tr>
+                            <th class="sortable" data-sort="reference">
+                                <div class="th-content">
+                                    Référence
+                                    <i class="bi bi-chevron-expand"></i>
+                                </div>
+                            </th>
+                            <th class="sortable" data-sort="quartier">
+                                <div class="th-content">
+                                    Localisation
+                                    <i class="bi bi-chevron-expand"></i>
+                                </div>
+                            </th>
+                            <th class="sortable" data-sort="taille">
+                                <div class="th-content">
+                                    Taille
+                                    <i class="bi bi-chevron-expand"></i>
+                                </div>
+                            </th>
+                            <th>Type</th>
+                            <th>État</th>
+                            <th>Statut</th>
+                            <th class="sortable" data-sort="prix">
+                                <div class="th-content">
+                                    Prix mensuel
+                                    <i class="bi bi-chevron-expand"></i>
+                                </div>
+                            </th>
+                            <th>Faces</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for panneau in panneaux %}
+                            <tr class="table-row-enhanced {{ not panneau.actif ? 'row-archived' : '' }}"
+                                data-type="{{ panneau.type }}"
+                                data-etat="{{ panneau.etatGlobal }}"
+                                data-eclairage="{{ panneau.eclairage ? '1' : '0' }}"
+                                data-actif="{{ panneau.actif ? '1' : '0' }}"
+                                data-reference="{{ panneau.reference|lower }}"
+                                data-emplacement="{{ panneau.emplacement|lower }}"
+                                data-quartier="{{ (panneau.quartier ?? '')|lower }}"
+                                data-visibilite="{{ (panneau.visibilite ?? '')|lower }}"
+                                data-prix="{{ panneau.prixMensuel }}"
+                                data-taille="{{ panneau.taille }}">
+
+                                <td>
+                                    <div class="cell-reference">
+                                        <div class="reference-icon">
+                                            <i class="bi bi-upc-scan"></i>
+                                        </div>
+                                        <div class="reference-content">
+                                            <strong>{{ panneau.reference }}</strong>
+                                            {% if not panneau.actif %}
+                                                <span class="reference-status">Archivé</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </td>
+
+                                <td>
+                                    <div class="cell-location">
+                                        <i class="bi bi-geo-alt text-primary"></i>
+                                        <div>
+                                            {% if panneau.quartier %}
+                                                <strong>{{ panneau.quartier }}</strong><br>
+                                                <small class="text-muted">{{ panneau.emplacement }}</small>
+                                            {% else %}
+                                                {{ panneau.emplacement }}
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </td>
+
+                                <td>
+                                    <span class="cell-taille">{{ panneau.getTailleFormatee() }}</span>
+                                </td>
+
+                                <td>
+                                    {% if panneau.type == 'double' %}
+                                        <span class="badge-modern info">
+                                            <i class="bi bi-layers-fill"></i> Double
+                                        </span>
+                                    {% else %}
+                                        <span class="badge-modern warning">
+                                            <i class="bi bi-square-fill"></i> Simple
+                                        </span>
+                                    {% endif %}
+                                </td>
+
+                                <td>
+                                    {% set etatG = panneau.etatGlobal %}
+                                    {% if etatG == 'excellent' %}
+                                        <span class="badge-modern excellent" title="Excellent">
+                                            <i class="bi bi-star-fill"></i> Excellent
+                                        </span>
+                                    {% elseif etatG == 'bon' %}
+                                        <span class="badge-modern bon" title="Bon">
+                                            <i class="bi bi-check-circle-fill"></i> Bon
+                                        </span>
+                                    {% elseif etatG == 'moyen' %}
+                                        <span class="badge-modern moyen" title="Moyen">
+                                            <i class="bi bi-dash-circle-fill"></i> Moyen
+                                        </span>
+                                    {% elseif etatG == 'mauvais' %}
+                                        <span class="badge-modern mauvais" title="Mauvais">
+                                            <i class="bi bi-exclamation-circle-fill"></i> Mauvais
+                                        </span>
+                                    {% elseif etatG == 'hors_service' %}
+                                        <span class="badge-modern hors-service" title="Hors service">
+                                            <i class="bi bi-x-circle-fill"></i> Hors service
+                                        </span>
+                                    {% elseif etatG == 'variable' %}
+                                        <span class="badge-modern variable" title="Variable">
+                                            <i class="bi bi-question-circle-fill"></i> Variable
+                                        </span>
+                                    {% endif %}
+                                </td>
+
+                                <td>
+                                    {% if panneau.actif %}
+                                        <span class="badge-modern actif">
+                                            <i class="bi bi-check-circle-fill"></i> Actif
+                                        </span>
+                                    {% else %}
+                                        <span class="badge-modern archive">
+                                            <i class="bi bi-archive-fill"></i> Archivé
+                                        </span>
+                                    {% endif %}
+                                </td>
+
+                                <td>
+                                    <strong class="cell-price">{{ panneau.prixMensuel|number_format(0, ',', ' ') }} FCFA</strong>
+                                </td>
+
+                                <td>
+                                    <div class="faces-chips">
+                                        {% for face in panneau.faces %}
+                                            {% set locationActive = face.getLocationActive() %}
+                                            {% set locationsFutures = face.getLocationsActivesOuFutures() %}
+
+                                            {% if locationActive %}
+                                                <span class="face-chip occupied"
+                                                      title="Face {{ face.lettre }} - Occupée jusqu'au {{ locationActive.dateFin|date('d/m/Y') }}">
+                                                    {{ face.lettre }}
+                                                    <i class="bi bi-lock-fill"></i>
+                                                </span>
+                                            {% elseif locationsFutures|length > 0 %}
+                                                <span class="face-chip reserved"
+                                                      title="Face {{ face.lettre }} - Réservée">
+                                                    {{ face.lettre }}
+                                                    <i class="bi bi-calendar-check"></i>
+                                                </span>
+                                            {% else %}
+                                                <span class="face-chip available"
+                                                      title="Face {{ face.lettre }} - Disponible">
+                                                    {{ face.lettre }}
+                                                    <i class="bi bi-unlock-fill"></i>
+                                                </span>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                </td>
+
+                                <td>
+                                    <div class="action-buttons">
+                                        <a href="{{ path('app_panneau_show', {id: panneau.id}) }}"
+                                           class="action-btn-modern view"
+                                           title="Voir">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a href="{{ path('app_panneau_edit', {id: panneau.id}) }}"
+                                           class="action-btn-modern edit"
+                                           title="Modifier">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        {% if panneau.actif %}
+                                            <form method="post"
+                                                  action="{{ path('app_panneau_delete', {id: panneau.id}) }}"
+                                                  class="d-inline"
+                                                  onsubmit="return confirm('Archiver ce panneau ?');">
+                                                <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ panneau.id) }}">
+                                                <button type="submit" class="action-btn-modern delete" title="Archiver">
+                                                    <i class="bi bi-archive"></i>
+                                                </button>
+                                            </form>
+                                        {% else %}
+                                            <form method="post"
+                                                  action="{{ path('app_panneau_restore', {id: panneau.id}) }}"
+                                                  class="d-inline"
+                                                  onsubmit="return confirm('Réactiver ce panneau ?');">
+                                                <input type="hidden" name="_token" value="{{ csrf_token('restore' ~ panneau.id) }}">
+                                                <button type="submit" class="action-btn-modern restore" title="Réactiver">
+                                                    <i class="bi bi-arrow-counterclockwise"></i>
+                                                </button>
+                                            </form>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="empty-state-table">
+                <i class="bi bi-inbox"></i>
+                <h3>Aucun panneau</h3>
+                <p>Commencez par créer votre premier panneau publicitaire</p>
+                <a href="{{ path('app_panneau_new') }}" class="btn-primary-modern">
+                    <i class="bi bi-plus-lg"></i> Créer un panneau
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+/* ========== En-tête avec statistiques ========== */
+.page-header-with-stats {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.page-header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+}
+
+.page-header-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.stats-bar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+}
+
+.stat-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.25rem;
+    background: var(--bg-light);
+    border-radius: 12px;
+    transition: all 0.3s;
+}
+
+.stat-item:hover {
+    background: #f1f5f9;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.stat-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.stat-icon.primary {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+    color: white;
+}
+
+.stat-icon.success {
+    background: linear-gradient(135deg, #10b981, #34d399);
+    color: white;
+}
+
+.stat-icon.warning {
+    background: linear-gradient(135deg, #f59e0b, #fbbf24);
+    color: white;
+}
+
+.stat-icon.info {
+    background: linear-gradient(135deg, #3b82f6, #60a5fa);
+    color: white;
+}
+
+.stat-content {
+    flex: 1;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    line-height: 1;
+    margin-bottom: 0.25rem;
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    color: var(--text-gray);
+    font-weight: 500;
+}
+
+/* ========== Filtres améliorés ========== */
+.filters-card {
+    background: white;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+}
+
+.filters-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 1.5rem;
+    background: var(--bg-light);
+    cursor: pointer;
+    user-select: none;
+}
+
+.filters-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    font-size: 1rem;
+}
+
+.filters-title i {
+    color: var(--primary-color);
+    font-size: 1.125rem;
+}
+
+.filters-count {
+    background: var(--primary-color);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.filters-toggle {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: white;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.filters-toggle:hover {
+    background: #f1f5f9;
+}
+
+.filters-toggle i {
+    transition: transform 0.3s;
+}
+
+.filters-toggle.collapsed i {
+    transform: rotate(180deg);
+}
+
+.filters-body {
+    padding: 1.5rem;
+    border-top: 1px solid var(--border-color);
+    max-height: 500px;
+    overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s ease;
+}
+
+.filters-body.collapsed {
+    max-height: 0;
+    padding: 0 1.5rem;
+}
+
+.filters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 1.25rem;
+}
+
+.filter-search {
+    grid-column: span 2;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.filter-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.filter-label i {
+    color: var(--primary-color);
+    font-size: 1rem;
+}
+
+.search-input-wrapper {
+    position: relative;
+}
+
+.filter-input {
+    width: 100%;
+    padding: 0.625rem 2.5rem 0.625rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 0.9375rem;
+    transition: all 0.2s;
+}
+
+.filter-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.search-clear {
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: var(--bg-light);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-gray);
+    transition: all 0.2s;
+}
+
+.search-clear:hover {
+    background: #e2e8f0;
+    color: var(--text-dark);
+}
+
+.filter-select {
+    padding: 0.625rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 0.9375rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: white;
+}
+
+.filter-select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.filters-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.btn-reset {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: var(--bg-light);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-dark);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-reset:hover {
+    background: #f1f5f9;
+    border-color: var(--text-gray);
+}
+
+.filters-info {
+    font-size: 0.875rem;
+    color: var(--text-gray);
+    font-weight: 500;
+}
+
+.filters-info span {
+    color: var(--primary-color);
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+/* ========== Vue en cartes (mobile) ========== */
+.panneaux-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.panneau-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.25rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s;
+}
+
+.panneau-card:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    transform: translateY(-2px);
+}
+
+.panneau-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+    gap: 1rem;
+}
+
+.panneau-card-title {
+    flex: 1;
+}
+
+.panneau-card-title h3 {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin-bottom: 0.25rem;
+}
+
+.badge-archived {
+    display: inline-block;
+    padding: 0.25rem 0.625rem;
+    background: rgba(239, 68, 68, 0.1);
+    color: #b91c1c;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.panneau-card-badges {
+    display: flex;
+    gap: 0.375rem;
+    flex-wrap: wrap;
+}
+
+.mini-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.mini-badge.info {
+    background: rgba(59, 130, 246, 0.1);
+    color: #1e40af;
+}
+
+.mini-badge.warning {
+    background: rgba(245, 158, 11, 0.1);
+    color: #b45309;
+}
+
+.mini-badge.success {
+    background: rgba(16, 185, 129, 0.1);
+    color: #047857;
+}
+
+.panneau-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+    margin-bottom: 1rem;
+}
+
+.panneau-info-row {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    font-size: 0.9375rem;
+    color: var(--text-dark);
+}
+
+.panneau-info-row i {
+    color: var(--text-gray);
+    font-size: 1rem;
+}
+
+.panneau-card-faces {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.75rem 0;
+    border-top: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 1rem;
+}
+
+.face-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.face-badge.available {
+    background: rgba(16, 185, 129, 0.1);
+    color: #047857;
+}
+
+.face-badge.occupied {
+    background: rgba(239, 68, 68, 0.1);
+    color: #b91c1c;
+}
+
+.panneau-card-actions {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.card-action-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1rem;
+    background: var(--bg-light);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-dark);
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.card-action-btn:hover {
+    background: white;
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+/* ========== Tableau amélioré (desktop) ========== */
+.table-card-modern {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+}
+
+.table-header-modern {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    background: var(--bg-light);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.table-controls {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.view-mode {
+    display: flex;
+    gap: 0.25rem;
+    background: white;
+    border-radius: 8px;
+    padding: 0.25rem;
+    border: 1px solid var(--border-color);
+}
+
+.view-btn {
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-gray);
+    transition: all 0.2s;
+}
+
+.view-btn:hover {
+    background: var(--bg-light);
+}
+
+.view-btn.active {
+    background: var(--primary-color);
+    color: white;
+}
+
+.modern-table-enhanced {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.modern-table-enhanced thead {
+    background: var(--bg-light);
+}
+
+.modern-table-enhanced th {
+    padding: 1rem 1.25rem;
+    text-align: left;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-gray);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.modern-table-enhanced th.sortable {
+    cursor: pointer;
+    user-select: none;
+}
+
+.th-content {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.th-content i {
+    font-size: 0.75rem;
+    opacity: 0.5;
+    transition: opacity 0.2s;
+}
+
+.sortable:hover .th-content i {
+    opacity: 1;
+}
+
+.modern-table-enhanced tbody tr {
+    border-bottom: 1px solid var(--border-color);
+    transition: all 0.2s;
+}
+
+.modern-table-enhanced tbody tr:hover {
+    background: var(--bg-light);
+}
+
+.modern-table-enhanced tbody tr.row-archived {
+    opacity: 0.6;
+}
+
+.modern-table-enhanced td {
+    padding: 1rem 1.25rem;
+    font-size: 0.9375rem;
+    vertical-align: middle;
+}
+
+/* Cellules personnalisées */
+.cell-reference {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.reference-icon {
+    width: 40px;
+    height: 40px;
+    background: var(--bg-light);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary-color);
+    flex-shrink: 0;
+}
+
+.reference-content strong {
+    display: block;
+    color: var(--text-dark);
+    font-weight: 600;
+}
+
+.reference-status {
+    display: block;
+    font-size: 0.75rem;
+    color: #b91c1c;
+    font-weight: 500;
+}
+
+.cell-location {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+.cell-location i {
+    margin-top: 0.15rem;
+}
+
+.cell-taille {
+    font-weight: 600;
+    color: var(--text-dark);
+}
+
+.cell-price {
+    color: var(--success-color);
+    font-weight: 600;
+}
+
+/* Badges modernisés */
+.badge-modern {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.badge-modern.info {
+    background: rgba(59, 130, 246, 0.1);
+    color: #1e40af;
+}
+
+.badge-modern.warning {
+    background: rgba(245, 158, 11, 0.1);
+    color: #b45309;
+}
+
+.badge-modern.excellent,
+.badge-modern.bon {
+    background: rgba(16, 185, 129, 0.1);
+    color: #047857;
+}
+
+.badge-modern.moyen {
+    background: rgba(245, 158, 11, 0.1);
+    color: #b45309;
+}
+
+.badge-modern.mauvais {
+    background: rgba(239, 68, 68, 0.1);
+    color: #b91c1c;
+}
+
+.badge-modern.hors-service {
+    background: rgba(220, 38, 38, 0.15);
+    color: #991b1b;
+}
+
+.badge-modern.variable {
+    background: rgba(59, 130, 246, 0.1);
+    color: #1e40af;
+}
+
+.badge-modern.actif {
+    background: rgba(16, 185, 129, 0.1);
+    color: #047857;
+}
+
+.badge-modern.archive {
+    background: rgba(100, 116, 139, 0.1);
+    color: #475569;
+}
+
+/* Chips de faces */
+.faces-chips {
+    display: flex;
+    gap: 0.375rem;
+    flex-wrap: wrap;
+}
+
+.face-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.face-chip.available {
+    background: rgba(16, 185, 129, 0.1);
+    color: #047857;
+}
+
+.face-chip.occupied {
+    background: rgba(239, 68, 68, 0.1);
+    color: #b91c1c;
+}
+
+.face-chip.reserved {
+    background: rgba(59, 130, 246, 0.1);
+    color: #1e40af;
+}
+
+/* Boutons d'action */
+.action-buttons {
+    display: flex;
+    gap: 0.375rem;
+    justify-content: flex-end;
+}
+
+.action-btn-modern {
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--border-color);
+    background: white;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    color: var(--text-gray);
+}
+
+.action-btn-modern:hover {
+    border-color: var(--primary-color);
+    background: var(--bg-light);
+    color: var(--primary-color);
+}
+
+.action-btn-modern.delete:hover {
+    border-color: var(--danger-color);
+    background: rgba(239, 68, 68, 0.05);
+    color: var(--danger-color);
+}
+
+.action-btn-modern.restore:hover {
+    border-color: var(--success-color);
+    background: rgba(16, 185, 129, 0.05);
+    color: var(--success-color);
+}
+
+/* ========== États vides ========== */
+.empty-state-card,
+.empty-state-table {
+    padding: 4rem 2rem;
+    text-align: center;
+    color: var(--text-gray);
+}
+
+.empty-state-card i,
+.empty-state-table i {
+    font-size: 4rem;
+    opacity: 0.3;
+    margin-bottom: 1rem;
+}
+
+.empty-state-card h3,
+.empty-state-table h3 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin-bottom: 0.5rem;
+}
+
+.empty-state-card p,
+.empty-state-table p {
+    margin-bottom: 1.5rem;
+}
+
+/* ========== Responsive ========== */
+@media (max-width: 992px) {
+    .page-header-with-stats {
+        padding: 1.5rem;
+    }
+
+    .stats-bar {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
+
+    .stat-item {
+        padding: 1rem;
+    }
+
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        font-size: 1.25rem;
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .page-header-content {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .page-header-actions {
+        width: 100%;
+    }
+
+    .page-header-actions .btn-primary-modern,
+    .page-header-actions .btn-secondary-modern {
+        flex: 1;
+    }
+
+    .stats-bar {
+        grid-template-columns: 1fr;
+    }
+
+    .filters-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .filter-search {
+        grid-column: span 1;
+    }
+
+    .filters-actions {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .btn-reset,
+    .filters-info {
+        width: 100%;
+        text-align: center;
+    }
+}
+</style>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Gestion du toggle des filtres
+    const filtersToggle = document.getElementById('filtersToggle');
+    const filtersBody = document.getElementById('filtersBody');
+
+    if (filtersToggle && filtersBody) {
+        filtersToggle.addEventListener('click', function() {
+            filtersBody.classList.toggle('collapsed');
+            filtersToggle.classList.toggle('collapsed');
+        });
+    }
+
+    // Éléments du formulaire
     const rechercheInput = document.getElementById('recherche');
     const typeSelect = document.getElementById('type');
     const etatSelect = document.getElementById('etat');
     const eclairageSelect = document.getElementById('eclairage');
     const statutActifSelect = document.getElementById('statut_actif');
-    const tableRows = document.querySelectorAll('tbody tr');
+    const resetBtn = document.getElementById('resetFilters');
+    const clearSearchBtn = document.getElementById('clearSearch');
+    const resultsCount = document.getElementById('resultsCount');
+    const activeFiltersCount = document.getElementById('activeFiltersCount');
+
+    // Toutes les lignes/cartes
+    const tableRows = document.querySelectorAll('#panneauxTable tbody tr');
+    const cards = document.querySelectorAll('.panneau-card');
 
     let searchTimeout;
 
-    // Fonction pour filtrer les lignes sans recharger la page
-    function filterRows() {
+    // Fonction pour compter les filtres actifs
+    function updateActiveFiltersCount() {
+        let count = 0;
+        if (rechercheInput && rechercheInput.value) count++;
+        if (typeSelect && typeSelect.value) count++;
+        if (etatSelect && etatSelect.value) count++;
+        if (eclairageSelect && eclairageSelect.value) count++;
+        if (statutActifSelect && statutActifSelect.value) count++;
+
+        if (count > 0) {
+            activeFiltersCount.textContent = count;
+            activeFiltersCount.style.display = 'inline-block';
+        } else {
+            activeFiltersCount.style.display = 'none';
+        }
+    }
+
+    // Fonction de filtrage
+    function filterElements() {
         const recherche = (rechercheInput?.value || '').toLowerCase();
         const type = typeSelect?.value || '';
         const etat = etatSelect?.value || '';
@@ -222,29 +1431,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         let visibleCount = 0;
 
+        // Filtrer les lignes du tableau
         tableRows.forEach(row => {
-            const rowType = row.dataset.type || '';
-            const rowEtat = row.dataset.etat || '';
-            const rowEclairage = row.dataset.eclairage || '';
-            const rowActif = row.dataset.actif || '';
-            const rowReference = row.dataset.reference || '';
-            const rowEmplacement = row.dataset.emplacement || '';
-            const rowQuartier = row.dataset.quartier || '';
-            const rowVisibilite = row.dataset.visibilite || '';
-
-            // Vérifier les filtres
-            const typeMatch = !type || rowType === type;
-            const etatMatch = !etat || rowEtat === etat;
-            const eclairageMatch = !eclairage || rowEclairage === eclairage;
-            const statutActifMatch = !statutActif || rowActif === statutActif;
-            const rechercheMatch = !recherche ||
-                rowReference.includes(recherche) ||
-                rowEmplacement.includes(recherche) ||
-                rowQuartier.includes(recherche) ||
-                rowVisibilite.includes(recherche);
-
-            // Afficher ou cacher la ligne
-            if (typeMatch && etatMatch && eclairageMatch && statutActifMatch && rechercheMatch) {
+            if (matchesFilters(row, { recherche, type, etat, eclairage, statutActif })) {
                 row.style.display = '';
                 visibleCount++;
             } else {
@@ -252,43 +1441,167 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        // Afficher un message si aucun résultat
-        const tbody = document.querySelector('tbody');
-        let noResultsMsg = document.getElementById('no-results-message');
-        if (visibleCount === 0 && tableRows.length > 0) {
-            if (!noResultsMsg) {
-                noResultsMsg = document.createElement('tr');
-                noResultsMsg.id = 'no-results-message';
-                noResultsMsg.innerHTML = '<td colspan="9" class="text-center py-4"><em>Aucun résultat trouvé</em></td>';
-                tbody.appendChild(noResultsMsg);
+        // Filtrer les cartes
+        cards.forEach(card => {
+            if (matchesFilters(card, { recherche, type, etat, eclairage, statutActif })) {
+                card.style.display = '';
+            } else {
+                card.style.display = 'none';
             }
-            noResultsMsg.style.display = '';
-        } else if (noResultsMsg) {
-            noResultsMsg.style.display = 'none';
+        });
+
+        // Mettre à jour le compteur
+        if (resultsCount) {
+            resultsCount.textContent = visibleCount || cards.length;
         }
+
+        // Afficher/masquer le bouton clear
+        if (clearSearchBtn) {
+            clearSearchBtn.style.display = recherche ? 'flex' : 'none';
+        }
+
+        // Mettre à jour le compteur de filtres actifs
+        updateActiveFiltersCount();
     }
 
-    // Écouter les changements dans les selects (filtrage immédiat)
-    if (typeSelect) {
-        typeSelect.addEventListener('change', filterRows);
-    }
-    if (etatSelect) {
-        etatSelect.addEventListener('change', filterRows);
-    }
-    if (eclairageSelect) {
-        eclairageSelect.addEventListener('change', filterRows);
-    }
-    if (statutActifSelect) {
-        statutActifSelect.addEventListener('change', filterRows);
+    // Vérifier si un élément correspond aux filtres
+    function matchesFilters(element, filters) {
+        const { recherche, type, etat, eclairage, statutActif } = filters;
+
+        const elType = element.dataset.type || '';
+        const elEtat = element.dataset.etat || '';
+        const elEclairage = element.dataset.eclairage || '';
+        const elActif = element.dataset.actif || '';
+        const elReference = element.dataset.reference || '';
+        const elEmplacement = element.dataset.emplacement || '';
+        const elQuartier = element.dataset.quartier || '';
+        const elVisibilite = element.dataset.visibilite || '';
+
+        const typeMatch = !type || elType === type;
+        const etatMatch = !etat || elEtat === etat;
+        const eclairageMatch = !eclairage || elEclairage === eclairage;
+        const statutMatch = !statutActif || elActif === statutActif;
+        const rechercheMatch = !recherche ||
+            elReference.includes(recherche) ||
+            elEmplacement.includes(recherche) ||
+            elQuartier.includes(recherche) ||
+            elVisibilite.includes(recherche);
+
+        return typeMatch && etatMatch && eclairageMatch && statutMatch && rechercheMatch;
     }
 
-    // Écouter les changements dans le champ de recherche avec debounce (300ms)
+    // Écouter les changements
+    if (typeSelect) typeSelect.addEventListener('change', filterElements);
+    if (etatSelect) etatSelect.addEventListener('change', filterElements);
+    if (eclairageSelect) eclairageSelect.addEventListener('change', filterElements);
+    if (statutActifSelect) statutActifSelect.addEventListener('change', filterElements);
+
     if (rechercheInput) {
         rechercheInput.addEventListener('input', function() {
             clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(filterRows, 300);
+            searchTimeout = setTimeout(filterElements, 300);
         });
     }
+
+    // Bouton clear search
+    if (clearSearchBtn) {
+        clearSearchBtn.addEventListener('click', function() {
+            if (rechercheInput) {
+                rechercheInput.value = '';
+                filterElements();
+            }
+        });
+    }
+
+    // Bouton reset
+    if (resetBtn) {
+        resetBtn.addEventListener('click', function() {
+            if (rechercheInput) rechercheInput.value = '';
+            if (typeSelect) typeSelect.value = '';
+            if (etatSelect) etatSelect.value = '';
+            if (eclairageSelect) eclairageSelect.value = '';
+            if (statutActifSelect) statutActifSelect.value = '';
+            filterElements();
+        });
+    }
+
+    // Tri du tableau
+    const sortButtons = document.querySelectorAll('.sortable');
+    let currentSort = { column: null, direction: 'asc' };
+
+    sortButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const column = this.dataset.sort;
+
+            if (currentSort.column === column) {
+                currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSort.column = column;
+                currentSort.direction = 'asc';
+            }
+
+            sortTable(column, currentSort.direction);
+            updateSortIndicators(this, currentSort.direction);
+        });
+    });
+
+    function sortTable(column, direction) {
+        const tbody = document.querySelector('#panneauxTable tbody');
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+
+        rows.sort((a, b) => {
+            let aVal, bVal;
+
+            switch(column) {
+                case 'reference':
+                    aVal = a.dataset.reference;
+                    bVal = b.dataset.reference;
+                    break;
+                case 'quartier':
+                    aVal = a.dataset.quartier;
+                    bVal = b.dataset.quartier;
+                    break;
+                case 'taille':
+                    aVal = parseFloat(a.dataset.taille) || 0;
+                    bVal = parseFloat(b.dataset.taille) || 0;
+                    break;
+                case 'prix':
+                    aVal = parseFloat(a.dataset.prix) || 0;
+                    bVal = parseFloat(b.dataset.prix) || 0;
+                    break;
+                default:
+                    return 0;
+            }
+
+            if (typeof aVal === 'string') {
+                return direction === 'asc' ?
+                    aVal.localeCompare(bVal) :
+                    bVal.localeCompare(aVal);
+            } else {
+                return direction === 'asc' ? aVal - bVal : bVal - aVal;
+            }
+        });
+
+        rows.forEach(row => tbody.appendChild(row));
+    }
+
+    function updateSortIndicators(activeButton, direction) {
+        sortButtons.forEach(btn => {
+            const icon = btn.querySelector('i');
+            if (icon) {
+                icon.className = 'bi bi-chevron-expand';
+            }
+        });
+
+        const icon = activeButton.querySelector('i');
+        if (icon) {
+            icon.className = direction === 'asc' ? 'bi bi-chevron-up' : 'bi bi-chevron-down';
+        }
+    }
+
+    // Initialiser
+    updateActiveFiltersCount();
+    filterElements();
 });
 </script>
 {% endblock %}

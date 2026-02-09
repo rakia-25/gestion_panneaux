@@ -45,7 +45,7 @@ class ClientController extends AbstractController
             $entityManager->flush();
 
             $this->addFlash('success', 'Client créé avec succès.');
-            return $this->redirectToRoute('app_client_index', [], Response::HTTP_SEE_OTHER);
+            return $this->redirectToRoute('app_client_show', ['id' => $client->getId()], Response::HTTP_SEE_OTHER);
         }
 
         return $this->render('client/new.html.twig', [
@@ -72,7 +72,7 @@ class ClientController extends AbstractController
             $entityManager->flush();
 
             $this->addFlash('success', 'Client modifié avec succès.');
-            return $this->redirectToRoute('app_client_index', [], Response::HTTP_SEE_OTHER);
+            return $this->redirectToRoute('app_client_show', ['id' => $client->getId()], Response::HTTP_SEE_OTHER);
         }
 
         return $this->render('client/edit.html.twig', [

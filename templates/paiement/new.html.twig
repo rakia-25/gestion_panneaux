@@ -2,147 +2,56 @@
 
 {% block title %}Nouveau paiement{% endblock %}
 
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" class="breadcrumb-nav mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Tableau de bord</a></li>
+            <li class="breadcrumb-item"><a href="{{ path('app_paiement_index') }}">Paiements</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Nouveau paiement</li>
+        </ol>
+    </nav>
+{% endblock %}
+
 {% block body %}
-<div class="page-header">
-    <h1 class="page-title">Nouveau paiement</h1>
-    <p class="page-description">Enregistrez un nouveau paiement</p>
+<div class="page-header d-flex flex-wrap justify-content-between align-items-start gap-2">
+    <div>
+        <h1 class="page-title">Nouveau paiement</h1>
+        <p class="page-description">Enregistrez un nouveau paiement pour une location</p>
+    </div>
+    {% if location_id %}
+        <a href="{{ path('app_location_show', { id: location_id }) }}" class="btn-secondary-modern">
+            <i class="bi bi-arrow-left"></i> Retour à la location
+        </a>
+    {% else %}
+        <a href="{{ path('app_paiement_index') }}" class="btn-secondary-modern">
+            <i class="bi bi-arrow-left"></i> Retour
+        </a>
+    {% endif %}
 </div>
 
-<div class="row">
-    <div class="col-md-8 offset-md-2">
-        <div class="section-card">
-            <div class="section-header">
-                <h3 class="section-title"><i class="bi bi-plus-circle"></i> Informations du paiement</h3>
-            </div>
-            <div>
-                {% if location_obj %}
-                    {% if location_obj.isAnnulee %}
-                        <div class="alert alert-danger mb-3">
-                            <i class="bi bi-x-circle"></i> <strong>Location annulée :</strong>
-                            Cette location a été annulée. Vous ne pouvez pas créer de paiement pour une location annulée.
-                            {% if location_obj.dateAnnulation %}
-                                <br>
-                                <small>Annulée le {{ location_obj.dateAnnulation|date('d/m/Y') }}
-                                {% if location_obj.raisonAnnulation %}
-                                    - Raison: {{ location_obj.raisonAnnulation }}
-                                {% endif %}
-                                </small>
-                            {% endif %}
-                        </div>
-                    {% elseif location_obj.isCompletementPaye %}
-                        <div class="alert alert-warning mb-3">
-                            <i class="bi bi-exclamation-triangle"></i> <strong>Attention :</strong>
-                            Cette location est déjà entièrement payée. Vous ne pouvez pas créer un nouveau paiement.
-                            <br>
-                            <small>Montant total: {{ location_obj.montantTotal|number_format(0, ',', ' ') }} FCFA |
-                            Déjà payé: {{ location_obj.montantTotalPaye|number_format(0, ',', ' ') }} FCFA</small>
-                        </div>
-                    {% else %}
-                        <div class="alert alert-info mb-3">
-                            <i class="bi bi-info-circle"></i> <strong>Location pré-sélectionnée :</strong>
-                            {{ location_obj.face.nomComplet }} - {{ location_obj.client.nom }}
-                            <br>
-                            <small>Montant total: {{ location_obj.montantTotal|number_format(0, ',', ' ') }} FCFA |
-                            Déjà payé: {{ location_obj.montantTotalPaye|number_format(0, ',', ' ') }} FCFA |
-                            Restant: <strong>{{ location_obj.montantRestant|number_format(0, ',', ' ') }} FCFA</strong></small>
-                        </div>
-                    {% endif %}
-                {% endif %}
-
-                {{ form_start(form) }}
-                    {{ form_row(form.location) }}
-                    {% if location_obj and not location_obj.isAnnulee and not location_obj.isCompletementPaye %}
-                        {% set montantRestant = location_obj.montantRestant|number_format(0, '', '') %}
-                        <div class="mb-3">
-                            {{ form_label(form.montant) }}
-                            {{ form_widget(form.montant, {'attr': {'max': montantRestant, 'data-montant-restant': montantRestant}}) }}
-                            {{ form_help(form.montant) }}
-                            {{ form_errors(form.montant) }}
-                            <div class="form-text text-info">
-                                <i class="bi bi-info-circle"></i> Montant maximum autorisé: <strong>{{ location_obj.montantRestant|number_format(0, ',', ' ') }} FCFA</strong>
-                            </div>
-                        </div>
-                    {% else %}
-                        {{ form_row(form.montant) }}
-                    {% endif %}
-                    <div class="row">
-                        <div class="col-md-6">
-                            {{ form_row(form.datePaiement) }}
-                        </div>
-                        <div class="col-md-6">
-                            {{ form_row(form.type) }}
-                        </div>
-                    </div>
-                    {{ form_row(form.notes) }}
-
-                    <div style="display: flex; justify-content: space-between; margin-top: 2rem;">
-                        {% if location_id and location_obj %}
-                            <a href="{{ path('app_location_show', {id: location_obj.id}) }}" class="btn-secondary-modern">
-                                <i class="bi bi-arrow-left"></i> Retour à la location
-                            </a>
-                        {% else %}
-                            <a href="{{ path('app_paiement_index') }}" class="btn-secondary-modern">
-                                <i class="bi bi-arrow-left"></i> Retour
-                            </a>
-                        {% endif %}
-            {% if location_obj and (location_obj.isAnnulee or location_obj.isCompletementPaye) %}
-                <button type="button" class="btn-primary-modern" disabled>
-                    <i class="bi bi-x-circle"></i> 
-                    {% if location_obj.isAnnulee %}
-                        Location annulée
-                    {% else %}
-                        Location déjà payée
-                    {% endif %}
-                </button>
-            {% else %}
-                <button type="submit" class="btn-primary-modern">
-                    <i class="bi bi-check"></i> Enregistrer
-                </button>
-            {% endif %}
-                    </div>
-                    {{ form_rest(form) }}
-                {{ form_end(form) }}
+<div class="row g-3 g-lg-4">
+    <div class="col-lg-8">
+        <div class="section-card payment-form-card">
+            <div class="form-card-inner">
+                {% include 'paiement/_alerts.html.twig' %}
+                {% set cancel_path = (location_id and location_obj) ? path('app_location_show', { id: location_obj.id }) : path('app_paiement_index') %}
+                {% set submit_disabled = location_obj and (location_obj.isAnnulee or location_obj.isCompletementPaye) %}
+                {% set submit_disabled_message = location_obj and location_obj.isAnnulee ? 'Location annulée' : (location_obj and location_obj.isCompletementPaye ? 'Location déjà payée' : 'Enregistrement désactivé') %}
+                {% include 'paiement/_form.html.twig' with {
+                    form: form,
+                    cancel_path: cancel_path,
+                    submit_label: 'Enregistrer le paiement',
+                    cancel_label: 'Annuler',
+                    location_obj: location_obj|default(null),
+                    submit_disabled: submit_disabled,
+                    submit_disabled_message: submit_disabled_message,
+                    form_aria_label: 'Formulaire nouveau paiement'
+                } %}
             </div>
         </div>
     </div>
+    {% include 'paiement/_sidebar.html.twig' with { location_obj: location_obj|default(null) } %}
 </div>
-{% endblock %}
 
-            {% block javascripts %}
-            {% if location_obj and not location_obj.isAnnulee and not location_obj.isCompletementPaye %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const montantInput = document.getElementById('paiement_montant');
-    const montantRestant = parseFloat('{{ location_obj.montantRestant|number_format(2, '.', '') }}');
-    const form = montantInput ? montantInput.closest('form') : null;
-    
-    if (montantInput && form) {
-        // Validation en temps réel
-        montantInput.addEventListener('input', function() {
-            const montantSaisi = parseFloat(this.value) || 0;
-            
-            if (montantSaisi > montantRestant) {
-                this.setCustomValidity('Le montant ne peut pas dépasser ' + montantRestant.toLocaleString('fr-FR') + ' FCFA');
-                this.classList.add('is-invalid');
-            } else {
-                this.setCustomValidity('');
-                this.classList.remove('is-invalid');
-            }
-        });
-        
-        // Validation avant soumission
-        form.addEventListener('submit', function(e) {
-            const montantSaisi = parseFloat(montantInput.value) || 0;
-            
-            if (montantSaisi > montantRestant) {
-                e.preventDefault();
-                alert('Le montant du paiement (' + montantSaisi.toLocaleString('fr-FR') + ' FCFA) ne peut pas dépasser le montant restant à payer (' + montantRestant.toLocaleString('fr-FR') + ' FCFA).');
-                montantInput.focus();
-                return false;
-            }
-        });
-    }
-});
-</script>
-{% endif %}
+{% include 'paiement/_form_amount_script.html.twig' with { location_obj: location_obj|default(null) } %}
 {% endblock %}

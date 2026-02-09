@@ -7,6 +7,7 @@ use App\Entity\Paiement;
 use App\Form\PaiementType;
 use App\Repository\LocationRepository;
 use App\Repository\PaiementRepository;
+use App\Service\NotificationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -27,10 +28,10 @@ class PaiementController extends AbstractController
     }
 
     #[Route('/new', name: 'app_paiement_new', methods: ['GET', 'POST'])]
-    public function new(Request $request, EntityManagerInterface $entityManager, LocationRepository $locationRepository): Response
+    public function new(Request $request, EntityManagerInterface $entityManager, LocationRepository $locationRepository, NotificationService $notificationService): Response
     {
         $paiement = new Paiement();
-        
+
         // Si une location_id est passée en paramètre, pré-sélectionner la location
         $locationId = $request->query->get('location_id');
         $location = null;
@@ -50,15 +51,15 @@ class PaiementController extends AbstractController
                 $paiement->setLocation($location);
             }
         }
-        
+
         $form = $this->createForm(PaiementType::class, $paiement, [
             'location' => $locationId ? $locationRepository->find($locationId) : null,
         ]);
         // Sauvegarder la location originale avant handleRequest
         $originalLocation = $paiement->getLocation();
-        
+
         $form->handleRequest($request);
-        
+
         // Restaurer la location si elle est présélectionnée et désactivée
         if ($form->isSubmitted() && $locationId && $location) {
             if (!$paiement->getLocation()) {
@@ -93,18 +94,16 @@ class PaiementController extends AbstractController
                     return $this->render('paiement/new.html.twig', $this->getNewPaiementContext($paiement, $form, $locationId, $locationRepository));
                 }
             }
-            
+
             $entityManager->persist($paiement);
             $entityManager->flush();
 
-            $this->addFlash('success', 'Paiement enregistré avec succès.');
-            
-            // Rediriger vers la page de la location si on vient de là
-            if ($locationId) {
-                return $this->redirectToRoute('app_location_show', ['id' => $locationId], Response::HTTP_SEE_OTHER);
+            if ($paiement->getStatut() === 'valide') {
+                $notificationService->notifyPaiementRecu($paiement);
             }
-            
-            return $this->redirectToRoute('app_paiement_index', [], Response::HTTP_SEE_OTHER);
+
+            $this->addFlash('success', 'Paiement enregistré avec succès.');
+            return $this->redirectToRoute('app_paiement_show', ['id' => $paiement->getId()], Response::HTTP_SEE_OTHER);
         }
 
         return $this->render('paiement/new.html.twig', $this->getNewPaiementContext($paiement, $form, $locationId, $locationRepository));
@@ -123,13 +122,13 @@ class PaiementController extends AbstractController
     {
         // Sauvegarder l'ancien montant avant modification
         $ancienMontant = floatval($paiement->getMontant());
-        
+
         // En édition, la location est toujours présélectionnée (désactivée)
         $form = $this->createForm(PaiementType::class, $paiement, [
             'location' => $paiement->getLocation(),
         ]);
         $form->handleRequest($request);
-        
+
         // Restaurer la location si elle est désactivée
         if ($form->isSubmitted() && !$paiement->getLocation() && $paiement->getLocation()) {
             $paiement->setLocation($paiement->getLocation());
@@ -145,7 +144,7 @@ class PaiementController extends AbstractController
                 $montantTotal = floatval($locationPaiement->getMontantTotal());
                 $montantRestant = $montantTotal - $montantTotalPayeSansActuel;
                 $nouveauMontant = floatval($paiement->getMontant());
-                
+
                 if ($nouveauMontant > $montantRestant) {
                     $this->addFlash('error', sprintf(
                         'Le montant du paiement (%.0f FCFA) ne peut pas dépasser le montant restant à payer (%.0f FCFA).',
@@ -158,15 +157,15 @@ class PaiementController extends AbstractController
                     ]);
                 }
             }
-            
+
             $entityManager->flush();
 
             $this->addFlash('success', 'Paiement modifié avec succès.');
-            
+
             if ($paiement->getLocation()) {
                 return $this->redirectToRoute('app_location_show', ['id' => $paiement->getLocation()->getId()], Response::HTTP_SEE_OTHER);
             }
-            
+
             return $this->redirectToRoute('app_paiement_index', [], Response::HTTP_SEE_OTHER);
         }
 
@@ -180,7 +179,7 @@ class PaiementController extends AbstractController
     public function delete(Request $request, Paiement $paiement, EntityManagerInterface $entityManager): Response
     {
         $locationId = $paiement->getLocation()?->getId();
-        
+
         if ($this->isCsrfTokenValid('delete'.$paiement->getId(), $request->request->get('_token'))) {
             $entityManager->remove($paiement);
             $entityManager->flush();
@@ -201,26 +200,18 @@ class PaiementController extends AbstractController
 
         if ($paiement->isAnnule()) {
             $this->addFlash('warning', 'Ce paiement est déjà annulé.');
-            if ($locationId) {
-                return $this->redirectToRoute('app_location_show', ['id' => $locationId], Response::HTTP_SEE_OTHER);
-            }
-            return $this->redirectToRoute('app_paiement_index', [], Response::HTTP_SEE_OTHER);
+            return $this->redirectToRoute('app_paiement_show', ['id' => $paiement->getId()], Response::HTTP_SEE_OTHER);
         }
 
         if ($request->isMethod('POST')) {
             $raison = $request->request->get('raison');
-            
+
             if ($this->isCsrfTokenValid('annuler'.$paiement->getId(), $request->request->get('_token'))) {
                 $paiement->annuler($raison);
                 $entityManager->flush();
 
                 $this->addFlash('success', 'Paiement annulé avec succès. Le montant restant de la location a été recalculé.');
-                
-                if ($locationId) {
-                    return $this->redirectToRoute('app_location_show', ['id' => $locationId], Response::HTTP_SEE_OTHER);
-                }
-                
-                return $this->redirectToRoute('app_paiement_index', [], Response::HTTP_SEE_OTHER);
+                return $this->redirectToRoute('app_paiement_show', ['id' => $paiement->getId()], Response::HTTP_SEE_OTHER);
             }
         }
 

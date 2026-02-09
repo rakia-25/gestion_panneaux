@@ -1,15 +1,59 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Détails du paiement{% endblock %}
+{% block title %}Paiement #{{ paiement.id }}{% endblock %}
+
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" class="breadcrumb-nav mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Tableau de bord</a></li>
+            <li class="breadcrumb-item"><a href="{{ path('app_paiement_index') }}">Paiements</a></li>
+            {% if paiement.location %}
+                <li class="breadcrumb-item"><a href="{{ path('app_location_show', { id: paiement.location.id }) }}">LOC-{{ "%03d"|format(paiement.location.id) }}</a></li>
+            {% endif %}
+            <li class="breadcrumb-item active" aria-current="page">Paiement #{{ paiement.id }}</li>
+        </ol>
+    </nav>
+{% endblock %}
 
 {% block body %}
-<div class="page-header">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-        <div>
-            <h1 class="page-title">Détails du paiement</h1>
-            <p class="page-description">Informations complètes du paiement</p>
+<!-- En-tête paiement -->
+<div class="payment-header-card">
+    <div class="payment-header-content">
+        <div class="payment-header-left">
+            <div class="payment-icon-hero {{ paiement.isAnnule ? 'cancelled' : '' }}">
+                {% if paiement.isAnnule %}
+                    <i class="bi bi-x-circle"></i>
+                {% else %}
+                    <i class="bi bi-check-circle"></i>
+                {% endif %}
+            </div>
+            <div class="payment-header-info">
+                <div class="payment-header-badge">
+                    {% if paiement.isAnnule %}
+                        <span class="status-badge-hero cancelled">
+                            <i class="bi bi-x-circle-fill"></i> Annulé
+                        </span>
+                    {% else %}
+                        <span class="status-badge-hero validated">
+                            <i class="bi bi-check-circle-fill"></i> Validé
+                        </span>
+                    {% endif %}
+                </div>
+                <h1 class="payment-title-hero">Paiement #{{ paiement.id }}</h1>
+                <div class="payment-meta">
+                    <span class="meta-item">
+                        <i class="bi bi-calendar-event"></i> {{ paiement.datePaiement|date('d/m/Y') }}
+                    </span>
+                    <span class="meta-item">
+                        <i class="bi bi-tag"></i> {{ paiement.typeLibelle }}
+                    </span>
+                    <span class="meta-item">
+                        <i class="bi bi-cash-stack"></i> {{ paiement.montant|number_format(0, ',', ' ') }} FCFA
+                    </span>
+                </div>
+            </div>
         </div>
-        <div style="display: flex; gap: 0.75rem;">
+        <div class="payment-header-actions">
             {% if not paiement.isAnnule and not paiement.location.isAnnulee %}
                 <a href="{{ path('app_paiement_edit', {id: paiement.id}) }}" class="btn-secondary-modern">
                     <i class="bi bi-pencil"></i> Modifier
@@ -31,78 +75,922 @@
     </div>
 </div>
 
-<div class="row">
-    <div class="col-md-8 offset-md-2">
-        <div class="section-card">
-            <div class="section-header">
-                <h3 class="section-title"><i class="bi bi-cash-coin"></i> Informations du paiement</h3>
-            </div>
-            {% if paiement.isAnnule %}
-                <div class="alert alert-warning mb-3">
-                    <i class="bi bi-exclamation-triangle"></i> <strong>Ce paiement a été annulé</strong>
-                    {% if paiement.dateAnnulation %}
-                        <br><small>Annulé le {{ paiement.dateAnnulation|date('d/m/Y à H:i') }}</small>
-                    {% endif %}
-                    {% if paiement.raisonAnnulation %}
-                        <br><small>Raison: {{ paiement.raisonAnnulation }}</small>
-                    {% endif %}
-                </div>
-            {% endif %}
-            <table class="modern-table" style="margin: 0;">
-                <tbody>
-                    <tr>
-                        <th width="200" style="font-weight: 600; color: var(--text-gray);">Statut</th>
-                        <td>
-                            {% if paiement.isAnnule %}
-                                <span class="table-badge danger">Annulé</span>
-                            {% else %}
-                                <span class="table-badge success">Valide</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    <tr>
-                        <th width="200" style="font-weight: 600; color: var(--text-gray);">Location</th>
-                        <td>
-                            <strong>{{ paiement.location.face.nomComplet }}</strong>
-                            <br>
-                            <small style="color: var(--text-gray); font-size: 0.75rem;">{{ paiement.location.client.nom }}</small>
-                            <br>
-                            <a href="{{ path('app_location_show', {id: paiement.location.id}) }}" class="btn-secondary-modern" style="margin-top: 0.5rem; padding: 0.375rem 0.75rem;">
-                                <i class="bi bi-eye"></i> Voir la location
-                            </a>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>Montant</th>
-                        <td><strong style="color: var(--primary-color); font-size: 1.5rem;">{{ paiement.montant|number_format(0, ',', ' ') }} FCFA</strong></td>
-                    </tr>
-                    <tr>
-                        <th>Date de paiement</th>
-                        <td>{{ paiement.datePaiement|date('d/m/Y') }}</td>
-                    </tr>
-                    <tr>
-                        <th>Type</th>
-                        <td><span class="table-badge {% if paiement.isAnnule %}danger{% else %}info{% endif %}" style="font-size: 0.875rem;">{{ paiement.typeLibelle }}</span></td>
-                    </tr>
-                    {% if paiement.notes %}
-                    <tr>
-                        <th>Notes</th>
-                        <td>{{ paiement.notes }}</td>
-                    </tr>
-                    {% endif %}
-                    {% if paiement.isAnnule and paiement.raisonAnnulation %}
-                    <tr>
-                        <th>Raison d'annulation</th>
-                        <td>{{ paiement.raisonAnnulation }}</td>
-                    </tr>
-                    {% endif %}
-                    <tr>
-                        <th>Date de création</th>
-                        <td>{{ paiement.createdAt|date('d/m/Y à H:i') }}</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+<!-- Carte montant principale -->
+<div class="amount-showcase">
+    <div class="amount-showcase-icon {{ paiement.isAnnule ? 'cancelled' : '' }}">
+        <i class="bi bi-cash-stack"></i>
+    </div>
+    <div class="amount-showcase-value {{ paiement.isAnnule ? 'cancelled' : '' }}">
+        {{ paiement.montant|number_format(0, ',', ' ') }} FCFA
+    </div>
+    <div class="amount-showcase-label">
+        {% if paiement.isAnnule %}
+            Montant annulé
+        {% else %}
+            Montant du paiement
+        {% endif %}
     </div>
 </div>
+
+<div class="row g-4">
+    <!-- Informations du paiement -->
+    <div class="col-lg-8">
+        {% if paiement.isAnnule %}
+        <div class="alert-modern alert-modern-warning">
+            <div class="alert-modern-icon">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+            </div>
+            <div class="alert-modern-content">
+                <h3 class="alert-modern-title">Paiement annulé</h3>
+                <p class="alert-modern-text">
+                    Ce paiement a été annulé et n'est plus comptabilisé dans le total des paiements de la location.
+                </p>
+                {% if paiement.dateAnnulation %}
+                    <p class="alert-modern-meta">
+                        Annulé le {{ paiement.dateAnnulation|date('d/m/Y à H:i') }}
+                        {% if paiement.raisonAnnulation %}
+                            — {{ paiement.raisonAnnulation }}
+                        {% endif %}
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="section-card details-card">
+            <div class="section-header-enhanced">
+                <div class="section-header-icon">
+                    <i class="bi bi-info-circle"></i>
+                </div>
+                <div>
+                    <h2 class="section-title">Détails du paiement</h2>
+                    <p class="section-subtitle">Informations complètes</p>
+                </div>
+            </div>
+
+            <div class="details-grid-payment">
+                <!-- Statut -->
+                <div class="detail-item-payment">
+                    <div class="detail-icon-payment">
+                        <i class="bi bi-info-circle"></i>
+                    </div>
+                    <div class="detail-content-payment">
+                        <div class="detail-label-payment">Statut</div>
+                        <div class="detail-value-payment">
+                            {% if paiement.isAnnule %}
+                                <span class="badge-detail danger">
+                                    <i class="bi bi-x-circle-fill"></i> Annulé
+                                </span>
+                            {% else %}
+                                <span class="badge-detail success">
+                                    <i class="bi bi-check-circle-fill"></i> Validé
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Location -->
+                <div class="detail-item-payment detail-item-full">
+                    <div class="detail-icon-payment">
+                        <i class="bi bi-square"></i>
+                    </div>
+                    <div class="detail-content-payment">
+                        <div class="detail-label-payment">Location associée</div>
+                        <div class="detail-value-payment highlight">{{ paiement.location.face.nomComplet }}</div>
+                        <small class="detail-extra">{{ paiement.location.client.nom }}</small>
+                        <a href="{{ path('app_location_show', {id: paiement.location.id}) }}" class="detail-link">
+                            <i class="bi bi-arrow-right-circle"></i> Voir la location
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Montant -->
+                <div class="detail-item-payment">
+                    <div class="detail-icon-payment">
+                        <i class="bi bi-cash"></i>
+                    </div>
+                    <div class="detail-content-payment">
+                        <div class="detail-label-payment">Montant</div>
+                        <div class="detail-value-payment amount {{ paiement.isAnnule ? 'cancelled' : '' }}">
+                            {{ paiement.montant|number_format(0, ',', ' ') }} FCFA
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Date de paiement -->
+                <div class="detail-item-payment">
+                    <div class="detail-icon-payment">
+                        <i class="bi bi-calendar-event"></i>
+                    </div>
+                    <div class="detail-content-payment">
+                        <div class="detail-label-payment">Date de paiement</div>
+                        <div class="detail-value-payment">{{ paiement.datePaiement|date('d/m/Y') }}</div>
+                    </div>
+                </div>
+
+                <!-- Type -->
+                <div class="detail-item-payment">
+                    <div class="detail-icon-payment">
+                        <i class="bi bi-tag"></i>
+                    </div>
+                    <div class="detail-content-payment">
+                        <div class="detail-label-payment">Mode de paiement</div>
+                        <div class="detail-value-payment">
+                            <span class="badge-detail {{ paiement.isAnnule ? 'cancelled' : 'info' }}">
+                                {{ paiement.typeLibelle }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Date de création -->
+                <div class="detail-item-payment">
+                    <div class="detail-icon-payment">
+                        <i class="bi bi-clock-history"></i>
+                    </div>
+                    <div class="detail-content-payment">
+                        <div class="detail-label-payment">Date de création</div>
+                        <div class="detail-value-payment">{{ paiement.createdAt|date('d/m/Y à H:i') }}</div>
+                    </div>
+                </div>
+
+                <!-- Notes -->
+                {% if paiement.notes %}
+                <div class="detail-item-payment detail-item-full">
+                    <div class="detail-icon-payment">
+                        <i class="bi bi-card-text"></i>
+                    </div>
+                    <div class="detail-content-payment">
+                        <div class="detail-label-payment">Notes</div>
+                        <div class="detail-value-payment notes">{{ paiement.notes }}</div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Raison d'annulation -->
+                {% if paiement.isAnnule and paiement.raisonAnnulation %}
+                <div class="detail-item-payment detail-item-full alert-item">
+                    <div class="detail-icon-payment danger">
+                        <i class="bi bi-exclamation-triangle"></i>
+                    </div>
+                    <div class="detail-content-payment">
+                        <div class="detail-label-payment">Raison de l'annulation</div>
+                        <div class="detail-value-payment">{{ paiement.raisonAnnulation }}</div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <aside class="col-lg-4">
+        <!-- Informations location -->
+        <div class="section-card sidebar-card sticky-sidebar">
+            <div class="section-header">
+                <h3 class="section-title">
+                    <i class="bi bi-calendar-check"></i> Location
+                </h3>
+            </div>
+            <div class="sidebar-content">
+                <div class="location-preview-sidebar">
+                    <h4 class="location-preview-title">{{ paiement.location.face.nomComplet }}</h4>
+                    <p class="location-preview-client">{{ paiement.location.client.nom }}</p>
+                </div>
+
+                <div class="sidebar-divider"></div>
+
+                <div class="sidebar-item">
+                    <div class="sidebar-label">Période</div>
+                    <div class="sidebar-value">
+                        {{ paiement.location.dateDebut|date('d/m/Y') }}
+                        <br>→ {{ paiement.location.dateFin|date('d/m/Y') }}
+                    </div>
+                </div>
+
+                <div class="sidebar-item">
+                    <div class="sidebar-label">Montant total</div>
+                    <div class="sidebar-value">{{ paiement.location.montantTotal|number_format(0, ',', ' ') }} FCFA</div>
+                </div>
+
+                <div class="sidebar-item">
+                    <div class="sidebar-label">Déjà payé</div>
+                    <div class="sidebar-value success">{{ paiement.location.montantTotalPaye|number_format(0, ',', ' ') }} FCFA</div>
+                </div>
+
+                <div class="sidebar-item">
+                    <div class="sidebar-label">Restant</div>
+                    <div class="sidebar-value {{ paiement.location.montantRestant > 0 ? 'danger' : 'success' }}">
+                        {{ paiement.location.montantRestant|number_format(0, ',', ' ') }} FCFA
+                    </div>
+                </div>
+
+                <!-- Barre de progression -->
+                <div class="sidebar-progress">
+                    {% set pourcent = paiement.location.montantTotal > 0 ? (paiement.location.montantTotalPaye / paiement.location.montantTotal * 100) : 0 %}
+                    <div class="sidebar-progress-bar">
+                        <div class="sidebar-progress-fill" style="width: {{ pourcent }}%"></div>
+                    </div>
+                    <span class="sidebar-progress-label">{{ pourcent|number_format(0) }}% payé</span>
+                </div>
+
+                <a href="{{ path('app_location_show', {id: paiement.location.id}) }}" class="sidebar-action-btn">
+                    <i class="bi bi-eye"></i> Voir la location
+                </a>
+            </div>
+        </div>
+
+        <!-- Actions rapides -->
+        {% if not paiement.isAnnule and not paiement.location.isAnnulee %}
+        <div class="section-card sidebar-card quick-actions-card">
+            <div class="section-header">
+                <h3 class="section-title">
+                    <i class="bi bi-lightning"></i> Actions
+                </h3>
+            </div>
+            <div class="sidebar-content">
+                <a href="{{ path('app_paiement_edit', {id: paiement.id}) }}" class="quick-action-item">
+                    <i class="bi bi-pencil"></i>
+                    <span>Modifier le paiement</span>
+                </a>
+                <a href="{{ path('app_paiement_annuler', {id: paiement.id}) }}"
+                   class="quick-action-item danger"
+                   onclick="return confirm('Annuler ce paiement ?');">
+                    <i class="bi bi-x-circle"></i>
+                    <span>Annuler le paiement</span>
+                </a>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Historique -->
+        <div class="section-card sidebar-card">
+            <div class="section-header">
+                <h3 class="section-title">
+                    <i class="bi bi-clock-history"></i> Historique
+                </h3>
+            </div>
+            <div class="sidebar-content">
+                <div class="timeline-sidebar">
+                    <div class="timeline-sidebar-item">
+                        <div class="timeline-sidebar-marker"></div>
+                        <div class="timeline-sidebar-content">
+                            <div class="timeline-sidebar-date">{{ paiement.createdAt|date('d/m/Y à H:i') }}</div>
+                            <div class="timeline-sidebar-text">Paiement créé</div>
+                        </div>
+                    </div>
+                    {% if paiement.isAnnule and paiement.dateAnnulation %}
+                    <div class="timeline-sidebar-item cancelled">
+                        <div class="timeline-sidebar-marker"></div>
+                        <div class="timeline-sidebar-content">
+                            <div class="timeline-sidebar-date">{{ paiement.dateAnnulation|date('d/m/Y à H:i') }}</div>
+                            <div class="timeline-sidebar-text">Paiement annulé</div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </aside>
+</div>
+
+<style>
+/* ========== En-tête paiement ========== */
+.payment-header-card {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 8px 24px rgba(16, 185, 129, 0.2);
+}
+
+.payment-header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 2rem;
+    flex-wrap: wrap;
+}
+
+.payment-header-left {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    flex: 1;
+}
+
+.payment-icon-hero {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: white;
+    color: var(--success-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    flex-shrink: 0;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.payment-icon-hero.cancelled {
+    color: var(--danger-color);
+}
+
+.payment-header-info {
+    flex: 1;
+}
+
+.payment-header-badge {
+    margin-bottom: 0.5rem;
+}
+
+.status-badge-hero {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.375rem 1rem;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    background: rgba(255, 255, 255, 0.25);
+    color: white;
+    backdrop-filter: blur(10px);
+}
+
+.payment-title-hero {
+    font-size: 2rem;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 0.5rem;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.payment-meta {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.meta-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.9375rem;
+}
+
+.payment-header-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+/* ========== Showcase montant ========== */
+.amount-showcase {
+    background: white;
+    border-radius: 16px;
+    padding: 3rem 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    text-align: center;
+}
+
+.amount-showcase-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--success-color), #34d399);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 2.5rem;
+    margin: 0 auto 1.5rem;
+    box-shadow: 0 8px 24px rgba(16, 185, 129, 0.3);
+}
+
+.amount-showcase-icon.cancelled {
+    background: linear-gradient(135deg, var(--danger-color), #f87171);
+}
+
+.amount-showcase-value {
+    font-size: 3rem;
+    font-weight: 700;
+    color: var(--success-color);
+    margin-bottom: 0.5rem;
+}
+
+.amount-showcase-value.cancelled {
+    color: var(--danger-color);
+    text-decoration: line-through;
+    opacity: 0.6;
+}
+
+.amount-showcase-label {
+    font-size: 1.125rem;
+    color: var(--text-gray);
+    font-weight: 500;
+}
+
+/* ========== Détails ========== */
+.section-header-enhanced {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.section-header-icon {
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+}
+
+.section-subtitle {
+    font-size: 0.875rem;
+    color: var(--text-gray);
+    margin: 0;
+}
+
+.details-grid-payment {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+}
+
+.detail-item-payment {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--bg-light);
+    border-radius: 10px;
+    transition: all 0.2s;
+}
+
+.detail-item-payment:hover {
+    background: #f1f5f9;
+}
+
+.detail-item-full {
+    grid-column: 1 / -1;
+}
+
+.detail-item-payment.alert-item {
+    background: rgba(239, 68, 68, 0.05);
+    border-left: 3px solid var(--danger-color);
+}
+
+.detail-icon-payment {
+    width: 40px;
+    height: 40px;
+    background: white;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary-color);
+    font-size: 1.125rem;
+    flex-shrink: 0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.detail-icon-payment.danger {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger-color);
+}
+
+.detail-content-payment {
+    flex: 1;
+    min-width: 0;
+}
+
+.detail-label-payment {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-gray);
+    margin-bottom: 0.375rem;
+}
+
+.detail-value-payment {
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: var(--text-dark);
+    word-wrap: break-word;
+}
+
+.detail-value-payment.highlight {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.detail-value-payment.amount {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--success-color);
+}
+
+.detail-value-payment.amount.cancelled {
+    color: var(--danger-color);
+    text-decoration: line-through;
+}
+
+.detail-value-payment.notes {
+    line-height: 1.6;
+}
+
+.detail-extra {
+    display: block;
+    font-size: 0.8125rem;
+    color: var(--text-gray);
+    margin-top: 0.25rem;
+}
+
+.detail-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    padding: 0.5rem 1rem;
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--primary-color);
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.detail-link:hover {
+    border-color: var(--primary-color);
+    background: var(--bg-light);
+}
+
+.badge-detail {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.badge-detail.success {
+    background: rgba(16, 185, 129, 0.1);
+    color: #047857;
+}
+
+.badge-detail.danger {
+    background: rgba(239, 68, 68, 0.1);
+    color: #b91c1c;
+}
+
+.badge-detail.info {
+    background: rgba(59, 130, 246, 0.1);
+    color: #1e40af;
+}
+
+.badge-detail.cancelled {
+    background: rgba(100, 116, 139, 0.1);
+    color: #475569;
+}
+
+/* ========== Alertes ========== */
+.alert-modern {
+    display: flex;
+    gap: 1rem;
+    padding: 1.5rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    border: 1px solid;
+}
+
+.alert-modern-warning {
+    background: rgba(245, 158, 11, 0.05);
+    border-color: rgba(245, 158, 11, 0.2);
+}
+
+.alert-modern-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.alert-modern-warning .alert-modern-icon {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--warning-color);
+}
+
+.alert-modern-content {
+    flex: 1;
+}
+
+.alert-modern-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin-bottom: 0.5rem;
+}
+
+.alert-modern-text {
+    font-size: 0.875rem;
+    color: var(--text-gray);
+    line-height: 1.5;
+    margin-bottom: 1rem;
+}
+
+.alert-modern-text:last-child {
+    margin-bottom: 0;
+}
+
+.alert-modern-meta {
+    font-size: 0.8125rem;
+    color: var(--text-gray);
+    margin: 0;
+}
+
+/* ========== Sidebar ========== */
+.sticky-sidebar {
+    position: sticky;
+    top: calc(var(--header-height) + 1rem);
+}
+
+.sidebar-card {
+    margin-bottom: 1.5rem;
+}
+
+.sidebar-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.location-preview-sidebar {
+    text-align: center;
+    padding: 1rem 0;
+}
+
+.location-preview-title {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin-bottom: 0.25rem;
+}
+
+.location-preview-client {
+    font-size: 0.9375rem;
+    color: var(--text-gray);
+    margin: 0;
+}
+
+.sidebar-divider {
+    height: 1px;
+    background: var(--border-color);
+    margin: 0.5rem 0;
+}
+
+.sidebar-item {
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.sidebar-item:last-of-type {
+    border-bottom: none;
+}
+
+.sidebar-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-gray);
+    margin-bottom: 0.375rem;
+}
+
+.sidebar-value {
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: var(--text-dark);
+}
+
+.sidebar-value.success {
+    color: var(--success-color);
+    font-weight: 700;
+}
+
+.sidebar-value.danger {
+    color: var(--danger-color);
+    font-weight: 700;
+}
+
+.sidebar-progress {
+    margin-top: 1rem;
+}
+
+.sidebar-progress-bar {
+    height: 8px;
+    background: var(--bg-light);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+}
+
+.sidebar-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--success-color), #34d399);
+    border-radius: 4px;
+}
+
+.sidebar-progress-label {
+    display: block;
+    text-align: center;
+    font-size: 0.8125rem;
+    color: var(--text-gray);
+    font-weight: 500;
+}
+
+.sidebar-action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: var(--primary-color);
+    color: white;
+    border: 1px solid var(--primary-color);
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.2s;
+    margin-top: 1rem;
+}
+
+.sidebar-action-btn:hover {
+    background: var(--primary-dark);
+    color: white;
+}
+
+/* Actions rapides */
+.quick-actions-card .sidebar-content {
+    gap: 0.5rem;
+}
+
+.quick-action-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem 1rem;
+    background: var(--bg-light);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-weight: 500;
+    color: var(--text-dark);
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.quick-action-item:hover {
+    background: white;
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.quick-action-item.danger:hover {
+    background: rgba(239, 68, 68, 0.05);
+    border-color: var(--danger-color);
+    color: var(--danger-color);
+}
+
+/* Timeline */
+.timeline-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.timeline-sidebar-item {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.timeline-sidebar-marker {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--success-color);
+    margin-top: 0.25rem;
+    flex-shrink: 0;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+
+.timeline-sidebar-item.cancelled .timeline-sidebar-marker {
+    background: var(--danger-color);
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+}
+
+.timeline-sidebar-content {
+    flex: 1;
+}
+
+.timeline-sidebar-date {
+    font-size: 0.8125rem;
+    color: var(--text-gray);
+    margin-bottom: 0.25rem;
+}
+
+.timeline-sidebar-text {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-dark);
+}
+
+/* ========== Responsive ========== */
+@media (max-width: 992px) {
+    .payment-header-card {
+        padding: 1.5rem;
+    }
+
+    .payment-icon-hero {
+        width: 56px;
+        height: 56px;
+        font-size: 1.5rem;
+    }
+
+    .payment-title-hero {
+        font-size: 1.5rem;
+    }
+
+    .amount-showcase {
+        padding: 2rem 1.5rem;
+    }
+
+    .amount-showcase-icon {
+        width: 64px;
+        height: 64px;
+        font-size: 2rem;
+    }
+
+    .amount-showcase-value {
+        font-size: 2rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .payment-header-content {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .payment-header-left {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .payment-meta {
+        justify-content: center;
+    }
+
+    .payment-header-actions {
+        width: 100%;
+    }
+
+    .payment-header-actions .btn-primary-modern,
+    .payment-header-actions .btn-secondary-modern,
+    .payment-header-actions .btn-danger-modern {
+        flex: 1;
+    }
+
+    .details-grid-payment {
+        grid-template-columns: 1fr;
+    }
+
+    .sticky-sidebar {
+        position: static;
+    }
+}
+</style>
 {% endblock %}

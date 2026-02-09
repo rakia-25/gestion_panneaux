@@ -1,20 +1,36 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Annuler la location{% endblock %}
+{% block title %}Annuler LOC-{{ "%03d"|format(location.id) }}{% endblock %}
+
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" class="breadcrumb-nav mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Tableau de bord</a></li>
+            <li class="breadcrumb-item"><a href="{{ path('app_location_index') }}">Locations</a></li>
+            <li class="breadcrumb-item"><a href="{{ path('app_location_show', { id: location.id }) }}">LOC-{{ "%03d"|format(location.id) }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Annuler</li>
+        </ol>
+    </nav>
+{% endblock %}
 
 {% block body %}
-<div class="page-header">
-    <h1 class="page-title">Annuler la location #{{ location.id }}</h1>
-    <p class="page-description">{{ location.face.nomComplet }} - {{ location.client.nom }}</p>
+<div class="page-header d-flex flex-wrap justify-content-between align-items-start gap-2">
+    <div>
+        <h1 class="page-title">Annuler la location LOC-{{ "%03d"|format(location.id) }}</h1>
+        <p class="page-description">{{ location.face.nomComplet }} — {{ location.client.nom }}</p>
+    </div>
+    <a href="{{ path('app_location_show', { id: location.id }) }}" class="btn-secondary-modern">
+        <i class="bi bi-arrow-left"></i> Retour
+    </a>
 </div>
 
 <div class="row">
-    <div class="col-md-8 offset-md-2">
+    <div class="col-lg-8">
         <div class="section-card">
             <div class="section-header">
-                <h3 class="section-title"><i class="bi bi-x-circle"></i> Confirmation d'annulation</h3>
+                <h3 class="section-title mb-0"><i class="bi bi-x-circle"></i> Confirmation d'annulation</h3>
             </div>
-            <div>
+            <div class="p-3 p-md-4">
                 <div class="alert alert-warning mb-3">
                     <i class="bi bi-exclamation-triangle"></i> <strong>Attention :</strong>
                     L'annulation de cette location entraînera :
@@ -37,14 +53,14 @@
 
                 <form method="post" action="{{ path('app_location_annuler', {id: location.id}) }}">
                     <input type="hidden" name="_token" value="{{ csrf_token('annuler' ~ location.id) }}">
-                    
+
                     <div class="mb-3">
                         <label for="raison" class="form-label">Raison de l'annulation <span class="text-danger">*</span></label>
                         <textarea class="form-control" id="raison" name="raison" rows="4" required placeholder="Ex: Demande du client, problème technique, etc."></textarea>
                         <div class="form-text">Veuillez indiquer la raison de l'annulation de cette location.</div>
                     </div>
 
-                    <div style="display: flex; justify-content: space-between; margin-top: 2rem;">
+                    <div class="d-flex flex-wrap justify-content-between gap-2 mt-4">
                         <a href="{{ path('app_location_show', {id: location.id}) }}" class="btn-secondary-modern">
                             <i class="bi bi-arrow-left"></i> Retour
                         </a>

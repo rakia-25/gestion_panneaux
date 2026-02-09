@@ -2,14 +2,21 @@
 
 {% block title %}Liste des paiements{% endblock %}
 
-{% block body %}
-<div class="page-header">
-    <h1 class="page-title">Gestion des Paiements</h1>
-    <p class="page-description">Gérez tous les paiements des locations</p>
-</div>
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" class="breadcrumb-nav mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Tableau de bord</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Paiements</li>
+        </ol>
+    </nav>
+{% endblock %}
 
-{# Boutons d'action #}
-<div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
+{% block body %}
+<div class="page-header d-flex flex-wrap justify-content-between align-items-start gap-2">
+    <div>
+        <h1 class="page-title">Gestion des Paiements</h1>
+        <p class="page-description">Gérez tous les paiements des locations</p>
+    </div>
     <a href="{{ path('app_paiement_new') }}" class="btn-primary-modern">
         <i class="bi bi-plus"></i> Nouveau Paiement
     </a>
@@ -20,6 +27,7 @@
         <h3 class="table-title">Paiements</h3>
     </div>
     {% if paiements|length > 0 %}
+        <div class="table-responsive">
         <table class="modern-table">
             <thead>
                 <tr>
@@ -70,8 +78,9 @@
                 {% endfor %}
             </tbody>
         </table>
+        </div>
     {% else %}
-        <div style="text-align: center; padding: 2rem; color: var(--text-gray);">
+        <div class="text-center py-4 text-muted">
             <i class="bi bi-info-circle"></i> Aucun paiement enregistré.
         </div>
     {% endif %}

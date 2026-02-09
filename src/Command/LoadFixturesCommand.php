@@ -65,6 +65,11 @@ class LoadFixturesCommand extends Command
             ['nom' => 'Banque Atlantique', 'type' => 'entreprise', 'email' => 'contact@banqueatlantique.ne', 'telephone' => '+227 20 73 33 33', 'adresse' => 'Place de la Concorde', 'ville' => 'Niamey', 'pays' => 'Niger'],
             ['nom' => 'Amadou Diallo', 'type' => 'personne', 'email' => 'amadou.diallo@email.ne', 'telephone' => '+227 90 12 34 56', 'adresse' => 'Quartier Plateau', 'ville' => 'Niamey', 'pays' => 'Niger'],
             ['nom' => 'Fatouma Issoufou', 'type' => 'personne', 'email' => 'fatouma.issoufou@email.ne', 'telephone' => '+227 96 78 90 12', 'adresse' => 'Quartier Terminus', 'ville' => 'Niamey', 'pays' => 'Niger'],
+            // Fausses données - clients fictifs
+            ['nom' => 'Société Niger Télécom', 'type' => 'entreprise', 'email' => 'contact@nigertelecom.ne', 'telephone' => '+227 20 73 44 44', 'adresse' => 'Avenue du Commerce', 'ville' => 'Niamey', 'pays' => 'Niger'],
+            ['nom' => 'Boubou Sani', 'type' => 'personne', 'email' => 'boubou.sani@email.ne', 'telephone' => '+227 97 11 22 33', 'adresse' => 'Quartier Yantala', 'ville' => 'Niamey', 'pays' => 'Niger'],
+            ['nom' => 'Agence Pub Plus', 'type' => 'entreprise', 'email' => 'info@pubplus.ne', 'telephone' => '+227 20 73 55 55', 'adresse' => 'Zone industrielle', 'ville' => 'Niamey', 'pays' => 'Niger'],
+            ['nom' => 'Aïcha Oumarou', 'type' => 'personne', 'email' => 'aicha.oumarou@email.ne', 'telephone' => '+227 98 44 55 66', 'adresse' => 'Quartier Gamkallé', 'ville' => 'Niamey', 'pays' => 'Niger'],
         ];
 
         foreach ($clientData as $data) {
@@ -462,6 +467,174 @@ class LoadFixturesCommand extends Command
             $paiement8b->setDateAnnulation(new \DateTime('-1 week'));
             $paiement8b->setRaisonAnnulation('Erreur de saisie - montant incorrectement enregistré');
             $this->entityManager->persist($paiement8b);
+        }
+
+        // --- Fausses données : locations et paiements fictifs (pour alimenter le dashboard et les listes) ---
+        $io->section('Fausses données - Locations et paiements fictifs...');
+
+        $fakeLocationData = [
+            // [index_face, mois_début_avant, durée_mois, montant_mensuel, index_client, nb_paiements]
+            [8, 11, 4, '120000', 6, 2],
+            [8, 5, 3, '135000', 7, 3],
+            [9, 9, 3, '155000', 8, 2],
+            [9, 4, 2, '98000', 9, 2],
+            [10, 8, 4, '110000', 6, 4],
+            [10, 2, 2, '125000', 7, 2],
+            [11, 7, 3, '165000', 8, 3],
+            [11, 1, 3, '142000', 9, 1],
+            [12, 6, 4, '138000', 6, 3],
+            [12, 3, 2, '115000', 7, 2],
+        ];
+
+        foreach ($fakeLocationData as $data) {
+            [$faceIdx, $moisDebut, $duree, $montant, $clientIdx, $nbPaiements] = $data;
+            if (!isset($faces[$faceIdx]) || !isset($clients[$clientIdx])) {
+                continue;
+            }
+            $debut = (new \DateTime())->modify("-{$moisDebut} months");
+            $fin = (clone $debut)->modify("+{$duree} months");
+            $loc = new Location();
+            $loc->setFace($faces[$faceIdx]);
+            $loc->setClient($clients[$clientIdx]);
+            $loc->setDateDebut(clone $debut);
+            $loc->setDateFin($fin);
+            $loc->setMontantMensuel($montant);
+            $loc->setNotes('Donnée fictive - fixture');
+            $loc->setStatut('active');
+            $this->entityManager->persist($loc);
+            $locations[] = $loc;
+
+            $montantMensuel = (float) $montant;
+            $totalLocation = $montantMensuel * $duree;
+            $partPaiement = (int) round($totalLocation / $nbPaiements);
+            for ($i = 0; $i < $nbPaiements; $i++) {
+                $p = new Paiement();
+                $p->setLocation($loc);
+                $p->setMontant((string) $partPaiement);
+                $dateP = (clone $debut)->modify("+{$i} months");
+                $p->setDatePaiement($dateP);
+                $p->setType($i === 0 ? 'acompte' : ($i === $nbPaiements - 1 ? 'solde' : 'autre'));
+                $p->setNotes('Paiement fictif #' . ($i + 1));
+                $p->setStatut('valide');
+                $this->entityManager->persist($p);
+            }
+        }
+
+        // Paiements fictifs répartis sur les 7 derniers jours (pour le graphique 7J)
+        $paiements7J = [
+            ['montant' => '45000', 'jours' => 0],
+            ['montant' => '32000', 'jours' => 1],
+            ['montant' => '28000', 'jours' => 2],
+            ['montant' => '55000', 'jours' => 3],
+            ['montant' => '41000', 'jours' => 4],
+            ['montant' => '38000', 'jours' => 5],
+            ['montant' => '62000', 'jours' => 6],
+        ];
+        if (isset($location1) && isset($location2)) {
+            $locsRecentes = [$location1, $location2];
+            foreach ($paiements7J as $i => $data) {
+                $p = new Paiement();
+                $p->setLocation($locsRecentes[$i % 2]);
+                $p->setMontant($data['montant']);
+                $p->setDatePaiement((new \DateTime())->modify("-{$data['jours']} days"));
+                $p->setType('autre');
+                $p->setNotes('Paiement fictif J-' . $data['jours']);
+                $p->setStatut('valide');
+                $this->entityManager->persist($p);
+            }
+        }
+
+        // --- Données pour le graphique du tableau de bord (revenus sur 12 mois, 90J, 30J, 7J) ---
+        $io->section('Données pour le graphique du tableau de bord...');
+
+        // Location historique 1 : -12 à -7 mois (face 5 déjà utilisée -6 à -1, on utilise une période antérieure sur la même face)
+        if (isset($faces[5])) {
+            $locHist1 = new Location();
+            $locHist1->setFace($faces[5]);
+            $locHist1->setClient($clients[0]);
+            $locHist1->setDateDebut((new \DateTime())->modify('-12 months'));
+            $locHist1->setDateFin((new \DateTime())->modify('-7 months'));
+            $locHist1->setMontantMensuel('160000');
+            $locHist1->setNotes('Location passée - données graphique');
+            $locHist1->setStatut('active');
+            $this->entityManager->persist($locHist1);
+            $locations[] = $locHist1;
+            for ($m = 0; $m <= 5; $m++) {
+                $pHist1 = new Paiement();
+                $pHist1->setLocation($locHist1);
+                $pHist1->setMontant('160000');
+                $dateP = (new \DateTime())->modify('-12 months')->modify("+{$m} months");
+                $pHist1->setDatePaiement(clone $dateP);
+                $pHist1->setType($m === 0 ? 'acompte' : 'autre');
+                $pHist1->setNotes("Paiement mois " . ($m + 1));
+                $pHist1->setStatut('valide');
+                $this->entityManager->persist($pHist1);
+            }
+        }
+
+        // Location historique 2 : -10 à -5 mois (face 7, période antérieure à location6)
+        if (isset($faces[7])) {
+            $locHist2 = new Location();
+            $locHist2->setFace($faces[7]);
+            $locHist2->setClient($clients[1]);
+            $locHist2->setDateDebut((new \DateTime())->modify('-10 months'));
+            $locHist2->setDateFin((new \DateTime())->modify('-5 months'));
+            $locHist2->setMontantMensuel('140000');
+            $locHist2->setNotes('Location passée - données graphique');
+            $locHist2->setStatut('active');
+            $this->entityManager->persist($locHist2);
+            $locations[] = $locHist2;
+            for ($m = 0; $m <= 5; $m++) {
+                $pHist2 = new Paiement();
+                $pHist2->setLocation($locHist2);
+                $pHist2->setMontant('140000');
+                $dateP = (new \DateTime())->modify('-10 months')->modify("+{$m} months");
+                $pHist2->setDatePaiement(clone $dateP);
+                $pHist2->setType($m === 0 ? 'acompte' : 'autre');
+                $pHist2->setNotes("Paiement mois " . ($m + 1));
+                $pHist2->setStatut('valide');
+                $this->entityManager->persist($pHist2);
+            }
+        }
+
+        // Paiements récents pour les vues 7J et 30J (sur locations en cours)
+        if (isset($location1)) {
+            $pRecent1 = new Paiement();
+            $pRecent1->setLocation($location1);
+            $pRecent1->setMontant('50000');
+            $pRecent1->setDatePaiement((new \DateTime())->modify('-5 days'));
+            $pRecent1->setType('autre');
+            $pRecent1->setNotes('Ajustement - données graphique 7J');
+            $pRecent1->setStatut('valide');
+            $this->entityManager->persist($pRecent1);
+
+            $pRecent2 = new Paiement();
+            $pRecent2->setLocation($location1);
+            $pRecent2->setMontant('30000');
+            $pRecent2->setDatePaiement((new \DateTime())->modify('-2 days'));
+            $pRecent2->setType('autre');
+            $pRecent2->setNotes('Ajustement - données graphique 7J');
+            $pRecent2->setStatut('valide');
+            $this->entityManager->persist($pRecent2);
+        }
+        if (isset($location2)) {
+            $pRecent3 = new Paiement();
+            $pRecent3->setLocation($location2);
+            $pRecent3->setMontant('60000');
+            $pRecent3->setDatePaiement((new \DateTime())->modify('-10 days'));
+            $pRecent3->setType('autre');
+            $pRecent3->setNotes('Paiement partiel - données graphique 30J');
+            $pRecent3->setStatut('valide');
+            $this->entityManager->persist($pRecent3);
+
+            $pRecent4 = new Paiement();
+            $pRecent4->setLocation($location2);
+            $pRecent4->setMontant('40000');
+            $pRecent4->setDatePaiement((new \DateTime())->modify('-1 day'));
+            $pRecent4->setType('autre');
+            $pRecent4->setNotes('Paiement - données graphique 7J');
+            $pRecent4->setStatut('valide');
+            $this->entityManager->persist($pRecent4);
         }
 
         $this->entityManager->flush();
