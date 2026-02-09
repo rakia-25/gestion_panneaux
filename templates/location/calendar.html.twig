@@ -1,0 +1,62 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Calendrier des locations{% endblock %}
+
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" class="breadcrumb-nav mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Tableau de bord</a></li>
+            <li class="breadcrumb-item"><a href="{{ path('app_location_index') }}">Locations</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Calendrier</li>
+        </ol>
+    </nav>
+{% endblock %}
+
+{% block body %}
+<div class="page-header d-flex flex-wrap justify-content-between align-items-start gap-2">
+    <div>
+        <h1 class="page-title">Calendrier des locations</h1>
+        <p class="page-description">Vue d'ensemble des locations par période</p>
+    </div>
+    <a href="{{ path('app_location_new') }}" class="btn-primary-modern">
+        <i class="bi bi-plus-lg"></i> Nouvelle location
+    </a>
+</div>
+
+<div class="section-card calendar-page-card">
+    <div class="panel-header d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+        <div class="calendar-legend-bar d-flex flex-wrap gap-3">
+            <div class="legend-item d-flex align-items-center gap-2">
+                <span class="legend-dot active"></span>
+                <span class="small">En cours</span>
+            </div>
+            <div class="legend-item d-flex align-items-center gap-2">
+                <span class="legend-dot future"></span>
+                <span class="small">À venir</span>
+            </div>
+            <div class="legend-item d-flex align-items-center gap-2">
+                <span class="legend-dot past"></span>
+                <span class="small">Terminée</span>
+            </div>
+        </div>
+        <a href="{{ path('app_location_index') }}" class="btn-secondary-modern btn-sm">
+            <i class="bi bi-list-ul"></i> Liste des locations
+        </a>
+    </div>
+    <div class="panel-content">
+        <div id="calendar-reservations" class="calendar-wrapper" data-events-url="{{ path('app_location_calendar_events') }}"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block stylesheets %}
+{{ parent() }}
+<link rel="stylesheet" href="{{ asset('css/calendar.css') }}">
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/locales/fr.global.min.js"></script>
+<script src="{{ asset('js/calendar.js') }}"></script>
+{% endblock %}

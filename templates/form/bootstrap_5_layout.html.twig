@@ -5,7 +5,7 @@
     {% if help is not empty %}
         {% set widget_attr = {attr: {'aria-describedby': id ~"_help"}} %}
     {% endif %}
-    <div class="mb-3">
+    <div class="form-group-modern{% if errors|length > 0 %} has-error{% endif %}">
         {{- form_label(form) -}}
         {{- form_widget(form, widget_attr) -}}
         {{- form_help(form) -}}
@@ -13,16 +13,24 @@
     </div>
 {% endblock form_row %}
 
+{% block checkbox_row %}
+    {% set widget_attr = {} %}
+    {% if help is not empty %}
+        {% set widget_attr = {attr: {'aria-describedby': id ~"_help"}} %}
+    {% endif %}
+    <div class="form-group-modern form-check-wrapper{% if errors|length > 0 %} has-error{% endif %}">
+        {{- form_widget(form, widget_attr) -}}
+        {{- form_help(form) -}}
+        {{- form_errors(form) -}}
+    </div>
+{% endblock checkbox_row %}
+
 {% block form_label %}
     {% if label is not same as(false) -%}
         {% if not compound -%}
             {% set label_attr = label_attr|merge({'for': id}) %}
         {%- endif -%}
-        {% if required -%}
-            {% set label_attr = label_attr|merge({'class': (label_attr.class|default('') ~ ' form-label')|trim}) %}
-        {%- else -%}
-            {% set label_attr = label_attr|merge({'class': (label_attr.class|default('') ~ ' form-label')|trim}) %}
-        {%- endif -%}
+        {% set label_attr = label_attr|merge({'class': (label_attr.class|default('') ~ ' form-label form-label-modern')|trim}) %}
         <label{% if label_attr %}{% with { attr: label_attr } %}{{ block('attributes') }}{% endwith %}{% endif %}>
             {%- if translation_domain is same as(false) -%}
                 {{- label -}}
@@ -30,7 +38,9 @@
                 {{- label|trans(label_translation_parameters|default({}), translation_domain) -}}
             {%- endif -%}
             {%- if required -%}
-                <span class="text-danger">*</span>
+                <span class="text-danger ms-1" aria-hidden="true">*</span>
+            {%- else -%}
+                <span class="form-label-optional text-muted ms-1 small">(optionnel)</span>
             {%- endif -%}
         </label>
     {%- endif -%}
@@ -39,7 +49,7 @@
 {% block form_widget_simple %}
     {% set input_type = attr.type|default(type|default('text')) %}
     {% set attr_without_type = attr|filter((v, k) => k != 'type') %}
-    {% set attr = attr_without_type|merge({'class': (attr_without_type.class|default('') ~ ' form-control')|trim}) %}
+    {% set attr = attr_without_type|merge({'class': (attr_without_type.class|default('') ~ ' form-control form-control-modern')|trim}) %}
     {% if input_type == 'number' %}
         {% if not attr.inputmode is defined %}
             {% set attr = attr|merge({'inputmode': 'numeric'}) %}
@@ -52,15 +62,15 @@
 {% endblock form_widget_simple %}
 
 {% block textarea_widget %}
-    {% set attr = attr|merge({'class': (attr.class|default('') ~ ' form-control')|trim}) %}
+    {% set attr = attr|merge({'class': (attr.class|default('') ~ ' form-control form-control-modern')|trim}) %}
     <textarea {{ block('widget_attributes') }}>{{ value }}</textarea>
 {% endblock textarea_widget %}
 
 {% block choice_widget_collapsed %}
     {% if attr.class is defined and 'form-select' in attr.class %}
-        {% set attr = attr|merge({'class': attr.class|trim}) %}
+        {% set attr = attr|merge({'class': (attr.class|trim ~ ' form-select-modern')|trim}) %}
     {% else %}
-        {% set attr = attr|merge({'class': (attr.class|default('') ~ ' form-select')|trim}) %}
+        {% set attr = attr|merge({'class': (attr.class|default('') ~ ' form-select form-select-modern')|trim}) %}
     {% endif %}
     <select {{ block('widget_attributes') }}{% if multiple %} multiple="multiple"{% endif %}>
         {% if placeholder is not none %}
@@ -90,7 +100,7 @@
 
 {% block checkbox_widget %}
     {% set attr = attr|merge({'class': (attr.class|default('') ~ ' form-check-input')|trim}) %}
-    <div class="form-check">
+    <div class="form-check form-check-modern">
         <input type="checkbox" {{ block('widget_attributes') }}{% if value is defined %} value="{{ value }}"{% endif %}{% if checked %} checked="checked"{% endif %} />
         {% if label is not same as(false) -%}
             <label class="form-check-label"{% if label_attr %}{% with { attr: label_attr } %}{{ block('attributes') }}{% endwith %}{% endif %}>
@@ -106,9 +116,10 @@
 
 {% block form_errors %}
     {%- if errors|length > 0 -%}
-        <div class="invalid-feedback d-block">
+        <div class="invalid-feedback d-block form-error-modern" role="alert">
+            <span class="form-error-icon"><i class="bi bi-exclamation-circle-fill"></i></span>
             {%- for error in errors -%}
-                <div>{{ error.message }}</div>
+                <span class="form-error-message">{{ error.message }}</span>{% if not loop.last %}<br>{% endif %}
             {%- endfor -%}
         </div>
     {%- endif -%}
@@ -116,7 +127,8 @@
 
 {% block form_help %}
     {%- if help is not empty -%}
-        <div id="{{ id }}_help" class="form-text">
+        <div id="{{ id }}_help" class="form-text form-help-modern">
+            <i class="bi bi-info-circle form-help-icon" aria-hidden="true"></i>
             {%- if translation_domain is same as(false) -%}
                 {{- help -}}
             {%- else -%}
@@ -129,7 +141,7 @@
 {% block money_widget %}
     {% set input_type = attr.type|default('number') %}
     {% set attr_without_type = attr|filter((v, k) => k != 'type') %}
-    {% set attr = attr_without_type|merge({'class': (attr_without_type.class|default('') ~ ' form-control')|trim}) %}
+    {% set attr = attr_without_type|merge({'class': (attr_without_type.class|default('') ~ ' form-control form-control-modern')|trim}) %}
     {% if not attr.inputmode is defined %}
         {% set attr = attr|merge({'inputmode': 'numeric'}) %}
     {% endif %}
@@ -142,7 +154,7 @@
     {% if not attr.step is defined %}
         {% set attr = attr|merge({'step': '1'}) %}
     {% endif %}
-    <div class="input-group">
+    <div class="input-group input-group-modern">
         <input type="{{ input_type }}" {{ block('widget_attributes') }} {% if value is not empty %}value="{{ value }}" {% endif %}/>
         <span class="input-group-text">{{ money_pattern|replace({ '{{ widget }}': ''})|trim }}</span>
     </div>

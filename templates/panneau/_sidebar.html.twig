@@ -1,0 +1,53 @@
+{#
+    Sidebar aide formulaire panneau (création = aide par étape, édition = toute l'aide visible).
+    Variables : edit_mode (optionnel, false), show_recap (optionnel, false)
+#}
+<aside class="col-lg-4" role="complementary" aria-labelledby="aide-title">
+    <div class="section-card panneau-new-aide sticky-helper">
+        <div class="section-header">
+            <h2 id="aide-title" class="section-title mb-0 h5"><i class="bi bi-lightbulb"></i> Aide</h2>
+        </div>
+        <div class="form-card-inner">
+            <div class="help-content" data-help-step="1"{% if not edit_mode|default(false) %}{% else %} style="display: block;"{% endif %}>
+                <h3 class="help-title">Informations de localisation</h3>
+                <ul class="aide-tips list-unstyled mb-3">
+                    <li class="aide-tip"><i class="bi bi-upc-scan text-primary"></i><div><strong>Référence unique</strong><p class="mb-0 text-muted small">Ex: PAN-001, NPY-042</p></div></li>
+                    <li class="aide-tip"><i class="bi bi-geo-alt text-primary"></i><div><strong>Coordonnées GPS</strong><p class="mb-0 text-muted small">Format: <code>latitude,longitude</code><br>Ex: 13.5127,2.1124</p></div></li>
+                    <li class="aide-tip"><i class="bi bi-eye text-primary"></i><div><strong>Visibilité</strong><p class="mb-0 text-muted small">Évaluez la qualité de l'exposition du panneau</p></div></li>
+                </ul>
+            </div>
+            <div class="help-content" data-help-step="2"{% if edit_mode|default(false) %} style="display: block;"{% else %} style="display: none;"{% endif %}>
+                <h3 class="help-title">Caractéristiques du panneau</h3>
+                <ul class="aide-tips list-unstyled mb-3">
+                    <li class="aide-tip"><i class="bi bi-rulers text-primary"></i><div><strong>Taille</strong><p class="mb-0 text-muted small">Surface en m² (ex: 12, 18, 24)</p></div></li>
+                    <li class="aide-tip"><i class="bi bi-layers text-primary"></i><div><strong>Type de panneau</strong><p class="mb-0 text-muted small">Simple (1 face) ou Double (2 faces)</p></div></li>
+                    <li class="aide-tip"><i class="bi bi-lightbulb-fill text-primary"></i><div><strong>Éclairage</strong><p class="mb-0 text-muted small">Améliore la visibilité nocturne</p></div></li>
+                </ul>
+            </div>
+            <div class="help-content" data-help-step="3"{% if edit_mode|default(false) %} style="display: block;"{% else %} style="display: none;"{% endif %}>
+                <h3 class="help-title">Informations commerciales</h3>
+                <ul class="aide-tips list-unstyled mb-3">
+                    <li class="aide-tip"><i class="bi bi-currency-exchange text-primary"></i><div><strong>Prix mensuel</strong><p class="mb-0 text-muted small">Tarif de location en FCFA</p></div></li>
+                    <li class="aide-tip"><i class="bi bi-image text-primary"></i><div><strong>Photo (optionnelle)</strong><p class="mb-0 text-muted small">Format: JPG, PNG (max 5 Mo)</p></div></li>
+                    <li class="aide-tip"><i class="bi bi-card-text text-primary"></i><div><strong>Description</strong><p class="mb-0 text-muted small">Ajoutez des détails supplémentaires</p></div></li>
+                </ul>
+            </div>
+            <div class="help-action mt-3 pt-3 border-top">
+                <a href="{{ path('app_panneau_index') }}" class="btn btn-outline-primary btn-sm w-100"><i class="bi bi-list-ul"></i> Voir tous les panneaux</a>
+            </div>
+        </div>
+    </div>
+    {% if show_recap|default(false) %}
+    <div class="section-card recap-card mt-3" style="display: none;">
+        <div class="section-header">
+            <h2 class="section-title mb-0 h5"><i class="bi bi-check2-square"></i> Récapitulatif</h2>
+        </div>
+        <div class="form-card-inner">
+            <div class="recap-content small text-muted">
+                <p class="mb-2"><i class="bi bi-info-circle text-primary"></i> Vérifiez vos informations avant de créer le panneau</p>
+                <div id="recap-summary"></div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</aside>

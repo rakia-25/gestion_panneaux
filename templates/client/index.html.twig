@@ -2,159 +2,1324 @@
 
 {% block title %}Liste des clients{% endblock %}
 
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" class="breadcrumb-nav mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Tableau de bord</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Clients</li>
+        </ol>
+    </nav>
+{% endblock %}
+
 {% block body %}
-<div class="page-header">
-    <h1 class="page-title">Gestion des Clients</h1>
-    <p class="page-description">Gérez vos clients et leurs informations de contact</p>
-</div>
-
-{# Boutons d'action #}
-<div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
-    <a href="{{ path('app_client_new') }}" class="btn-primary-modern">
-        <i class="bi bi-plus"></i> Nouveau Client
-    </a>
-</div>
-
-<!-- Filtres -->
-<div class="section-card" style="margin-bottom: 1.5rem;">
-    <div class="section-header">
-        <h3 class="section-title"><i class="bi bi-funnel"></i> Filtres</h3>
+<!-- En-tête avec statistiques -->
+<div class="page-header-with-stats">
+    <div class="page-header-content">
+        <div>
+            <h1 class="page-title">Gestion des Clients</h1>
+            <p class="page-description">Gérez votre portefeuille clients et leurs coordonnées</p>
+        </div>
+        <div class="page-header-actions">
+            <button class="btn-secondary-modern" id="exportBtn">
+                <i class="bi bi-download"></i> Exporter
+            </button>
+            <a href="{{ path('app_client_new') }}" class="btn-primary-modern">
+                <i class="bi bi-plus-lg"></i> Nouveau Client
+            </a>
+        </div>
     </div>
-    <div>
-            <form method="GET" action="{{ path('app_client_index') }}" class="row g-3" onsubmit="return false;">
-                <div class="col-md-4">
-                    <label for="recherche" class="form-label">Recherche</label>
-                    <input type="text" class="form-control" id="recherche" name="recherche"
-                           value="{{ filters.recherche ?? '' }}"
-                           placeholder="Nom, email, téléphone, adresse...">
+
+    <!-- Statistiques rapides -->
+    <div class="stats-bar">
+        <div class="stat-item">
+            <div class="stat-icon primary">
+                <i class="bi bi-people"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value" id="totalClients">{{ clients|length }}</div>
+                <div class="stat-label">Total clients</div>
+            </div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-icon info">
+                <i class="bi bi-building"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value" id="entreprises">
+                    {% set entreprises = 0 %}
+                    {% for c in clients %}{% if c.type == 'entreprise' %}{% set entreprises = entreprises + 1 %}{% endif %}{% endfor %}
+                    {{ entreprises }}
                 </div>
-                <div class="col-md-3">
-                    <label for="type" class="form-label">Type</label>
-                    <select class="form-select" id="type" name="type">
-                        <option value="">Tous</option>
+                <div class="stat-label">Entreprises</div>
+            </div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-icon warning">
+                <i class="bi bi-person"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value" id="particuliers">
+                    {% set particuliers = 0 %}
+                    {% for c in clients %}{% if c.type == 'personne' %}{% set particuliers = particuliers + 1 %}{% endif %}{% endfor %}
+                    {{ particuliers }}
+                </div>
+                <div class="stat-label">Particuliers</div>
+            </div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-icon success">
+                <i class="bi bi-star"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value" id="clientsActifs">
+                    {% set actifs = 0 %}
+                    {% for c in clients %}{% if c.locations|length > 0 %}{% set actifs = actifs + 1 %}{% endif %}{% endfor %}
+                    {{ actifs }}
+                </div>
+                <div class="stat-label">Avec locations</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtres améliorés -->
+<div class="filters-card">
+    <div class="filters-header">
+        <div class="filters-title">
+            <i class="bi bi-sliders"></i>
+            <span>Filtres</span>
+            <span class="filters-count" id="activeFiltersCount" style="display: none;"></span>
+        </div>
+        <button class="filters-toggle" id="filtersToggle">
+            <i class="bi bi-chevron-down"></i>
+        </button>
+    </div>
+
+    <div class="filters-body" id="filtersBody">
+        <form method="GET" action="{{ path('app_client_index') }}" id="filtersForm">
+            <div class="filters-grid filters-grid-clients">
+                <!-- Recherche -->
+                <div class="filter-group filter-search-large">
+                    <label for="recherche" class="filter-label">
+                        <i class="bi bi-search"></i> Recherche
+                    </label>
+                    <div class="search-input-wrapper">
+                        <input type="text"
+                               class="filter-input"
+                               id="recherche"
+                               name="recherche"
+                               value="{{ filters.recherche ?? '' }}"
+                               placeholder="Nom, email, téléphone, adresse...">
+                        <button type="button" class="search-clear" id="clearSearch" style="display: none;">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Type -->
+                <div class="filter-group">
+                    <label for="type" class="filter-label">
+                        <i class="bi bi-tag"></i> Type
+                    </label>
+                    <select class="filter-select" id="type" name="type">
+                        <option value="">Tous les types</option>
                         <option value="entreprise" {{ filters.type == 'entreprise' ? 'selected' : '' }}>Entreprise</option>
-                        <option value="personne" {{ filters.type == 'personne' ? 'selected' : '' }}>Personne</option>
+                        <option value="personne" {{ filters.type == 'personne' ? 'selected' : '' }}>Particulier</option>
                     </select>
                 </div>
-                <div class="col-md-3">
-                    <label for="ville" class="form-label">Ville</label>
-                    <input type="text" class="form-control" id="ville" name="ville"
+
+                <!-- Ville -->
+                <div class="filter-group">
+                    <label for="ville" class="filter-label">
+                        <i class="bi bi-geo-alt"></i> Ville
+                    </label>
+                    <input type="text"
+                           class="filter-input"
+                           id="ville"
+                           name="ville"
                            value="{{ filters.ville ?? '' }}"
                            placeholder="Ex: Niamey">
                 </div>
-                <div class="col-md-2 d-flex align-items-end gap-2">
-                    <a href="{{ path('app_client_index') }}" class="btn-secondary-modern">
-                        <i class="bi bi-x-circle"></i> Réinitialiser
-                    </a>
+            </div>
+
+            <div class="filters-actions">
+                <button type="button" class="btn-reset" id="resetFilters">
+                    <i class="bi bi-arrow-counterclockwise"></i> Réinitialiser
+                </button>
+                <div class="filters-info">
+                    <span id="resultsCount">{{ clients|length }}</span> résultat(s)
                 </div>
-            </form>
+            </div>
+        </form>
     </div>
 </div>
 
-<div class="table-card">
-    <div class="table-header">
-        <h3 class="table-title">Clients</h3>
-    </div>
+<!-- Vue en cartes (mobile) -->
+<div class="cards-view d-lg-none">
     {% if clients|length > 0 %}
-        <table class="modern-table">
-            <thead>
-                <tr>
-                    <th>Nom / Raison sociale</th>
-                    <th>Type</th>
-                    <th>Email</th>
-                    <th>Téléphone</th>
-                    <th>Ville</th>
-                    <th>Locations</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for client in clients %}
-                    <tr data-type="{{ client.type }}"
-                        data-ville="{{ (client.ville ?? '')|lower }}"
-                        data-nom="{{ client.nom|lower }}"
-                        data-email="{{ (client.email ?? '')|lower }}"
-                        data-telephone="{{ (client.telephone ?? '')|lower }}"
-                        data-adresse="{{ (client.adresse ?? '')|lower }}">
-                        <td><strong>{{ client.nom }}</strong></td>
-                        <td>
-                            {% if client.type == 'entreprise' %}
-                                <span class="table-badge info">Entreprise</span>
-                            {% else %}
-                                <span class="table-badge warning">Personne</span>
-                            {% endif %}
-                        </td>
-                        <td>{{ client.email ?? '-' }}</td>
-                        <td>{{ client.telephone ?? '-' }}</td>
-                        <td>{{ client.ville ?? '-' }}</td>
-                        <td>
-                            <span class="table-badge success">{{ client.locations|length }} location(s)</span>
-                        </td>
-                        <td>
-                            <div class="action-menu">
-                                <a href="{{ path('app_client_show', {id: client.id}) }}" class="action-btn" title="Voir">
-                                    <i class="bi bi-eye"></i>
-                                </a>
-                                <a href="{{ path('app_client_edit', {id: client.id}) }}" class="action-btn" title="Modifier">
-                                    <i class="bi bi-pencil"></i>
-                                </a>
-                                <form method="post" action="{{ path('app_client_delete', {id: client.id}) }}" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce client ?');">
-                                    <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ client.id) }}">
-                                    <button type="submit" class="action-btn" title="Supprimer" style="color: var(--danger-color);">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </form>
+        <div class="clients-cards" id="clientsCards">
+            {% for client in clients %}
+                <div class="client-card"
+                     data-type="{{ client.type }}"
+                     data-ville="{{ (client.ville ?? '')|lower }}"
+                     data-nom="{{ client.nom|lower }}"
+                     data-email="{{ (client.email ?? '')|lower }}"
+                     data-telephone="{{ (client.telephone ?? '')|lower }}"
+                     data-adresse="{{ (client.adresse ?? '')|lower }}">
+
+                    <div class="client-card-header">
+                        <div class="client-avatar-large">
+                            {{ client.nom|first|upper }}
+                        </div>
+                        <div class="client-card-info">
+                            <h3>{{ client.nom }}</h3>
+                            <div class="client-card-badges">
+                                {% if client.type == 'entreprise' %}
+                                    <span class="type-badge entreprise">
+                                        <i class="bi bi-building"></i> Entreprise
+                                    </span>
+                                {% else %}
+                                    <span class="type-badge personne">
+                                        <i class="bi bi-person"></i> Particulier
+                                    </span>
+                                {% endif %}
+                                {% if client.locations|length > 0 %}
+                                    <span class="location-badge">
+                                        <i class="bi bi-calendar-check"></i> {{ client.locations|length }}
+                                    </span>
+                                {% endif %}
                             </div>
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                        </div>
+                    </div>
+
+                    <div class="client-card-body">
+                        {% if client.email %}
+                            <div class="client-info-row">
+                                <i class="bi bi-envelope"></i>
+                                <a href="mailto:{{ client.email }}">{{ client.email }}</a>
+                            </div>
+                        {% endif %}
+                        {% if client.telephone %}
+                            <div class="client-info-row">
+                                <i class="bi bi-telephone"></i>
+                                <a href="tel:{{ client.telephone }}">{{ client.telephone }}</a>
+                            </div>
+                        {% endif %}
+                        {% if client.ville %}
+                            <div class="client-info-row">
+                                <i class="bi bi-geo-alt"></i>
+                                <span>{{ client.ville }}</span>
+                            </div>
+                        {% endif %}
+                        {% if client.adresse %}
+                            <div class="client-info-row">
+                                <i class="bi bi-pin-map"></i>
+                                <span>{{ client.adresse }}</span>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="client-card-actions">
+                        <a href="{{ path('app_client_show', {id: client.id}) }}" class="card-action-btn">
+                            <i class="bi bi-eye"></i> Voir
+                        </a>
+                        <a href="{{ path('app_client_edit', {id: client.id}) }}" class="card-action-btn">
+                            <i class="bi bi-pencil"></i> Modifier
+                        </a>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
     {% else %}
-        <div style="text-align: center; padding: 2rem; color: var(--text-gray);">
-            <i class="bi bi-info-circle"></i> Aucun client enregistré. <a href="{{ path('app_client_new') }}">Créer le premier client</a>
+        <div class="empty-state-card">
+            <i class="bi bi-people"></i>
+            <h3>Aucun client</h3>
+            <p>Commencez par ajouter votre premier client</p>
+            <a href="{{ path('app_client_new') }}" class="btn-primary-modern">
+                <i class="bi bi-plus-lg"></i> Créer un client
+            </a>
         </div>
     {% endif %}
 </div>
-{% endblock %}
 
-{% block javascripts %}
+<!-- Vue en tableau (desktop) -->
+<div class="table-view d-none d-lg-block">
+    <div class="table-card-modern">
+        <div class="table-header-modern">
+            <h3 class="table-title">Liste des clients</h3>
+            <div class="table-controls">
+                <div class="view-mode">
+                    <button class="view-btn active" data-view="table">
+                        <i class="bi bi-table"></i>
+                    </button>
+                    <button class="view-btn" data-view="grid">
+                        <i class="bi bi-grid-3x3"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        {% if clients|length > 0 %}
+            <div class="table-responsive">
+                <table class="modern-table-enhanced" id="clientsTable">
+                    <thead>
+                        <tr>
+                            <th class="sortable" data-sort="nom">
+                                <div class="th-content">
+                                    Client
+                                    <i class="bi bi-chevron-expand"></i>
+                                </div>
+                            </th>
+                            <th>Type</th>
+                            <th class="sortable" data-sort="email">
+                                <div class="th-content">
+                                    Contact
+                                    <i class="bi bi-chevron-expand"></i>
+                                </div>
+                            </th>
+                            <th class="sortable" data-sort="ville">
+                                <div class="th-content">
+                                    Localisation
+                                    <i class="bi bi-chevron-expand"></i>
+                                </div>
+                            </th>
+                            <th class="sortable" data-sort="locations">
+                                <div class="th-content">
+                                    Locations
+                                    <i class="bi bi-chevron-expand"></i>
+                                </div>
+                            </th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for client in clients %}
+                            <tr class="table-row-enhanced"
+                                data-type="{{ client.type }}"
+                                data-ville="{{ (client.ville ?? '')|lower }}"
+                                data-nom="{{ client.nom|lower }}"
+                                data-email="{{ (client.email ?? '')|lower }}"
+                                data-telephone="{{ (client.telephone ?? '')|lower }}"
+                                data-adresse="{{ (client.adresse ?? '')|lower }}"
+                                data-locations="{{ client.locations|length }}">
+
+                                <td>
+                                    <div class="cell-client-name">
+                                        <div class="client-avatar">
+                                            {{ client.nom|first|upper }}
+                                        </div>
+                                        <div class="client-details">
+                                            <strong class="client-name">{{ client.nom }}</strong>
+                                            {% if client.adresse %}
+                                                <small class="client-address">{{ client.adresse }}</small>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </td>
+
+                                <td>
+                                    {% if client.type == 'entreprise' %}
+                                        <span class="badge-modern entreprise">
+                                            <i class="bi bi-building-fill"></i> Entreprise
+                                        </span>
+                                    {% else %}
+                                        <span class="badge-modern personne">
+                                            <i class="bi bi-person-fill"></i> Particulier
+                                        </span>
+                                    {% endif %}
+                                </td>
+
+                                <td>
+                                    <div class="cell-contact">
+                                        {% if client.email %}
+                                            <div class="contact-item">
+                                                <i class="bi bi-envelope"></i>
+                                                <a href="mailto:{{ client.email }}" class="contact-link">
+                                                    {{ client.email }}
+                                                </a>
+                                            </div>
+                                        {% endif %}
+                                        {% if client.telephone %}
+                                            <div class="contact-item">
+                                                <i class="bi bi-telephone"></i>
+                                                <a href="tel:{{ client.telephone }}" class="contact-link">
+                                                    {{ client.telephone }}
+                                                </a>
+                                            </div>
+                                        {% endif %}
+                                        {% if not client.email and not client.telephone %}
+                                            <span class="text-muted">—</span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+
+                                <td>
+                                    {% if client.ville %}
+                                        <div class="cell-location">
+                                            <i class="bi bi-geo-alt-fill text-primary"></i>
+                                            <span>{{ client.ville }}</span>
+                                        </div>
+                                    {% else %}
+                                        <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+
+                                <td>
+                                    {% if client.locations|length > 0 %}
+                                        <div class="cell-locations">
+                                            <span class="locations-badge active">
+                                                <i class="bi bi-calendar-check-fill"></i>
+                                                {{ client.locations|length }} location{{ client.locations|length > 1 ? 's' : '' }}
+                                            </span>
+                                            {% set activeLocations = 0 %}
+                                            {% for location in client.locations %}
+                                                {% if location.isActive() and not location.isAnnulee %}
+                                                    {% set activeLocations = activeLocations + 1 %}
+                                                {% endif %}
+                                            {% endfor %}
+                                            {% if activeLocations > 0 %}
+                                                <small class="locations-active">
+                                                    <i class="bi bi-circle-fill pulse"></i> {{ activeLocations }} en cours
+                                                </small>
+                                            {% endif %}
+                                        </div>
+                                    {% else %}
+                                        <span class="locations-badge inactive">
+                                            <i class="bi bi-calendar-x"></i> Aucune
+                                        </span>
+                                    {% endif %}
+                                </td>
+
+                                <td>
+                                    <div class="action-buttons">
+                                        <a href="{{ path('app_client_show', {id: client.id}) }}"
+                                           class="action-btn-modern view"
+                                           title="Voir">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a href="{{ path('app_client_edit', {id: client.id}) }}"
+                                           class="action-btn-modern edit"
+                                           title="Modifier">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <form method="post"
+                                              action="{{ path('app_client_delete', {id: client.id}) }}"
+                                              class="d-inline"
+                                              onsubmit="return confirm('Supprimer ce client ? Cette action est irréversible.');">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ client.id) }}">
+                                            <button type="submit" class="action-btn-modern delete" title="Supprimer">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="empty-state-table">
+                <i class="bi bi-people"></i>
+                <h3>Aucun client</h3>
+                <p>Commencez par ajouter votre premier client</p>
+                <a href="{{ path('app_client_new') }}" class="btn-primary-modern">
+                    <i class="bi bi-plus-lg"></i> Créer un client
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+/* Réutilisation des styles communs */
+.page-header-with-stats {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.page-header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+}
+
+.page-header-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.stats-bar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+}
+
+.stat-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.25rem;
+    background: var(--bg-light);
+    border-radius: 12px;
+    transition: all 0.3s;
+}
+
+.stat-item:hover {
+    background: #f1f5f9;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.stat-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.stat-icon.primary {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+    color: white;
+}
+
+.stat-icon.success {
+    background: linear-gradient(135deg, #10b981, #34d399);
+    color: white;
+}
+
+.stat-icon.warning {
+    background: linear-gradient(135deg, #f59e0b, #fbbf24);
+    color: white;
+}
+
+.stat-icon.info {
+    background: linear-gradient(135deg, #3b82f6, #60a5fa);
+    color: white;
+}
+
+.stat-content {
+    flex: 1;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    line-height: 1;
+    margin-bottom: 0.25rem;
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    color: var(--text-gray);
+    font-weight: 500;
+}
+
+/* Filtres */
+.filters-card {
+    background: white;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+}
+
+.filters-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 1.5rem;
+    background: var(--bg-light);
+    cursor: pointer;
+    user-select: none;
+}
+
+.filters-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    font-size: 1rem;
+}
+
+.filters-title i {
+    color: var(--primary-color);
+    font-size: 1.125rem;
+}
+
+.filters-count {
+    background: var(--primary-color);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.filters-toggle {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: white;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.filters-toggle:hover {
+    background: #f1f5f9;
+}
+
+.filters-toggle i {
+    transition: transform 0.3s;
+}
+
+.filters-toggle.collapsed i {
+    transform: rotate(180deg);
+}
+
+.filters-body {
+    padding: 1.5rem;
+    border-top: 1px solid var(--border-color);
+    max-height: 500px;
+    overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s ease;
+}
+
+.filters-body.collapsed {
+    max-height: 0;
+    padding: 0 1.5rem;
+}
+
+.filters-grid-clients {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 1.25rem;
+    margin-bottom: 1.25rem;
+}
+
+.filter-search-large {
+    grid-column: span 1;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.filter-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.filter-label i {
+    color: var(--primary-color);
+    font-size: 1rem;
+}
+
+.search-input-wrapper {
+    position: relative;
+}
+
+.filter-input {
+    width: 100%;
+    padding: 0.625rem 2.5rem 0.625rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 0.9375rem;
+    transition: all 0.2s;
+}
+
+.filter-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.search-clear {
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: var(--bg-light);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-gray);
+    transition: all 0.2s;
+}
+
+.search-clear:hover {
+    background: #e2e8f0;
+    color: var(--text-dark);
+}
+
+.filter-select {
+    padding: 0.625rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 0.9375rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: white;
+}
+
+.filter-select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.filters-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.btn-reset {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: var(--bg-light);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-dark);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-reset:hover {
+    background: #f1f5f9;
+    border-color: var(--text-gray);
+}
+
+.filters-info {
+    font-size: 0.875rem;
+    color: var(--text-gray);
+    font-weight: 500;
+}
+
+.filters-info span {
+    color: var(--primary-color);
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+/* ========== Cartes clients (mobile) ========== */
+.clients-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.client-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.25rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s;
+}
+
+.client-card:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    transform: translateY(-2px);
+}
+
+.client-card-header {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    align-items: center;
+}
+
+.client-avatar-large {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.client-card-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.client-card-info h3 {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin-bottom: 0.5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.client-card-badges {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.type-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.25rem 0.625rem;
+    border-radius: 16px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.type-badge.entreprise {
+    background: rgba(59, 130, 246, 0.1);
+    color: #1e40af;
+}
+
+.type-badge.personne {
+    background: rgba(245, 158, 11, 0.1);
+    color: #b45309;
+}
+
+.location-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.625rem;
+    border-radius: 16px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: rgba(16, 185, 129, 0.1);
+    color: #047857;
+}
+
+.client-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.client-info-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.9375rem;
+}
+
+.client-info-row i {
+    color: var(--text-gray);
+    font-size: 1rem;
+    width: 20px;
+    flex-shrink: 0;
+}
+
+.client-info-row a {
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+.client-info-row a:hover {
+    text-decoration: underline;
+}
+
+.client-card-actions {
+    display: flex;
+    gap: 0.75rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.card-action-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1rem;
+    background: var(--bg-light);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-dark);
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.card-action-btn:hover {
+    background: white;
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+/* ========== Tableau (desktop) ========== */
+.table-card-modern {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+}
+
+.table-header-modern {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    background: var(--bg-light);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.table-controls {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.view-mode {
+    display: flex;
+    gap: 0.25rem;
+    background: white;
+    border-radius: 8px;
+    padding: 0.25rem;
+    border: 1px solid var(--border-color);
+}
+
+.view-btn {
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-gray);
+    transition: all 0.2s;
+}
+
+.view-btn:hover {
+    background: var(--bg-light);
+}
+
+.view-btn.active {
+    background: var(--primary-color);
+    color: white;
+}
+
+.modern-table-enhanced {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.modern-table-enhanced thead {
+    background: var(--bg-light);
+}
+
+.modern-table-enhanced th {
+    padding: 1rem 1.25rem;
+    text-align: left;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-gray);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.modern-table-enhanced th.sortable {
+    cursor: pointer;
+    user-select: none;
+}
+
+.th-content {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.th-content i {
+    font-size: 0.75rem;
+    opacity: 0.5;
+    transition: opacity 0.2s;
+}
+
+.sortable:hover .th-content i {
+    opacity: 1;
+}
+
+.modern-table-enhanced tbody tr {
+    border-bottom: 1px solid var(--border-color);
+    transition: all 0.2s;
+}
+
+.modern-table-enhanced tbody tr:hover {
+    background: var(--bg-light);
+}
+
+.modern-table-enhanced td {
+    padding: 1rem 1.25rem;
+    font-size: 0.9375rem;
+    vertical-align: middle;
+}
+
+/* Cellules personnalisées */
+.cell-client-name {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.client-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1rem;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.2);
+}
+
+.client-details {
+    flex: 1;
+    min-width: 0;
+}
+
+.client-name {
+    display: block;
+    color: var(--text-dark);
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.client-address {
+    display: block;
+    font-size: 0.8125rem;
+    color: var(--text-gray);
+}
+
+/* Badges */
+.badge-modern {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.badge-modern.entreprise {
+    background: rgba(59, 130, 246, 0.1);
+    color: #1e40af;
+}
+
+.badge-modern.personne {
+    background: rgba(245, 158, 11, 0.1);
+    color: #b45309;
+}
+
+.cell-contact {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+}
+
+.contact-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.contact-item i {
+    color: var(--text-gray);
+    width: 16px;
+}
+
+.contact-link {
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+.contact-link:hover {
+    text-decoration: underline;
+}
+
+.cell-location {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.cell-locations {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+}
+
+.locations-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    width: fit-content;
+}
+
+.locations-badge.active {
+    background: rgba(16, 185, 129, 0.1);
+    color: #047857;
+}
+
+.locations-badge.inactive {
+    background: rgba(100, 116, 139, 0.1);
+    color: #475569;
+}
+
+.locations-active {
+    font-size: 0.75rem;
+    color: var(--success-color);
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.pulse {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* Actions */
+.action-buttons {
+    display: flex;
+    gap: 0.375rem;
+    justify-content: flex-end;
+}
+
+.action-btn-modern {
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--border-color);
+    background: white;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    color: var(--text-gray);
+}
+
+.action-btn-modern:hover {
+    border-color: var(--primary-color);
+    background: var(--bg-light);
+    color: var(--primary-color);
+}
+
+.action-btn-modern.delete:hover {
+    border-color: var(--danger-color);
+    background: rgba(239, 68, 68, 0.05);
+    color: var(--danger-color);
+}
+
+/* États vides */
+.empty-state-card,
+.empty-state-table {
+    padding: 4rem 2rem;
+    text-align: center;
+    color: var(--text-gray);
+}
+
+.empty-state-card i,
+.empty-state-table i {
+    font-size: 4rem;
+    opacity: 0.3;
+    margin-bottom: 1rem;
+}
+
+.empty-state-card h3,
+.empty-state-table h3 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin-bottom: 0.5rem;
+}
+
+.empty-state-card p,
+.empty-state-table p {
+    margin-bottom: 1.5rem;
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+    .page-header-with-stats {
+        padding: 1.5rem;
+    }
+
+    .stats-bar {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
+
+    .stat-item {
+        padding: 1rem;
+    }
+
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        font-size: 1.25rem;
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
+    }
+
+    .filters-grid-clients {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .page-header-content {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .page-header-actions {
+        width: 100%;
+    }
+
+    .page-header-actions .btn-primary-modern,
+    .page-header-actions .btn-secondary-modern {
+        flex: 1;
+    }
+
+    .stats-bar {
+        grid-template-columns: 1fr;
+    }
+
+    .filters-actions {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .btn-reset,
+    .filters-info {
+        width: 100%;
+        text-align: center;
+    }
+}
+</style>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Gestion du toggle des filtres
+    const filtersToggle = document.getElementById('filtersToggle');
+    const filtersBody = document.getElementById('filtersBody');
+
+    if (filtersToggle && filtersBody) {
+        filtersToggle.addEventListener('click', function() {
+            filtersBody.classList.toggle('collapsed');
+            filtersToggle.classList.toggle('collapsed');
+        });
+    }
+
+    // Éléments du formulaire
     const rechercheInput = document.getElementById('recherche');
     const typeSelect = document.getElementById('type');
     const villeInput = document.getElementById('ville');
-    const tableRows = document.querySelectorAll('tbody tr');
+    const resetBtn = document.getElementById('resetFilters');
+    const clearSearchBtn = document.getElementById('clearSearch');
+    const resultsCount = document.getElementById('resultsCount');
+    const activeFiltersCount = document.getElementById('activeFiltersCount');
+
+    // Toutes les lignes/cartes
+    const tableRows = document.querySelectorAll('#clientsTable tbody tr');
+    const cards = document.querySelectorAll('.client-card');
 
     let searchTimeout;
 
-    // Fonction pour filtrer les lignes sans recharger la page
-    function filterRows() {
+    // Fonction pour compter les filtres actifs
+    function updateActiveFiltersCount() {
+        let count = 0;
+        if (rechercheInput && rechercheInput.value) count++;
+        if (typeSelect && typeSelect.value) count++;
+        if (villeInput && villeInput.value) count++;
+
+        if (count > 0) {
+            activeFiltersCount.textContent = count;
+            activeFiltersCount.style.display = 'inline-block';
+        } else {
+            activeFiltersCount.style.display = 'none';
+        }
+    }
+
+    // Fonction de filtrage
+    function filterElements() {
         const recherche = (rechercheInput?.value || '').toLowerCase();
         const type = typeSelect?.value || '';
         const ville = (villeInput?.value || '').toLowerCase();
 
         let visibleCount = 0;
 
+        // Filtrer les lignes du tableau
         tableRows.forEach(row => {
-            const rowType = row.dataset.type || '';
-            const rowVille = row.dataset.ville || '';
-            const rowNom = row.dataset.nom || '';
-            const rowEmail = row.dataset.email || '';
-            const rowTelephone = row.dataset.telephone || '';
-            const rowAdresse = row.dataset.adresse || '';
-
-            // Vérifier les filtres
-            const typeMatch = !type || rowType === type;
-            const villeMatch = !ville || rowVille.includes(ville);
-            const rechercheMatch = !recherche ||
-                rowNom.includes(recherche) ||
-                rowEmail.includes(recherche) ||
-                rowTelephone.includes(recherche) ||
-                rowAdresse.includes(recherche);
-
-            // Afficher ou cacher la ligne
-            if (typeMatch && villeMatch && rechercheMatch) {
+            if (matchesFilters(row, { recherche, type, ville })) {
                 row.style.display = '';
                 visibleCount++;
             } else {
@@ -162,40 +1327,165 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        // Afficher un message si aucun résultat
-        const tbody = document.querySelector('tbody');
-        let noResultsMsg = document.getElementById('no-results-message');
-        if (visibleCount === 0 && tableRows.length > 0) {
-            if (!noResultsMsg) {
-                noResultsMsg = document.createElement('tr');
-                noResultsMsg.id = 'no-results-message';
-                noResultsMsg.innerHTML = '<td colspan="7" class="text-center py-4"><em>Aucun résultat trouvé</em></td>';
-                tbody.appendChild(noResultsMsg);
+        // Filtrer les cartes
+        cards.forEach(card => {
+            if (matchesFilters(card, { recherche, type, ville })) {
+                card.style.display = '';
+            } else {
+                card.style.display = 'none';
             }
-            noResultsMsg.style.display = '';
-        } else if (noResultsMsg) {
-            noResultsMsg.style.display = 'none';
+        });
+
+        // Mettre à jour le compteur
+        if (resultsCount) {
+            resultsCount.textContent = visibleCount || cards.length;
         }
+
+        // Afficher/masquer le bouton clear
+        if (clearSearchBtn) {
+            clearSearchBtn.style.display = recherche ? 'flex' : 'none';
+        }
+
+        // Mettre à jour le compteur de filtres actifs
+        updateActiveFiltersCount();
     }
 
-    // Écouter les changements dans les selects (filtrage immédiat)
-    if (typeSelect) {
-        typeSelect.addEventListener('change', filterRows);
+    // Vérifier si un élément correspond aux filtres
+    function matchesFilters(element, filters) {
+        const { recherche, type, ville } = filters;
+
+        const rowType = element.dataset.type || '';
+        const rowVille = element.dataset.ville || '';
+        const rowNom = element.dataset.nom || '';
+        const rowEmail = element.dataset.email || '';
+        const rowTelephone = element.dataset.telephone || '';
+        const rowAdresse = element.dataset.adresse || '';
+
+        const typeMatch = !type || rowType === type;
+        const villeMatch = !ville || rowVille.includes(ville);
+        const rechercheMatch = !recherche ||
+            rowNom.includes(recherche) ||
+            rowEmail.includes(recherche) ||
+            rowTelephone.includes(recherche) ||
+            rowAdresse.includes(recherche);
+
+        return typeMatch && villeMatch && rechercheMatch;
     }
 
-    // Écouter les changements dans les champs de texte avec debounce (300ms)
+    // Écouter les changements
+    if (typeSelect) typeSelect.addEventListener('change', filterElements);
+
     if (rechercheInput) {
         rechercheInput.addEventListener('input', function() {
             clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(filterRows, 300);
+            searchTimeout = setTimeout(filterElements, 300);
         });
     }
+
     if (villeInput) {
         villeInput.addEventListener('input', function() {
             clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(filterRows, 300);
+            searchTimeout = setTimeout(filterElements, 300);
         });
     }
+
+    // Bouton clear search
+    if (clearSearchBtn) {
+        clearSearchBtn.addEventListener('click', function() {
+            if (rechercheInput) {
+                rechercheInput.value = '';
+                filterElements();
+            }
+        });
+    }
+
+    // Bouton reset
+    if (resetBtn) {
+        resetBtn.addEventListener('click', function() {
+            if (rechercheInput) rechercheInput.value = '';
+            if (typeSelect) typeSelect.value = '';
+            if (villeInput) villeInput.value = '';
+            filterElements();
+        });
+    }
+
+    // Tri du tableau
+    const sortButtons = document.querySelectorAll('.sortable');
+    let currentSort = { column: null, direction: 'asc' };
+
+    sortButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const column = this.dataset.sort;
+
+            if (currentSort.column === column) {
+                currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSort.column = column;
+                currentSort.direction = 'asc';
+            }
+
+            sortTable(column, currentSort.direction);
+            updateSortIndicators(this, currentSort.direction);
+        });
+    });
+
+    function sortTable(column, direction) {
+        const tbody = document.querySelector('#clientsTable tbody');
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+
+        rows.sort((a, b) => {
+            let aVal, bVal;
+
+            switch(column) {
+                case 'nom':
+                    aVal = a.dataset.nom;
+                    bVal = b.dataset.nom;
+                    break;
+                case 'email':
+                    aVal = a.dataset.email;
+                    bVal = b.dataset.email;
+                    break;
+                case 'ville':
+                    aVal = a.dataset.ville;
+                    bVal = b.dataset.ville;
+                    break;
+                case 'locations':
+                    aVal = parseInt(a.dataset.locations) || 0;
+                    bVal = parseInt(b.dataset.locations) || 0;
+                    break;
+                default:
+                    return 0;
+            }
+
+            if (typeof aVal === 'string') {
+                return direction === 'asc' ?
+                    aVal.localeCompare(bVal) :
+                    bVal.localeCompare(aVal);
+            } else {
+                return direction === 'asc' ? aVal - bVal : bVal - aVal;
+            }
+        });
+
+        rows.forEach(row => tbody.appendChild(row));
+    }
+
+    function updateSortIndicators(activeButton, direction) {
+        sortButtons.forEach(btn => {
+            const icon = btn.querySelector('i');
+            if (icon) {
+                icon.className = 'bi bi-chevron-expand';
+            }
+        });
+
+        const icon = activeButton.querySelector('i');
+        if (icon) {
+            icon.className = direction === 'asc' ? 'bi bi-chevron-up' : 'bi bi-chevron-down';
+        }
+    }
+
+    // Initialiser
+    updateActiveFiltersCount();
+    filterElements();
 });
 </script>
 {% endblock %}

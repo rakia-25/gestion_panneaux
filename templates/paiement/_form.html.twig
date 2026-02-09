@@ -1,0 +1,99 @@
+{#
+    Partial formulaire paiement (création et édition) – même style que paiement/new.
+    Variables : form, cancel_path, submit_label, cancel_label (optionnel), location_obj (optionnel),
+    submit_disabled (optionnel), submit_disabled_message (optionnel), form_aria_label (optionnel)
+#}
+{{ form_start(form, {
+    attr: {
+        class: 'form-modern form-payment',
+        'aria-label': form_aria_label|default('Formulaire paiement')
+    }
+}) }}
+    <div class="form-section form-section-step">
+        <div class="form-section-header-modern">
+            <div class="section-icon-modern">
+                <i class="bi bi-cash-stack"></i>
+            </div>
+            <div>
+                <h2 class="section-title-modern">Location et montant</h2>
+                <p class="section-subtitle-modern">Sélectionnez la location et le montant</p>
+            </div>
+        </div>
+        <div class="row g-3">
+            <div class="col-12">{{ form_row(form.location) }}</div>
+            <div class="col-12">
+                {% if location_obj is defined and location_obj and not location_obj.isAnnulee and not location_obj.isCompletementPaye %}
+                    {% set montantRestant = location_obj.montantRestant|number_format(0, '', '') %}
+                    <div class="form-group-modern">
+                        {{ form_label(form.montant) }}
+                        {{ form_widget(form.montant, {'attr': {'max': montantRestant, 'data-montant-restant': montantRestant}}) }}
+                        {{ form_help(form.montant) }}
+                        {{ form_errors(form.montant) }}
+                        <div class="form-info-box">
+                            <i class="bi bi-info-circle"></i>
+                            <span>Montant maximum autorisé: <strong>{{ location_obj.montantRestant|number_format(0, ',', ' ') }} FCFA</strong></span>
+                        </div>
+                        <div class="amount-progress" id="amountProgress" style="display: none;">
+                            <div class="amount-progress-bar">
+                                <div class="amount-progress-fill" id="amountProgressFill"></div>
+                            </div>
+                            <div class="amount-progress-labels">
+                                <span id="amountCurrent">0 FCFA</span>
+                                <span id="amountMax">{{ location_obj.montantRestant|number_format(0, ',', ' ') }} FCFA</span>
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    {{ form_row(form.montant) }}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="form-section form-section-step">
+        <div class="form-section-header-modern">
+            <div class="section-icon-modern">
+                <i class="bi bi-calendar-check"></i>
+            </div>
+            <div>
+                <h2 class="section-title-modern">Détails du paiement</h2>
+                <p class="section-subtitle-modern">Date et mode de paiement</p>
+            </div>
+        </div>
+        <div class="row g-3">
+            <div class="col-md-6">{{ form_row(form.datePaiement) }}</div>
+            <div class="col-md-6">{{ form_row(form.type) }}</div>
+        </div>
+    </div>
+
+    <div class="form-section form-section-step">
+        <div class="form-section-header-modern">
+            <div class="section-icon-modern">
+                <i class="bi bi-card-text"></i>
+            </div>
+            <div>
+                <h2 class="section-title-modern">Notes complémentaires</h2>
+                <p class="section-subtitle-modern">Ajoutez des remarques si nécessaire</p>
+            </div>
+        </div>
+        <div class="row g-3">
+            <div class="col-12">{{ form_row(form.notes) }}</div>
+        </div>
+    </div>
+
+    <div class="form-actions-modern">
+        <a href="{{ cancel_path }}" class="btn-secondary-modern">
+            <i class="bi bi-x-lg"></i> {{ cancel_label|default('Annuler') }}
+        </a>
+        {% if submit_disabled|default(false) %}
+            <button type="button" class="btn-primary-modern btn-submit-large" disabled>
+                <i class="bi bi-x-circle"></i> {{ submit_disabled_message|default('Enregistrement désactivé') }}
+            </button>
+        {% else %}
+            <button type="submit" class="btn-primary-modern btn-submit-large">
+                <i class="bi bi-check-lg"></i> {{ submit_label }}
+            </button>
+        {% endif %}
+    </div>
+    {{ form_rest(form) }}
+{{ form_end(form) }}

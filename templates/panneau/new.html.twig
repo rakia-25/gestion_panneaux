@@ -2,79 +2,619 @@
 
 {% block title %}Nouveau panneau{% endblock %}
 
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" class="breadcrumb-nav mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Tableau de bord</a></li>
+            <li class="breadcrumb-item"><a href="{{ path('app_panneau_index') }}">Panneaux</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Nouveau panneau</li>
+        </ol>
+    </nav>
+{% endblock %}
+
 {% block body %}
-<div class="page-header">
-    <h1 class="page-title">Nouveau panneau</h1>
-    <p class="page-description">Créez un nouveau panneau publicitaire</p>
+<div class="page-header d-flex flex-wrap justify-content-between align-items-start gap-2">
+    <div>
+        <h1 class="page-title">Nouveau panneau</h1>
+        <p class="page-description">Créez un nouveau panneau publicitaire en quelques étapes</p>
+    </div>
+    <a href="{{ path('app_panneau_index') }}" class="btn-secondary-modern" aria-label="Retour à la liste des panneaux">
+        <i class="bi bi-arrow-left" aria-hidden="true"></i> Retour
+    </a>
 </div>
 
-<div class="row">
-    <div class="col-md-8 offset-md-2">
-        <div class="section-card">
-            <div class="section-header">
-                <h3 class="section-title"><i class="bi bi-plus-circle"></i> Informations du panneau</h3>
+<!-- Indicateur de progression -->
+<div class="progress-indicator mb-4">
+    <div class="progress-steps">
+        <div class="progress-step active" data-step="1">
+            <div class="step-circle">
+                <i class="bi bi-geo-alt"></i>
             </div>
-            <div>
-                {{ form_start(form) }}
-                    {{ form_row(form.reference) }}
-                    {{ form_row(form.emplacement) }}
-                    <div class="row">
-                        <div class="col-md-6">
-                            {{ form_row(form.quartier) }}
-                        </div>
-                        <div class="col-md-6">
-                            {{ form_row(form.visibilite) }}
-                        </div>
-                    </div>
-                    {{ form_row(form.coordonneesGps) }}
-                    <div class="row">
-                        <div class="col-md-6">
-                            {{ form_row(form.taille) }}
-                        </div>
-                        <div class="col-md-6">
-                            {{ form_row(form.type) }}
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6">
-                            {{ form_row(form.eclairage) }}
-                        </div>
-                        <div class="col-md-6" id="etat-face-a-wrapper">
-                            {{ form_row(form.etatFaceA) }}
-                        </div>
-                    </div>
-                    <div class="row" id="etat-face-b-wrapper" style="display: none;">
-                        <div class="col-md-6">
-                            {{ form_row(form.etatFaceB) }}
-                        </div>
-                    </div>
-                    {{ form_row(form.prixMensuel) }}
-                    {{ form_row(form.photo) }}
-                    {{ form_row(form.description) }}
-
-                    <div style="display: flex; justify-content: space-between; margin-top: 2rem;">
-                        <a href="{{ path('app_panneau_index') }}" class="btn-secondary-modern">
-                            <i class="bi bi-arrow-left"></i> Retour
-                        </a>
-                        <button type="submit" class="btn-primary-modern">
-                            <i class="bi bi-check"></i> Créer
-                        </button>
-                    </div>
-                {{ form_end(form) }}
+            <div class="step-label">Localisation</div>
+        </div>
+        <div class="progress-step" data-step="2">
+            <div class="step-circle">
+                <i class="bi bi-grid-3x3"></i>
             </div>
+            <div class="step-label">Caractéristiques</div>
+        </div>
+        <div class="progress-step" data-step="3">
+            <div class="step-circle">
+                <i class="bi bi-currency-exchange"></i>
+            </div>
+            <div class="step-label">Tarif & visuel</div>
         </div>
     </div>
 </div>
+
+<div class="row g-3 g-lg-4">
+    <div class="col-lg-8">
+        <div class="section-card panneau-new-form" role="region" aria-labelledby="panneau-form-title">
+            <div class="form-card-inner">
+                {% include 'panneau/_form.html.twig' with { form: form } %}
+            </div>
+        </div>
+    </div>
+    {% include 'panneau/_sidebar.html.twig' with { show_recap: true } %}
+</div>
+
+<style>
+/* ========== Indicateur de progression ========== */
+.progress-indicator {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.progress-steps {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.progress-steps::before {
+    content: '';
+    position: absolute;
+    top: 24px;
+    left: 50px;
+    right: 50px;
+    height: 2px;
+    background: var(--border-color);
+    z-index: 0;
+}
+
+.progress-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    position: relative;
+    z-index: 1;
+    flex: 1;
+}
+
+.step-circle {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: white;
+    border: 2px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    color: var(--text-gray);
+    transition: all 0.3s ease;
+}
+
+.progress-step.active .step-circle {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.progress-step.completed .step-circle {
+    background: var(--success-color);
+    border-color: var(--success-color);
+    color: white;
+}
+
+.step-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-gray);
+    text-align: center;
+}
+
+.progress-step.active .step-label {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.progress-step.completed .step-label {
+    color: var(--success-color);
+}
+
+/* ========== Sections du formulaire ========== */
+.form-section-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.form-section-icon {
+    width: 56px;
+    height: 56px;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+}
+
+.form-section-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin-bottom: 0.25rem;
+}
+
+.form-section-subtitle {
+    font-size: 0.9375rem;
+    color: var(--text-gray);
+    margin: 0;
+}
+
+/* ========== Navigation du formulaire ========== */
+.form-navigation {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 2px solid var(--border-color);
+    flex-wrap: wrap;
+}
+
+.navigation-info {
+    flex: 1;
+    text-align: center;
+}
+
+.step-counter {
+    font-size: 0.875rem;
+    color: var(--text-gray);
+}
+
+.step-counter strong {
+    color: var(--primary-color);
+    font-size: 1rem;
+}
+
+.btn-prev,
+.btn-next,
+.btn-submit {
+    min-width: 140px;
+}
+
+/* ========== Carte d'aide ========== */
+.sticky-helper {
+    position: sticky;
+    top: calc(var(--header-height) + 1rem);
+}
+
+.help-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin-bottom: 1rem;
+}
+
+.aide-tips {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.aide-tip {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background: var(--bg-light);
+    border-radius: 8px;
+    transition: all 0.2s;
+}
+
+.aide-tip:hover {
+    background: #f1f5f9;
+    transform: translateX(2px);
+}
+
+.aide-tip i {
+    font-size: 1.25rem;
+    flex-shrink: 0;
+    margin-top: 0.1rem;
+}
+
+.aide-tip strong {
+    display: block;
+    color: var(--text-dark);
+    margin-bottom: 0.25rem;
+}
+
+.aide-tip code {
+    background: white;
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.85em;
+    border: 1px solid var(--border-color);
+}
+
+/* ========== Carte récapitulatif ========== */
+.recap-card {
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.recap-content i {
+    font-size: 1rem;
+}
+
+#recap-summary {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.recap-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.recap-item:last-child {
+    border-bottom: none;
+}
+
+.recap-label {
+    font-weight: 500;
+    color: var(--text-gray);
+}
+
+.recap-value {
+    font-weight: 600;
+    color: var(--text-dark);
+    text-align: right;
+}
+
+/* ========== Animations ========== */
+.form-section-step {
+    animation: fadeIn 0.4s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ========== Responsive ========== */
+@media (max-width: 768px) {
+    .progress-indicator {
+        padding: 1rem;
+    }
+
+    .progress-steps::before {
+        left: 30px;
+        right: 30px;
+    }
+
+    .step-circle {
+        width: 40px;
+        height: 40px;
+        font-size: 1rem;
+    }
+
+    .step-label {
+        font-size: 0.75rem;
+    }
+
+    .form-section-header {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .form-section-icon {
+        width: 48px;
+        height: 48px;
+        font-size: 1.25rem;
+    }
+
+    .form-navigation {
+        flex-direction: column;
+    }
+
+    .btn-prev,
+    .btn-next,
+    .btn-submit {
+        width: 100%;
+    }
+
+    .navigation-info {
+        order: -1;
+        width: 100%;
+    }
+
+    .sticky-helper {
+        position: static;
+    }
+}
+
+@media (max-width: 576px) {
+    .progress-steps {
+        gap: 0.5rem;
+    }
+
+    .step-label {
+        display: none;
+    }
+
+    .progress-steps::before {
+        left: 24px;
+        right: 24px;
+    }
+}
+</style>
+
 <script>
-(function () {
+(function() {
+    'use strict';
+
+    // Gestion de l'affichage de la face B selon le type de panneau
     var typeSelect = document.querySelector('[name="{{ form.type.vars.full_name }}"]');
     var faceBWrapper = document.getElementById('etat-face-b-wrapper');
-    if (!typeSelect || !faceBWrapper) return;
-    function toggleFaceB() {
-        faceBWrapper.style.display = typeSelect.value === 'double' ? '' : 'none';
+
+    if (typeSelect && faceBWrapper) {
+        function toggleFaceB() {
+            faceBWrapper.style.display = typeSelect.value === 'double' ? '' : 'none';
+        }
+        typeSelect.addEventListener('change', toggleFaceB);
+        toggleFaceB();
     }
-    typeSelect.addEventListener('change', toggleFaceB);
-    toggleFaceB();
+
+    // Wizard multi-étapes
+    var currentStep = 1;
+    var totalSteps = 3;
+    var steps = document.querySelectorAll('.form-section-step');
+    var progressSteps = document.querySelectorAll('.progress-step');
+    var btnPrev = document.querySelector('.btn-prev');
+    var btnNext = document.querySelector('.btn-next');
+    var btnSubmit = document.querySelector('.btn-submit');
+    var currentStepSpan = document.querySelector('.current-step');
+    var helpContents = document.querySelectorAll('.help-content');
+    var recapCard = document.querySelector('.recap-card');
+
+    function updateStepDisplay() {
+        // Masquer toutes les étapes
+        steps.forEach(function(step) {
+            step.style.display = 'none';
+            step.classList.remove('active');
+        });
+
+        // Afficher l'étape courante
+        var currentStepEl = document.querySelector('.form-section-step[data-step="' + currentStep + '"]');
+        if (currentStepEl) {
+            currentStepEl.style.display = 'block';
+            currentStepEl.classList.add('active');
+        }
+
+        // Mettre à jour l'indicateur de progression
+        progressSteps.forEach(function(progressStep, index) {
+            var stepNum = index + 1;
+            progressStep.classList.remove('active', 'completed');
+
+            if (stepNum < currentStep) {
+                progressStep.classList.add('completed');
+                var icon = progressStep.querySelector('.step-circle i');
+                if (icon) {
+                    icon.className = 'bi bi-check-lg';
+                }
+            } else if (stepNum === currentStep) {
+                progressStep.classList.add('active');
+            } else {
+                var icon = progressStep.querySelector('.step-circle i');
+                if (icon) {
+                    var originalIcons = ['bi-geo-alt', 'bi-grid-3x3', 'bi-currency-exchange'];
+                    icon.className = originalIcons[index] || 'bi-circle';
+                }
+            }
+        });
+
+        // Mettre à jour les boutons de navigation
+        btnPrev.style.display = currentStep === 1 ? 'none' : 'inline-flex';
+        btnNext.style.display = currentStep === totalSteps ? 'none' : 'inline-flex';
+        btnSubmit.style.display = currentStep === totalSteps ? 'inline-flex' : 'none';
+
+        // Mettre à jour le compteur
+        if (currentStepSpan) {
+            currentStepSpan.textContent = currentStep;
+        }
+
+        // Mettre à jour l'aide contextuelle
+        helpContents.forEach(function(help) {
+            help.style.display = 'none';
+        });
+        var currentHelp = document.querySelector('.help-content[data-help-step="' + currentStep + '"]');
+        if (currentHelp) {
+            currentHelp.style.display = 'block';
+        }
+
+        // Afficher le récapitulatif à la dernière étape
+        if (recapCard) {
+            recapCard.style.display = currentStep === totalSteps ? 'block' : 'none';
+            if (currentStep === totalSteps) {
+                updateRecap();
+            }
+        }
+
+        // Scroll vers le haut
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function validateStep(step) {
+        var stepEl = document.querySelector('.form-section-step[data-step="' + step + '"]');
+        if (!stepEl) return true;
+
+        var inputs = stepEl.querySelectorAll('input[required], select[required], textarea[required]');
+        var isValid = true;
+
+        inputs.forEach(function(input) {
+            if (!input.value || (input.type === 'checkbox' && !input.checked && input.required)) {
+                isValid = false;
+                input.classList.add('is-invalid');
+
+                // Créer un message d'erreur si nécessaire
+                var errorMsg = input.parentElement.querySelector('.invalid-feedback');
+                if (!errorMsg) {
+                    errorMsg = document.createElement('div');
+                    errorMsg.className = 'invalid-feedback d-block';
+                    errorMsg.textContent = 'Ce champ est obligatoire';
+                    input.parentElement.appendChild(errorMsg);
+                }
+            } else {
+                input.classList.remove('is-invalid');
+                var errorMsg = input.parentElement.querySelector('.invalid-feedback');
+                if (errorMsg) {
+                    errorMsg.remove();
+                }
+            }
+        });
+
+        return isValid;
+    }
+
+    function updateRecap() {
+        var summary = document.getElementById('recap-summary');
+        if (!summary) return;
+
+        var html = '';
+
+        // Récupérer les valeurs des champs
+        var reference = document.querySelector('[name="{{ form.reference.vars.full_name }}"]');
+        var emplacement = document.querySelector('[name="{{ form.emplacement.vars.full_name }}"]');
+        var taille = document.querySelector('[name="{{ form.taille.vars.full_name }}"]');
+        var type = document.querySelector('[name="{{ form.type.vars.full_name }}"]');
+        var prix = document.querySelector('[name="{{ form.prixMensuel.vars.full_name }}"]');
+
+        if (reference && reference.value) {
+            html += '<div class="recap-item"><span class="recap-label">Référence:</span><span class="recap-value">' + reference.value + '</span></div>';
+        }
+        if (emplacement && emplacement.value) {
+            html += '<div class="recap-item"><span class="recap-label">Emplacement:</span><span class="recap-value">' + emplacement.value + '</span></div>';
+        }
+        if (taille && taille.value) {
+            html += '<div class="recap-item"><span class="recap-label">Taille:</span><span class="recap-value">' + taille.value + ' m²</span></div>';
+        }
+        if (type && type.value) {
+            var typeLabel = type.options[type.selectedIndex].text;
+            html += '<div class="recap-item"><span class="recap-label">Type:</span><span class="recap-value">' + typeLabel + '</span></div>';
+        }
+        if (prix && prix.value) {
+            html += '<div class="recap-item"><span class="recap-label">Prix mensuel:</span><span class="recap-value">' + parseInt(prix.value).toLocaleString() + ' FCFA</span></div>';
+        }
+
+        summary.innerHTML = html || '<p class="text-muted small mb-0">Complétez le formulaire pour voir le récapitulatif</p>';
+    }
+
+    if (btnNext) {
+        btnNext.addEventListener('click', function() {
+            if (validateStep(currentStep)) {
+                if (currentStep < totalSteps) {
+                    currentStep++;
+                    updateStepDisplay();
+                }
+            }
+        });
+    }
+
+    if (btnPrev) {
+        btnPrev.addEventListener('click', function() {
+            if (currentStep > 1) {
+                currentStep--;
+                updateStepDisplay();
+            }
+        });
+    }
+
+    // Support du clavier
+    document.addEventListener('keydown', function(e) {
+        if (e.target.tagName === 'TEXTAREA') return; // Ne pas naviguer si on est dans un textarea
+
+        if (e.key === 'ArrowRight' && currentStep < totalSteps && btnNext.style.display !== 'none') {
+            btnNext.click();
+        } else if (e.key === 'ArrowLeft' && currentStep > 1 && btnPrev.style.display !== 'none') {
+            btnPrev.click();
+        }
+    });
+
+    // Initialiser l'affichage
+    updateStepDisplay();
+
+    // Auto-sauvegarde dans localStorage (optionnel)
+    var form = document.querySelector('.form-wizard');
+    if (form) {
+        var inputs = form.querySelectorAll('input, select, textarea');
+        inputs.forEach(function(input) {
+            // Charger les valeurs sauvegardées
+            var savedValue = localStorage.getItem('panneau_' + input.name);
+            if (savedValue && !input.value) {
+                input.value = savedValue;
+            }
+
+            // Sauvegarder au changement
+            input.addEventListener('change', function() {
+                localStorage.setItem('panneau_' + input.name, this.value);
+            });
+        });
+
+        // Nettoyer localStorage après soumission réussie
+        form.addEventListener('submit', function() {
+            inputs.forEach(function(input) {
+                localStorage.removeItem('panneau_' + input.name);
+            });
+        });
+    }
 })();
 </script>
 {% endblock %}

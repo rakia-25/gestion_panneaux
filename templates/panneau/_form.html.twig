@@ -1,0 +1,109 @@
+{#
+    Formulaire panneau – 3 sections (Localisation, Caractéristiques, Tarif & visuel).
+    Variables : form, edit_mode (optionnel, false), panneau (optionnel, pour edit_mode)
+    En édition : form.faces ou form.etatFaceB selon le type de formulaire.
+#}
+{{ form_start(form, {
+    attr: {
+        class: edit_mode|default(false) ? 'form-modern' : 'form-modern form-wizard',
+        'aria-label': edit_mode|default(false) ? 'Formulaire modification panneau' : 'Formulaire de création d\'un panneau'
+    }
+}) }}
+<div class="panneau-form-layout">
+    <!-- Section 1: Localisation -->
+    <div class="form-section form-section-step{% if not edit_mode|default(false) %} active{% endif %}"{% if not edit_mode|default(false) %} data-step="1"{% endif %}>
+        <div class="form-section-header">
+            <div class="form-section-icon"><i class="bi bi-geo-alt"></i></div>
+            <div>
+                <h2 class="form-section-title">Localisation du panneau</h2>
+                <p class="form-section-subtitle">Où se trouve exactement votre panneau publicitaire ?</p>
+            </div>
+        </div>
+        <div class="row g-3">
+            <div class="col-12 col-md-4">{{ form_row(form.reference) }}</div>
+            <div class="col-12 col-md-8">{{ form_row(form.emplacement) }}</div>
+            <div class="col-12 col-md-6">{{ form_row(form.quartier) }}</div>
+            <div class="col-12 col-md-6">{{ form_row(form.visibilite) }}</div>
+            <div class="col-12">{{ form_row(form.coordonneesGps) }}</div>
+        </div>
+    </div>
+
+    <!-- Section 2: Caractéristiques -->
+    <div class="form-section form-section-step"{% if not edit_mode|default(false) %} data-step="2" style="display: none;"{% endif %}>
+        <div class="form-section-header">
+            <div class="form-section-icon"><i class="bi bi-grid-3x3"></i></div>
+            <div>
+                <h2 class="form-section-title">Caractéristiques techniques</h2>
+                <p class="form-section-subtitle">Définissez les spécifications de votre panneau</p>
+            </div>
+        </div>
+        <div class="row g-3">
+            <div class="col-12 col-sm-6">{{ form_row(form.taille) }}</div>
+            <div class="col-12 col-sm-6">{{ form_row(form.type) }}</div>
+            <div class="col-12">
+                <div class="checkbox-inline-simple">{{ form_row(form.eclairage) }}</div>
+            </div>
+            {% if form.faces is defined %}
+                <div class="col-12" data-edit-faces>
+                    {{ form_label(form.faces) }}
+                    {{ form_help(form.faces) }}
+                    <div class="row g-2 mt-1">
+                        <div class="col-md-6">
+                            <label class="form-label small text-muted">Face A</label>
+                            {{ form_widget(form.faces[0].etat) }}
+                            {{ form_errors(form.faces[0].etat) }}
+                        </div>
+                        <div class="col-md-6" id="edit-face-b-wrapper" style="display: {{ panneau.type is defined and panneau.type == 'double' ? 'block' : 'none' }};">
+                            <label class="form-label small text-muted">Face B</label>
+                            {% if form.etatFaceB is defined %}
+                                {{ form_widget(form.etatFaceB) }}
+                                {{ form_errors(form.etatFaceB) }}
+                            {% elseif form.faces[1] is defined %}
+                                {{ form_widget(form.faces[1].etat) }}
+                                {{ form_errors(form.faces[1].etat) }}
+                            {% endif %}
+                        </div>
+                    </div>
+                    {{ form_errors(form.faces) }}
+                </div>
+            {% else %}
+                <div class="col-12 col-md-6" id="etat-face-a-wrapper">{{ form_row(form.etatFaceA) }}</div>
+                <div class="col-12 col-md-6" id="etat-face-b-wrapper" style="display: none;">{{ form_row(form.etatFaceB) }}</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Section 3: Tarif & visuel -->
+    <div class="form-section form-section-step"{% if not edit_mode|default(false) %} data-step="3" style="display: none;"{% endif %}>
+        <div class="form-section-header">
+            <div class="form-section-icon"><i class="bi bi-currency-exchange"></i></div>
+            <div>
+                <h2 class="form-section-title">Tarification et visuels</h2>
+                <p class="form-section-subtitle">Complétez les informations commerciales</p>
+            </div>
+        </div>
+        <div class="row g-3">
+            <div class="col-12 col-md-6">{{ form_row(form.prixMensuel) }}</div>
+            <div class="col-12 col-md-6">{{ form_row(form.photo) }}</div>
+            <div class="col-12">{{ form_row(form.description) }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="form-navigation">
+    {% if edit_mode|default(false) %}
+        <a href="{{ cancel_path|default(path('app_panneau_show', { id: panneau.id })) }}" class="btn-secondary-modern">
+            <i class="bi bi-x-lg"></i> Annuler
+        </a>
+        <button type="submit" class="btn-primary-modern">
+            <i class="bi bi-check-lg"></i> Enregistrer
+        </button>
+    {% else %}
+        <button type="button" class="btn-secondary-modern btn-prev" style="display: none;"><i class="bi bi-chevron-left"></i> Précédent</button>
+        <div class="navigation-info"><span class="step-counter">Étape <strong class="current-step">1</strong> sur <strong>3</strong></span></div>
+        <button type="button" class="btn-primary-modern btn-next">Suivant <i class="bi bi-chevron-right"></i></button>
+        <button type="submit" class="btn-primary-modern btn-submit" style="display: none;"><i class="bi bi-check-lg"></i> Créer le panneau</button>
+    {% endif %}
+</div>
+{{ form_rest(form) }}
+{{ form_end(form) }}

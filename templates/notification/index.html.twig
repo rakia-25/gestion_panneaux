@@ -1,0 +1,712 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Notifications{% endblock %}
+
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" class="breadcrumb-nav mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Tableau de bord</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Notifications</li>
+        </ol>
+    </nav>
+{% endblock %}
+
+{% block body %}
+<!-- En-tête notifications -->
+<div class="notifications-hero">
+    <div class="hero-content">
+        <div class="hero-text">
+            <div class="hero-icon-badge">
+                <i class="bi bi-bell-fill"></i>
+            </div>
+            <div>
+                <h1 class="hero-title">Centre de notifications</h1>
+                <p class="hero-subtitle">Restez informé de toute votre activité</p>
+            </div>
+        </div>
+        <div class="hero-stats">
+            {% set unreadCount = 0 %}
+            {% for notif in notifications %}
+                {% if not notif.lu %}
+                    {% set unreadCount = unreadCount + 1 %}
+                {% endif %}
+            {% endfor %}
+            <div class="stat-badge">
+                <span class="stat-number">{{ notifications|length }}</span>
+                <span class="stat-label">Total</span>
+            </div>
+            {% if unreadCount > 0 %}
+                <div class="stat-badge unread">
+                    <span class="stat-number">{{ unreadCount }}</span>
+                    <span class="stat-label">Non lues</span>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Actions globales -->
+{% if notifications|length > 0 %}
+<div class="notifications-actions">
+    <div class="actions-left">
+        <div class="filter-tabs">
+            <button class="filter-tab active" data-filter="all">
+                Toutes ({{ notifications|length }})
+            </button>
+            <button class="filter-tab" data-filter="unread">
+                Non lues ({{ unreadCount }})
+            </button>
+        </div>
+    </div>
+    <div class="actions-right">
+        {% if unreadCount > 0 %}
+            <form action="{{ path('app_notification_mark_all_read') }}" method="post" class="d-inline">
+                <input type="hidden" name="_token" value="{{ csrf_token('mark_all_read') }}">
+                <button type="submit" class="btn-action-modern">
+                    <i class="bi bi-check-all"></i>
+                    <span>Tout marquer lu</span>
+                </button>
+            </form>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Liste des notifications -->
+<div class="notifications-container">
+    {% if notifications|length > 0 %}
+        <div class="notifications-list">
+            {% for notif in notifications %}
+                <div class="notification-card {{ notif.lu ? 'read' : 'unread' }}" data-type="{{ notif.lu ? 'read' : 'unread' }}">
+                    <div class="notification-indicator"></div>
+                    <div class="notification-icon {{ notif.type }}">
+                        {% if notif.type == 'paiement_recu' %}
+                            <i class="bi bi-cash-coin"></i>
+                        {% elseif notif.type == 'fin_location' %}
+                            <i class="bi bi-calendar-event"></i>
+                        {% elseif notif.type == 'impaye' %}
+                            <i class="bi bi-exclamation-triangle"></i>
+                        {% else %}
+                            <i class="bi bi-bell"></i>
+                        {% endif %}
+                    </div>
+                    <div class="notification-content">
+                        <div class="notification-header">
+                            <h3 class="notification-title">{{ notif.titre }}</h3>
+                            <span class="notification-time">
+                                <i class="bi bi-clock"></i>
+                                {{ notif.createdAt|date('d/m/Y H:i') }}
+                            </span>
+                        </div>
+                        <p class="notification-message">{{ notif.message }}</p>
+                        <div class="notification-actions">
+                            {% if notif.route and notif.routeParams %}
+                                <a href="{{ path('app_notification_voir', { id: notif.id }) }}" class="notif-action-btn primary">
+                                    <i class="bi bi-eye"></i>
+                                    <span>Voir les détails</span>
+                                </a>
+                            {% endif %}
+                            {% if not notif.lu %}
+                                <form action="{{ path('app_notification_mark_read', { id: notif.id }) }}" method="post" class="d-inline">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('mark_read' ~ notif.id) }}">
+                                    <button type="submit" class="notif-action-btn secondary">
+                                        <i class="bi bi-check"></i>
+                                        <span>Marquer comme lu</span>
+                                    </button>
+                                </form>
+                            {% else %}
+                                <span class="read-badge">
+                                    <i class="bi bi-check-circle-fill"></i>
+                                    Lue
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state-notifications">
+            <div class="empty-icon">
+                <i class="bi bi-bell-slash"></i>
+            </div>
+            <h2 class="empty-title">Aucune notification</h2>
+            <p class="empty-text">Vous n'avez reçu aucune notification pour le moment.<br>Les alertes importantes apparaîtront ici.</p>
+            <a href="{{ path('app_dashboard') }}" class="btn-hero-primary">
+                <i class="bi bi-arrow-left"></i>
+                <span>Retour au tableau de bord</span>
+            </a>
+        </div>
+    {% endif %}
+</div>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+
+:root {
+    --notif-bg: #f8fafc;
+    --notif-text: #0f172a;
+    --notif-text-muted: #64748b;
+    --notif-primary: #6366f1;
+    --notif-success: #10b981;
+    --notif-warning: #f59e0b;
+    --notif-danger: #ef4444;
+    --notif-border: #e2e8f0;
+    --notif-card-bg: #ffffff;
+    --notif-unread-bg: #eff6ff;
+    --notif-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+    --notif-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+    --notif-font: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* ========== Hero ========== */
+.notifications-hero {
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    border-radius: 20px;
+    padding: 2.5rem 2rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--notif-shadow-lg), 0 0 0 1px rgba(255, 255, 255, 0.1);
+    position: relative;
+    overflow: hidden;
+}
+
+.notifications-hero::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -10%;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.hero-content {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 2rem;
+    flex-wrap: wrap;
+}
+
+.hero-text {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    flex: 1;
+}
+
+.hero-icon-badge {
+    width: 72px;
+    height: 72px;
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: white;
+    flex-shrink: 0;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.hero-title {
+    font-family: var(--notif-font);
+    font-size: 2rem;
+    font-weight: 800;
+    color: white;
+    margin: 0 0 0.25rem;
+    letter-spacing: -0.02em;
+}
+
+.hero-subtitle {
+    font-family: var(--notif-font);
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.9);
+    margin: 0;
+    font-weight: 500;
+}
+
+.hero-stats {
+    display: flex;
+    gap: 1rem;
+}
+
+.stat-badge {
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    border-radius: 14px;
+    padding: 1rem 1.5rem;
+    text-align: center;
+    min-width: 100px;
+}
+
+.stat-badge.unread {
+    background: rgba(255, 255, 255, 0.95);
+}
+
+.stat-number {
+    display: block;
+    font-family: var(--notif-font);
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: white;
+    line-height: 1;
+    margin-bottom: 0.25rem;
+}
+
+.stat-badge.unread .stat-number {
+    color: var(--notif-primary);
+}
+
+.stat-label {
+    display: block;
+    font-family: var(--notif-font);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.stat-badge.unread .stat-label {
+    color: var(--notif-text-muted);
+}
+
+/* ========== Actions ========== */
+.notifications-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.filter-tabs {
+    display: inline-flex;
+    gap: 0.25rem;
+    background: white;
+    padding: 0.25rem;
+    border-radius: 12px;
+    box-shadow: var(--notif-shadow);
+}
+
+.filter-tab {
+    padding: 0.625rem 1.25rem;
+    background: transparent;
+    border: none;
+    border-radius: 10px;
+    font-family: var(--notif-font);
+    font-weight: 600;
+    font-size: 0.9375rem;
+    color: var(--notif-text-muted);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.filter-tab:hover {
+    background: var(--notif-bg);
+    color: var(--notif-text);
+}
+
+.filter-tab.active {
+    background: var(--notif-primary);
+    color: white;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+
+.btn-action-modern {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    background: white;
+    border: 1px solid var(--notif-border);
+    border-radius: 10px;
+    font-family: var(--notif-font);
+    font-weight: 600;
+    font-size: 0.9375rem;
+    color: var(--notif-text);
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: var(--notif-shadow);
+}
+
+.btn-action-modern:hover {
+    background: var(--notif-primary);
+    border-color: var(--notif-primary);
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+/* ========== Notifications List ========== */
+.notifications-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.notification-card {
+    position: relative;
+    background: var(--notif-card-bg);
+    border-radius: 16px;
+    padding: 1.5rem;
+    display: flex;
+    gap: 1.25rem;
+    box-shadow: var(--notif-shadow);
+    transition: all 0.3s;
+    border-left: 4px solid transparent;
+}
+
+.notification-card.unread {
+    background: var(--notif-unread-bg);
+    border-left-color: var(--notif-primary);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+}
+
+.notification-card:hover {
+    transform: translateX(4px);
+    box-shadow: var(--notif-shadow-lg);
+}
+
+.notification-indicator {
+    position: absolute;
+    top: 1.5rem;
+    left: -2px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--notif-primary);
+    display: none;
+}
+
+.notification-card.unread .notification-indicator {
+    display: block;
+    animation: pulse-notif 2s infinite;
+}
+
+@keyframes pulse-notif {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.5;
+        transform: scale(1.2);
+    }
+}
+
+.notification-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.notification-icon.paiement_recu {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--notif-success);
+}
+
+.notification-icon.fin_location {
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--notif-warning);
+}
+
+.notification-icon.impaye {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--notif-danger);
+}
+
+.notification-icon:not(.paiement_recu):not(.fin_location):not(.impaye) {
+    background: rgba(99, 102, 241, 0.15);
+    color: var(--notif-primary);
+}
+
+.notification-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.notification-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.notification-title {
+    font-family: var(--notif-font);
+    font-size: 1.0625rem;
+    font-weight: 700;
+    color: var(--notif-text);
+    margin: 0;
+}
+
+.notification-time {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-family: var(--notif-font);
+    font-size: 0.8125rem;
+    color: var(--notif-text-muted);
+    font-weight: 500;
+    flex-shrink: 0;
+}
+
+.notification-message {
+    font-family: var(--notif-font);
+    font-size: 0.9375rem;
+    color: var(--notif-text-muted);
+    line-height: 1.6;
+    margin: 0 0 1rem;
+}
+
+.notification-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.notif-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 10px;
+    font-family: var(--notif-font);
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-decoration: none;
+    border: 1px solid var(--notif-border);
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.notif-action-btn.primary {
+    background: var(--notif-primary);
+    border-color: var(--notif-primary);
+    color: white;
+}
+
+.notif-action-btn.primary:hover {
+    background: #4f46e5;
+    border-color: #4f46e5;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    color: white;
+}
+
+.notif-action-btn.secondary {
+    background: var(--notif-card-bg);
+    color: var(--notif-text);
+}
+
+.notif-action-btn.secondary:hover {
+    background: var(--notif-bg);
+    border-color: var(--notif-primary);
+    color: var(--notif-primary);
+}
+
+.read-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.5rem 1rem;
+    background: rgba(16, 185, 129, 0.1);
+    border-radius: 10px;
+    font-family: var(--notif-font);
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: var(--notif-success);
+}
+
+/* ========== Empty State ========== */
+.empty-state-notifications {
+    background: white;
+    border-radius: 20px;
+    padding: 5rem 2rem;
+    text-align: center;
+    box-shadow: var(--notif-shadow);
+}
+
+.empty-icon {
+    width: 120px;
+    height: 120px;
+    margin: 0 auto 2rem;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.05));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 4rem;
+    color: var(--notif-primary);
+    opacity: 0.5;
+}
+
+.empty-title {
+    font-family: var(--notif-font);
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--notif-text);
+    margin: 0 0 0.75rem;
+}
+
+.empty-text {
+    font-family: var(--notif-font);
+    font-size: 1rem;
+    color: var(--notif-text-muted);
+    line-height: 1.6;
+    margin: 0 0 2rem;
+}
+
+.btn-hero-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.875rem 1.75rem;
+    background: var(--notif-primary);
+    color: white;
+    border-radius: 12px;
+    font-family: var(--notif-font);
+    font-weight: 600;
+    font-size: 0.9375rem;
+    text-decoration: none;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.btn-hero-primary:hover {
+    background: #4f46e5;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(99, 102, 241, 0.4);
+    color: white;
+}
+
+/* ========== Responsive ========== */
+@media (max-width: 768px) {
+    .notifications-hero {
+        padding: 2rem 1.5rem;
+    }
+
+    .hero-content {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .hero-text {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .hero-icon-badge {
+        width: 64px;
+        height: 64px;
+        font-size: 1.75rem;
+    }
+
+    .hero-title {
+        font-size: 1.75rem;
+    }
+
+    .hero-stats {
+        justify-content: center;
+        width: 100%;
+    }
+
+    .notifications-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .filter-tabs {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .actions-right {
+        width: 100%;
+    }
+
+    .btn-action-modern {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .notification-card {
+        flex-direction: column;
+    }
+
+    .notification-icon {
+        align-self: flex-start;
+    }
+
+    .notification-header {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .notification-actions {
+        flex-direction: column;
+    }
+
+    .notif-action-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Filtrage des notifications
+    const filterTabs = document.querySelectorAll('.filter-tab');
+    const notificationCards = document.querySelectorAll('.notification-card');
+
+    filterTabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            // Retirer l'active de tous les tabs
+            filterTabs.forEach(t => t.classList.remove('active'));
+            // Ajouter active au tab cliqué
+            this.classList.add('active');
+
+            const filter = this.dataset.filter;
+
+            notificationCards.forEach(card => {
+                if (filter === 'all') {
+                    card.style.display = 'flex';
+                } else if (filter === 'unread') {
+                    if (card.classList.contains('unread')) {
+                        card.style.display = 'flex';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                }
+            });
+        });
+    });
+
+    // Animation d'entrée
+    notificationCards.forEach((card, index) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+
+        setTimeout(() => {
+            card.style.transition = 'opacity 0.3s, transform 0.3s';
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+        }, index * 50);
+    });
+});
+</script>
+{% endblock %}

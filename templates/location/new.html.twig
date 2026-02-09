@@ -2,106 +2,55 @@
 
 {% block title %}Nouvelle location{% endblock %}
 
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" class="breadcrumb-nav mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Tableau de bord</a></li>
+            <li class="breadcrumb-item"><a href="{{ path('app_location_index') }}">Locations</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Nouvelle location</li>
+        </ol>
+    </nav>
+{% endblock %}
+
 {% block body %}
 <div class="page-header">
     <h1 class="page-title">Nouvelle location</h1>
-    <p class="page-description">Créez une nouvelle location de panneau publicitaire</p>
+    <p class="page-description">Créez une nouvelle location en 3 étapes</p>
 </div>
 
-<div class="row">
-    <div class="col-md-8 offset-md-2">
+<ul class="reservation-stepper mb-4" id="reservationStepper">
+    <li class="step active" data-step="1">
+        <span class="step-num">1</span>
+        <span class="step-label">Face & Client</span>
+    </li>
+    <li class="step" data-step="2">
+        <span class="step-num">2</span>
+        <span class="step-label">Dates & Durée</span>
+    </li>
+    <li class="step" data-step="3">
+        <span class="step-num">3</span>
+        <span class="step-label">Montant & Confirmation</span>
+    </li>
+</ul>
+
+<div class="row g-3 g-lg-4">
+    <div class="col-lg-8">
         <div class="section-card">
             <div class="section-header">
                 <h3 class="section-title"><i class="bi bi-plus-circle"></i> Informations de la location</h3>
             </div>
-            <div>
-                {% if face_obj %}
-                    {% set locationActive = face_obj.getLocationActive() %}
-                    {% set locationsFutures = face_obj.getLocationsActivesOuFutures() %}
-                    <div class="alert alert-{{ locationActive ? 'warning' : (locationsFutures|length > 0 ? 'info' : 'info') }} mb-3">
-                        <i class="bi bi-info-circle"></i> <strong>Face pré-sélectionnée :</strong> {{ face_obj.nomComplet }}
-                        ({{ face_obj.panneau.emplacement }})
-                        {% if locationActive %}
-                            <br><small><i class="bi bi-exclamation-triangle"></i> Cette face est actuellement occupée jusqu'au <strong>{{ locationActive.dateFin|date('d/m/Y') }}</strong>.
-                            Vous pouvez réserver à partir du lendemain de cette date.</small>
-                        {% elseif locationsFutures|length > 0 %}
-                            {% set prochaineLocation = locationsFutures[0] %}
-                            <br><small><i class="bi bi-calendar-check"></i> Cette face est réservée du <strong>{{ prochaineLocation.dateDebut|date('d/m/Y') }}</strong> au <strong>{{ prochaineLocation.dateFin|date('d/m/Y') }}</strong>.
-                            Vous pouvez réserver à partir du lendemain de cette date.</small>
-                        {% endif %}
-                    </div>
-                {% endif %}
-                {% if client_obj %}
-                    <div class="alert alert-info mb-3">
-                        <i class="bi bi-info-circle"></i> <strong>Client pré-sélectionné :</strong> {{ client_obj.nom }}
-                    </div>
-                {% endif %}
-
-                {% if not form.vars.valid %}
-                    <div class="alert alert-danger mb-3">
-                        <i class="bi bi-exclamation-triangle"></i> <strong>Erreur :</strong> Veuillez corriger les erreurs ci-dessous.
-                    </div>
-                {% endif %}
-
-                {{ form_start(form) }}
-                    {{ form_row(form.face) }}
-                    {{ form_row(form.client) }}
-                    <div class="row">
-                        <div class="col-md-6">
-                            {{ form_row(form.dateDebut) }}
-                        </div>
-                        <div class="col-md-6">
-                            {{ form_row(form.dureeMois) }}
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6">
-                            {{ form_row(form.dateFin) }}
-                        </div>
-                    </div>
-                    {{ form_row(form.montantMensuel) }}
-                    {{ form_row(form.notes) }}
-
-                    <div id="confirmer-mauvais-wrapper" class="mb-3" {% if not (face_obj and face_obj.etat == 'mauvais') %}style="display: none;"{% endif %}>
-                        <div class="alert alert-warning mb-2">
-                            <i class="bi bi-exclamation-triangle"></i> Ce panneau est en état dégradé. Souhaitez-vous quand même le louer ?
-                        </div>
-                        {{ form_row(form.confirmerEtatMauvais) }}
-                    </div>
-
-                    <div class="alert alert-info">
-                        <i class="bi bi-info-circle"></i> Le montant mensuel est pré-rempli automatiquement depuis le prix du panneau. Vous pouvez le modifier pour appliquer une remise ou un tarif spécial.
-                        <br>
-                        <i class="bi bi-info-circle"></i> Le système vérifiera automatiquement que la face est disponible pour la période sélectionnée.
-                    </div>
-
-                    <div style="display: flex; justify-content: space-between; margin-top: 2rem;">
-                        {% if face_id and face_obj %}
-                            <a href="{{ path('app_panneau_show', {id: face_obj.panneau.id}) }}" class="btn-secondary-modern">
-                                <i class="bi bi-arrow-left"></i> Retour au panneau
-                            </a>
-                        {% elseif client_id and client_obj %}
-                            <a href="{{ path('app_client_show', {id: client_obj.id}) }}" class="btn-secondary-modern">
-                                <i class="bi bi-arrow-left"></i> Retour au client
-                            </a>
-                        {% else %}
-                            <a href="{{ path('app_location_index') }}" class="btn-secondary-modern">
-                                <i class="bi bi-arrow-left"></i> Retour
-                            </a>
-                        {% endif %}
-                        <button type="submit" class="btn-primary-modern">
-                            <i class="bi bi-check"></i> Créer
-                        </button>
-                    </div>
-                    {{ form_rest(form) }}
-                {{ form_end(form) }}
+            <div class="form-card-inner">
+                {% include 'location/_alerts.html.twig' with { face_obj: face_obj|default(null), client_obj: client_obj|default(null), form: form } %}
+                {% include 'location/_form.html.twig' with { form: form } %}
             </div>
         </div>
     </div>
+    {% include 'location/_sidebar.html.twig' with { face_id: face_id|default(null), face_obj: face_obj|default(null), client_id: client_id|default(null), client_obj: client_obj|default(null) } %}
 </div>
 {% endblock %}
 
 {% block javascripts %}
+{{ parent() }}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const faceSelect = document.getElementById('location_face');
@@ -110,198 +59,177 @@ document.addEventListener('DOMContentLoaded', function() {
     const dateDebutInput = document.getElementById('location_dateDebut');
     const dureeMoisInput = document.getElementById('location_dureeMois');
     const dateFinInput = document.getElementById('location_dateFin');
-    const confirmerMauvaisWrapper = document.getElementById('confirmer-mauvais-wrapper');
     const confirmerMauvaisCheckbox = document.getElementById('location_confirmerEtatMauvais');
 
-    if (faceSelect && confirmerMauvaisWrapper) {
+    var currentStep = 1;
+    var totalSteps = 3;
+
+    function showStep(step) {
+        currentStep = step;
+        document.querySelectorAll('.step-content').forEach(function(el) {
+            el.style.display = el.dataset.step == step ? 'block' : 'none';
+        });
+        document.querySelectorAll('#reservationStepper .step').forEach(function(el) {
+            var n = parseInt(el.dataset.step, 10);
+            el.classList.remove('active', 'completed');
+            if (n === step) el.classList.add('active');
+            else if (n < step) el.classList.add('completed');
+        });
+        document.getElementById('stepPrevBtn').style.display = step === 1 ? 'none' : 'inline-flex';
+        document.getElementById('stepNextBtn').style.display = step === totalSteps ? 'none' : 'inline-flex';
+        document.getElementById('stepSubmitBtn').style.display = step === totalSteps ? 'inline-flex' : 'none';
+    }
+
+    document.getElementById('stepNextBtn').addEventListener('click', function() {
+        if (currentStep < totalSteps) showStep(currentStep + 1);
+    });
+    document.getElementById('stepPrevBtn').addEventListener('click', function() {
+        if (currentStep > 1) showStep(currentStep - 1);
+    });
+
+    function formatNumber(n) {
+        return Number(n).toLocaleString('fr-FR');
+    }
+
+    function updateCostPreview() {
+        var mensuel = 0;
+        if (montantInput && montantInput.value) {
+            mensuel = parseFloat(String(montantInput.value).replace(/\s/g, '').replace(/,/g, '.')) || 0;
+        }
+        var duree = 0;
+        if (dureeMoisInput && dureeMoisInput.value) {
+            duree = parseInt(dureeMoisInput.value, 10) || 0;
+        }
+        var dateFinStr = '—';
+        if (dateFinInput && dateFinInput.value) {
+            var d = new Date(dateFinInput.value);
+            dateFinStr = d.toLocaleDateString('fr-FR');
+        }
+        document.getElementById('preview-mensuel').textContent = mensuel > 0 ? formatNumber(mensuel) + ' FCFA' : '—';
+        document.getElementById('preview-duree').textContent = duree > 0 ? duree + ' mois' : '—';
+        document.getElementById('preview-datefin').textContent = dateFinStr;
+        var total = mensuel * duree;
+        document.getElementById('preview-total').textContent = total > 0 ? formatNumber(total) + ' FCFA' : '— FCFA';
+    }
+
+    if (montantInput) montantInput.addEventListener('input', updateCostPreview);
+    if (dureeMoisInput) dureeMoisInput.addEventListener('input', updateCostPreview);
+    if (dateFinInput) dateFinInput.addEventListener('change', updateCostPreview);
+    setInterval(updateCostPreview, 500);
+
+    if (faceSelect && confirmerMauvaisCheckbox) {
         function toggleConfirmerMauvais() {
-            const opt = faceSelect.options[faceSelect.selectedIndex];
-            const etat = opt ? opt.getAttribute('data-etat') : '';
-            if (etat === 'mauvais') {
-                confirmerMauvaisWrapper.style.display = 'block';
-            } else {
-                confirmerMauvaisWrapper.style.display = 'none';
-                if (confirmerMauvaisCheckbox) confirmerMauvaisCheckbox.checked = false;
-            }
+            var opt = faceSelect.options[faceSelect.selectedIndex];
+            var etat = opt ? opt.getAttribute('data-etat') : '';
+            var wrapper = confirmerMauvaisCheckbox ? confirmerMauvaisCheckbox.closest('.mb-3') : null;
+            if (wrapper) wrapper.style.display = etat === 'mauvais' ? 'block' : 'none';
+            if (etat !== 'mauvais') confirmerMauvaisCheckbox.checked = false;
         }
         faceSelect.addEventListener('change', toggleConfirmerMauvais);
         toggleConfirmerMauvais();
     }
 
     if (faceSelect && montantInput && notesSelect) {
-        // Désactiver la justification tant que le prix n'est pas modifié
-        notesSelect.disabled = true;
-        let prixOriginal = null;
-
-        // Fonction pour récupérer et définir le prix d'une face
+        var prixOriginal = null;
         function chargerPrixFace(faceId) {
-            if (!faceId || montantInput.dataset.manualEdit === 'true') {
-                return;
-            }
-
-            fetch(`/location/get-prix-face/${faceId}`)
-                .then(response => response.json())
-                .then(data => {
+            if (!faceId || montantInput.dataset.manualEdit === 'true') return;
+            fetch('/location/get-prix-face/' + faceId)
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
                     if (data.prix) {
-                        // Le prix vient comme string, on le convertit en nombre puis on le remet en string pour l'input
-                        const prixNum = parseFloat(data.prix);
-                        // Formater sans décimales pour un montant en FCFA
-                        const prixFormate = Math.round(prixNum).toString();
-                        montantInput.value = prixFormate;
-                        montantInput.dataset.prixOriginal = prixNum;
-                        prixOriginal = prixNum;
-                        montantInput.dataset.autoFilled = 'true';
-
-                        // Vérifier si le prix a été modifié
+                        var p = Math.round(parseFloat(data.prix));
+                        montantInput.value = p;
+                        montantInput.dataset.prixOriginal = p;
+                        prixOriginal = p;
                         verifierModificationPrix();
+                        updateCostPreview();
                     }
                 })
-                .catch(error => {
-                    console.error('Erreur lors de la récupération du prix:', error);
-                });
+                .catch(function() {});
         }
-
-        // Vérifier si le prix a été modifié et rendre le champ notes requis si nécessaire
         function verifierModificationPrix() {
-            if (!prixOriginal && montantInput.dataset.prixOriginal) {
-                prixOriginal = parseFloat(montantInput.dataset.prixOriginal);
-            }
-
-            if (prixOriginal) {
-                const prixActuelStr = montantInput.value.toString().replace(/\s/g, '').replace(/,/g, '.').replace(/[^\d.]/g, '');
-                const prixActuel = parseFloat(prixActuelStr) || 0;
-                const difference = Math.abs(prixActuel - prixOriginal);
-
-                // Si le prix a été modifié (différence > 0.01 pour éviter les erreurs d'arrondi)
-                if (difference > 0.01 && prixActuel > 0) {
-                    notesSelect.disabled = false;
-                    notesSelect.setAttribute('required', 'required');
-                    notesSelect.classList.add('is-invalid');
-                    // Ajouter un message d'aide visuel
-                    const formGroup = notesSelect.closest('.mb-3');
-                    if (formGroup) {
-                        let helpText = formGroup.querySelector('.form-text');
-                        if (!helpText) {
-                            helpText = document.createElement('div');
-                            helpText.className = 'form-text text-danger';
-                            formGroup.appendChild(helpText);
-                        }
-                        helpText.textContent = 'Ce champ est obligatoire car le prix a été modifié.';
-                    }
-                } else {
-                    notesSelect.disabled = true;
-                    notesSelect.value = '';
-                    notesSelect.removeAttribute('required');
-                    notesSelect.classList.remove('is-invalid');
-                    // Retirer le message d'aide
-                    const formGroup = notesSelect.closest('.mb-3');
-                    if (formGroup) {
-                        const helpText = formGroup.querySelector('.form-text.text-danger');
-                        if (helpText) {
-                            helpText.remove();
-                        }
-                    }
-                }
+            if (montantInput.dataset.prixOriginal) prixOriginal = parseFloat(montantInput.dataset.prixOriginal);
+            if (!prixOriginal) return;
+            var actuel = parseFloat(String(montantInput.value).replace(/\s/g, '').replace(/,/g, '.')) || 0;
+            var diff = Math.abs(actuel - prixOriginal);
+            if (diff > 0.01 && actuel > 0) {
+                notesSelect.disabled = false;
+                notesSelect.setAttribute('required', 'required');
+            } else {
+                notesSelect.disabled = true;
+                notesSelect.value = '';
+                notesSelect.removeAttribute('required');
             }
         }
-
-        // Charger le prix si une face est déjà sélectionnée au chargement
-        setTimeout(() => {
-            if (faceSelect.value) {
-                chargerPrixFace(faceSelect.value);
-            } else {
-                // Si pas de face sélectionnée, vérifier si le champ a déjà une valeur
-                let valeurActuelle = montantInput.value || '';
-                valeurActuelle = valeurActuelle.toString().replace(/\s/g, '').replace(/,/g, '.').replace(/[^\d.]/g, '');
-                const prixExistant = parseFloat(valeurActuelle) || 0;
-
-                if (prixExistant > 0) {
-                    prixOriginal = prixExistant;
-                    montantInput.dataset.prixOriginal = prixOriginal;
-                    verifierModificationPrix();
-                }
-            }
+        setTimeout(function() {
+            if (faceSelect.value) chargerPrixFace(faceSelect.value);
+            verifierModificationPrix();
         }, 300);
-
-        // Écouter les changements de sélection de face
         faceSelect.addEventListener('change', function() {
             montantInput.dataset.manualEdit = 'false';
-            if (this.value) {
-                chargerPrixFace(this.value);
-            }
+            if (faceSelect.value) chargerPrixFace(faceSelect.value);
         });
-
-        // Écouter les changements du montant
         montantInput.addEventListener('input', function() {
             this.dataset.manualEdit = 'true';
             verifierModificationPrix();
         });
-
-        // Vérifier au chargement de la page
-        setTimeout(() => verifierModificationPrix(), 500);
     }
 
-    // Calcul automatique de la date de fin
     if (dateDebutInput && dureeMoisInput && dateFinInput) {
         function calculerDateFin() {
-            const dateDebut = dateDebutInput.value;
-            const dureeMois = parseInt(dureeMoisInput.value) || 0;
-
+            var dateDebut = dateDebutInput.value;
+            var dureeMois = parseInt(dureeMoisInput.value, 10) || 0;
             if (dateDebut && dureeMois > 0) {
-                const date = new Date(dateDebut);
-                // Ajouter le nombre de mois
+                var date = new Date(dateDebut);
                 date.setMonth(date.getMonth() + dureeMois);
-
-                // Formater la date au format YYYY-MM-DD
-                const annee = date.getFullYear();
-                const mois = String(date.getMonth() + 1).padStart(2, '0');
-                const jour = String(date.getDate()).padStart(2, '0');
-                const dateFinFormatee = `${annee}-${mois}-${jour}`;
-
-                dateFinInput.value = dateFinFormatee;
+                var y = date.getFullYear(), m = String(date.getMonth() + 1).padStart(2, '0'), d = String(date.getDate()).padStart(2, '0');
+                dateFinInput.value = y + '-' + m + '-' + d;
                 dateFinInput.setAttribute('readonly', 'readonly');
-                dateFinInput.dataset.autoCalculated = 'true';
             } else {
-                // Toujours garder le champ en readonly
-                dateFinInput.setAttribute('readonly', 'readonly');
                 dateFinInput.value = '';
             }
+            updateCostPreview();
         }
-
-        // Écouter les changements de la date de début
-        dateDebutInput.addEventListener('change', function() {
-            calculerDateFin();
-        });
-
-        // Écouter les changements de la durée
-        dureeMoisInput.addEventListener('input', function() {
-            calculerDateFin();
-        });
-
-        // Empêcher la modification manuelle de la date de fin
-        dateFinInput.addEventListener('focus', function(e) {
-            e.preventDefault();
-            this.blur();
-        });
-
-        // Empêcher la saisie dans le champ date de fin
-        dateFinInput.addEventListener('keydown', function(e) {
-            e.preventDefault();
-        });
-
-        // Empêcher le clic pour ouvrir le calendrier
-        dateFinInput.addEventListener('click', function(e) {
-            e.preventDefault();
-            this.blur();
-        });
-
-        // Calculer au chargement si les valeurs existent
-        setTimeout(() => {
-            if (dateDebutInput.value && dureeMoisInput.value) {
-                calculerDateFin();
-            }
+        dateDebutInput.addEventListener('change', calculerDateFin);
+        dureeMoisInput.addEventListener('input', calculerDateFin);
+        dateFinInput.addEventListener('focus', function(e) { e.preventDefault(); this.blur(); });
+        dateFinInput.addEventListener('keydown', function(e) { e.preventDefault(); });
+        dateFinInput.addEventListener('click', function(e) { e.preventDefault(); this.blur(); });
+        setTimeout(function() {
+            if (dateDebutInput.value && dureeMoisInput.value) calculerDateFin();
         }, 100);
     }
+
+    var blockDispo = document.getElementById('disponibilite-face-block');
+    var contentDispo = document.getElementById('disponibilite-face-content');
+    if (faceSelect && blockDispo && contentDispo) {
+        faceSelect.addEventListener('change', function() {
+            var faceId = faceSelect.value;
+            if (!faceId) {
+                blockDispo.style.display = 'none';
+                return;
+            }
+            fetch('/location/face/' + faceId + '/disponibilite')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.periodes && data.periodes.length > 0) {
+                        blockDispo.style.display = 'block';
+                        contentDispo.innerHTML = 'Périodes déjà réservées :<br>' + data.periodes.map(function(p) {
+                            return p.start + ' → ' + p.end + (p.client ? ' (' + p.client + ')' : '');
+                        }).join('<br>');
+                    } else {
+                        blockDispo.style.display = 'block';
+                        contentDispo.innerHTML = '<i class="bi bi-check-circle text-success"></i> Aucune réservation future. Face disponible.';
+                    }
+                })
+                .catch(function() {
+                    blockDispo.style.display = 'none';
+                });
+        });
+        if (faceSelect.value) faceSelect.dispatchEvent(new Event('change'));
+    }
+
+    updateCostPreview();
 });
 </script>
 {% endblock %}

@@ -2,249 +2,439 @@
 
 {% block title %}Tableau de bord{% endblock %}
 
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" class="breadcrumb-nav mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item active" aria-current="page">Tableau de bord</li>
+        </ol>
+    </nav>
+{% endblock %}
+
 {% block body %}
-<div class="page-header">
-    <h1 class="page-title">Gestion des Locations</h1>
-    <p class="page-description">Suivez les locations, gérez les panneaux et analysez les revenus</p>
+<!-- En-tête du dashboard -->
+<div class="dashboard-hero">
+    <div class="hero-content">
+        <div class="hero-text">
+            <h1 class="hero-title">Tableau de bord</h1>
+            <p class="hero-subtitle">Vue d'ensemble complète de votre activité publicitaire</p>
+            <div class="hero-date">
+                <i class="bi bi-calendar3"></i>
+                <span id="currentDate"></span>
+            </div>
+        </div>
+        <div class="hero-actions">
+            <a href="{{ path('app_export_index') }}" class="btn-hero-secondary">
+                <i class="bi bi-download"></i>
+                <span>Exporter</span>
+            </a>
+            <a href="{{ path('app_location_calendar') }}" class="btn-hero-secondary">
+                <i class="bi bi-calendar-range"></i>
+                <span>Calendrier</span>
+            </a>
+            <a href="{{ path('app_location_index') }}" class="btn-hero-secondary">
+                <i class="bi bi-calendar-check"></i>
+                <span>Locations</span>
+            </a>
+            <a href="{{ path('app_location_new') }}" class="btn-hero-primary">
+                <i class="bi bi-plus-lg"></i>
+                <span>Nouvelle location</span>
+            </a>
+        </div>
+    </div>
 </div>
 
-{# Boutons d'action #}
-<div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
-    <button class="btn-secondary-modern">
-        <i class="bi bi-download"></i> Export
-    </button>
-    <button class="btn-secondary-modern">
-        <i class="bi bi-arrow-repeat"></i> Mise à jour groupée
-    </button>
-    <a href="{{ path('app_location_new') }}" class="btn-primary-modern">
-        <i class="bi bi-plus"></i> Nouvelle Location
+<!-- Alertes importantes -->
+{% if locationsImpayees|length > 0 or locationsFinissantBientot|length > 0 %}
+<div class="alerts-banner">
+    {% if locationsImpayees|length > 0 %}
+    <a href="{{ path('app_location_index', { estPaye: '0' }) }}" class="alert-banner danger">
+        <div class="alert-banner-icon">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+        </div>
+        <div class="alert-banner-content">
+            <strong>{{ locationsImpayees|length }}</strong> location{{ locationsImpayees|length > 1 ? 's' : '' }} impayée{{ locationsImpayees|length > 1 ? 's' : '' }}
+        </div>
+        <i class="bi bi-arrow-right alert-banner-arrow"></i>
+    </a>
+    {% endif %}
+    {% if locationsFinissantBientot|length > 0 %}
+    <a href="{{ path('app_location_index') }}" class="alert-banner warning">
+        <div class="alert-banner-icon">
+            <i class="bi bi-calendar-event-fill"></i>
+        </div>
+        <div class="alert-banner-content">
+            <strong>{{ locationsFinissantBientot|length }}</strong> location{{ locationsFinissantBientot|length > 1 ? 's' : '' }} finissen{{ locationsFinissantBientot|length > 1 ? 't' : 'nt' }} bientôt
+        </div>
+        <i class="bi bi-arrow-right alert-banner-arrow"></i>
+    </a>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- Métriques principales -->
+{% set totalFacesCount = totalFaces > 0 ? totalFaces : 1 %}
+{% set occupationPercent = ((facesOccupees / totalFacesCount) * 100)|round %}
+<div class="metrics-grid">
+    <a href="{{ path('app_panneau_index') }}" class="metric-card primary">
+        <div class="metric-card-bg"></div>
+        <div class="metric-card-icon">
+            <i class="bi bi-grid-3x3-gap"></i>
+        </div>
+        <div class="metric-card-content">
+            <div class="metric-value">{{ totalPanneaux }}</div>
+            <div class="metric-label">Panneaux publicitaires</div>
+            <div class="metric-action">
+                <span>Voir la liste</span>
+                <i class="bi bi-arrow-right"></i>
+            </div>
+        </div>
+    </a>
+
+    <a href="{{ path('app_location_index', { statut: 'active' }) }}" class="metric-card warning">
+        <div class="metric-card-bg"></div>
+        <div class="metric-card-icon">
+            <i class="bi bi-calendar-check"></i>
+        </div>
+        <div class="metric-card-content">
+            <div class="metric-value">{{ facesOccupees }}</div>
+            <div class="metric-label">Faces occupées</div>
+            <div class="metric-progress">
+                <div class="metric-progress-bar">
+                    <div class="metric-progress-fill" style="width: {{ occupationPercent }}%"></div>
+                </div>
+                <span class="metric-progress-text">{{ occupationPercent }}% d'occupation</span>
+            </div>
+            <div class="metric-action">
+                <span>Locations actives</span>
+                <i class="bi bi-arrow-right"></i>
+            </div>
+        </div>
+    </a>
+
+    <a href="{{ path('app_panneau_index') }}" class="metric-card success">
+        <div class="metric-card-bg"></div>
+        <div class="metric-card-icon">
+            <i class="bi bi-check-circle"></i>
+        </div>
+        <div class="metric-card-content">
+            <div class="metric-value">{{ facesDisponibles }}</div>
+            <div class="metric-label">Faces disponibles</div>
+            <div class="metric-action">
+                <span>Espaces libres</span>
+                <i class="bi bi-arrow-right"></i>
+            </div>
+        </div>
+    </a>
+
+    <a href="{{ path('app_location_index') }}" class="metric-card info">
+        <div class="metric-card-bg"></div>
+        <div class="metric-card-icon">
+            <i class="bi bi-currency-exchange"></i>
+        </div>
+        <div class="metric-card-content">
+            <div class="metric-value revenue">
+                {{ (revenuMensuel / 1000)|number_format(0) }}K
+                <span class="metric-currency">FCFA</span>
+            </div>
+            <div class="metric-label">Chiffre d'affaires mensuel</div>
+            <div class="metric-action">
+                <span>Revenus actifs</span>
+                <i class="bi bi-arrow-right"></i>
+            </div>
+        </div>
     </a>
 </div>
 
-{# Cartes de métriques #}
-<div class="row g-4 mb-4">
-    <div class="col-md-3">
-        <div class="metric-card">
-            <div class="metric-header">
-                <div class="metric-icon primary">
-                    <i class="bi bi-grid"></i>
+<!-- Graphique et Activité -->
+<div class="dashboard-split">
+    <!-- Revenus -->
+    <div class="dashboard-panel chart-panel">
+        <div class="panel-header">
+            <div class="panel-title">
+                <i class="bi bi-graph-up"></i>
+                <h2>Évolution des revenus</h2>
+            </div>
+            <div class="period-selector">
+                <a href="{{ path('app_dashboard', { periode: '7D' }) }}" class="period-btn {{ periode == '7D' ? 'active' : '' }}">7J</a>
+                <a href="{{ path('app_dashboard', { periode: '30D' }) }}" class="period-btn {{ periode == '30D' ? 'active' : '' }}">30J</a>
+                <a href="{{ path('app_dashboard', { periode: '90D' }) }}" class="period-btn {{ periode == '90D' ? 'active' : '' }}">90J</a>
+                <a href="{{ path('app_dashboard', { periode: '1Y' }) }}" class="period-btn {{ periode == '1Y' ? 'active' : '' }}">1 an</a>
+            </div>
+        </div>
+        <div class="panel-content">
+            <div class="chart-legend">
+                <div class="legend-item">
+                    <span class="legend-dot encaisses"></span>
+                    <span>Encaissés</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-dot prevus"></span>
+                    <span>Prévus</span>
                 </div>
             </div>
-            <div class="metric-value">{{ totalPanneaux }}</div>
-            <div class="metric-label">Total Panneaux</div>
-            <div class="metric-change positive">
-                <i class="bi bi-arrow-up"></i>
-                <span>Total disponible</span>
+            <div class="chart-container">
+                <canvas id="revenueChart"></canvas>
             </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="metric-card">
-            <div class="metric-header">
-                <div class="metric-icon warning">
-                    <i class="bi bi-clock"></i>
-                </div>
-            </div>
-            <div class="metric-value">{{ facesOccupees }}</div>
-            <div class="metric-label">Faces occupées</div>
-            <div class="metric-change warning">
-                <i class="bi bi-exclamation-triangle"></i>
-                <span>Nécessite attention</span>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="metric-card">
-            <div class="metric-header">
-                <div class="metric-icon info">
-                    <i class="bi bi-check-circle"></i>
-                </div>
-            </div>
-            <div class="metric-value">{{ facesDisponibles }}</div>
-            <div class="metric-label">Faces disponibles</div>
-            <div class="metric-change info">
-                <i class="bi bi-arrow-right"></i>
-                <span>En transit</span>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="metric-card">
-            <div class="metric-header">
-                <div class="metric-icon success">
-                    <i class="bi bi-currency-exchange"></i>
-                </div>
-            </div>
-            <div class="metric-value">{{ revenuMensuel|number_format(0, ',', ' ') }} FCFA</div>
-            <div class="metric-label">Revenu mensuel</div>
-            <div class="metric-change positive">
-                <i class="bi bi-arrow-up"></i>
-                <span>Revenus actifs</span>
-            </div>
-        </div>
-    </div>
-</div>
-
-{# Sections Order Trends et Order Status #}
-<div class="row g-4 mb-4">
-    <div class="col-md-6">
-        <div class="section-card">
-            <div class="section-header">
-                <h3 class="section-title">Tendances des Locations</h3>
-                <div class="period-selector">
-                    <button class="period-btn active">7J</button>
-                    <button class="period-btn">30J</button>
-                    <button class="period-btn">90J</button>
-                </div>
-            </div>
-            <div style="min-height: 200px; display: flex; align-items: center; justify-content: center; color: var(--text-gray);">
-                <p>Visualisation des tendances (graphique non implémenté)</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-6">
-        <div class="section-card">
-            <div class="section-header">
-                <h3 class="section-title">Statut des Locations</h3>
-            </div>
-            <ul class="status-list">
-                {% set totalFaces = totalPanneaux * 2 %}
-                {% set pendingCount = locationsFinissantBientot|length %}
-                {% set unpaidCount = locationsImpayees|length %}
-                {% set activeCount = facesOccupees %}
-                {% set totalLocations = pendingCount + unpaidCount + activeCount %}
-                {% set totalForPercent = totalLocations > 0 ? totalLocations : 1 %}
-
-                <li class="status-item">
-                    <span class="status-label">Finissant bientôt</span>
-                    <span class="status-value">{{ pendingCount > 0 ? ((pendingCount / totalForPercent) * 100)|round : 0 }}% {{ pendingCount }}</span>
-                </li>
-                <li class="status-item">
-                    <span class="status-label">Actives</span>
-                    <span class="status-value">{{ activeCount > 0 ? ((activeCount / totalForPercent) * 100)|round : 0 }}% {{ activeCount }}</span>
-                </li>
-                <li class="status-item">
-                    <span class="status-label">Impayées</span>
-                    <span class="status-value">{{ unpaidCount > 0 ? ((unpaidCount / totalForPercent) * 100)|round : 0 }}% {{ unpaidCount }}</span>
-                </li>
-                <li class="status-item">
-                    <span class="status-label">Disponibles</span>
-                    <span class="status-value">{{ totalFaces > 0 ? ((facesDisponibles / totalFaces) * 100)|round : 0 }}% {{ facesDisponibles }}</span>
-                </li>
-            </ul>
-        </div>
-    </div>
-</div>
-
-{# Tableau des Locations #}
-<div class="table-card">
-    <div class="table-header">
-        <h3 class="table-title">Locations</h3>
-        <div class="table-toolbar">
-            <div class="table-search">
-                <i class="bi bi-search"></i>
-                <input type="text" placeholder="Rechercher des locations..." />
-            </div>
-            <select class="table-select">
-                <option>Tous les statuts</option>
-                <option>Actives</option>
-                <option>En attente</option>
-                <option>Impayées</option>
-            </select>
-            <select class="table-select">
-                <option>Toutes les dates</option>
-                <option>Cette semaine</option>
-                <option>Ce mois</option>
-                <option>Cette année</option>
-            </select>
         </div>
     </div>
 
-    <table class="modern-table">
-        <thead>
-            <tr>
-                <th>
-                    <input type="checkbox" />
-                </th>
-                <th>LOCATION #</th>
-                <th>CLIENT</th>
-                <th>FACE</th>
-                <th>MONTANT</th>
-                <th>STATUT</th>
-                <th>DATE</th>
-                <th>ACTIONS</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% if dernieresLocations|length > 0 %}
-                {% for location in dernieresLocations %}
-                    <tr>
-                        <td>
-                            <input type="checkbox" />
-                        </td>
-                        <td>
-                            <div style="font-weight: 600;">LOC-{{ "%03d"|format(location.id) }}</div>
-                            <div style="font-size: 0.75rem; color: var(--text-gray);">ID: {{ location.id }}</div>
-                        </td>
-                        <td>
-                            <div class="customer-info">
-                                <div class="customer-avatar">{{ location.client.nom|first|upper }}</div>
-                                <div class="customer-details">
-                                    <div class="customer-name">{{ location.client.nom }}</div>
-                                    <div class="customer-email">{{ location.client.email ?? 'N/A' }}</div>
+    <!-- Activité récente -->
+    <div class="dashboard-panel activity-panel">
+        <div class="panel-header">
+            <div class="panel-title">
+                <i class="bi bi-clock-history"></i>
+                <h2>Activité récente</h2>
+            </div>
+        </div>
+        <div class="panel-content">
+            <div class="activity-timeline">
+                {% if activites|length > 0 %}
+                    {% for activite in activites %}
+                        <div class="activity-entry {{ activite.type }}">
+                            <div class="activity-marker">
+                                {% if activite.type == 'location' %}
+                                    <i class="bi bi-calendar-plus"></i>
+                                {% else %}
+                                    <i class="bi bi-cash-coin"></i>
+                                {% endif %}
+                            </div>
+                            <div class="activity-details">
+                                {% if activite.type == 'location' %}
+                                    <a href="{{ path('app_location_show', { id: activite.location.id }) }}" class="activity-title">
+                                        Location LOC-{{ "%03d"|format(activite.location.id) }}
+                                    </a>
+                                    <div class="activity-info">{{ activite.location.client.nom }} — {{ activite.location.face.nomComplet }}</div>
+                                {% else %}
+                                    <a href="{{ path('app_location_show', { id: activite.paiement.location.id }) }}" class="activity-title">
+                                        Paiement de {{ activite.paiement.montant|number_format(0, ',', ' ') }} FCFA
+                                    </a>
+                                    <div class="activity-info">LOC-{{ "%03d"|format(activite.paiement.location.id) }} — {{ activite.paiement.location.client.nom }}</div>
+                                {% endif %}
+                                <div class="activity-time">
+                                    <i class="bi bi-clock"></i>
+                                    {{ activite.date|date('d/m/Y H:i') }}
                                 </div>
                             </div>
-                        </td>
-                        <td>
-                            <div style="font-size: 0.75rem; color: var(--text-gray);">1 face</div>
-                            <div style="font-size: 0.75rem; color: var(--text-gray);">{{ location.face.nomComplet }}</div>
-                        </td>
-                        <td>
-                            <div style="font-weight: 600;">{{ location.montantMensuel|number_format(0, ',', ' ') }} FCFA</div>
-                        </td>
-                        <td>
-                            {% set statutPaiement = location.statutPaiement %}
-                            {% if statutPaiement == 'paye' %}
-                                <span class="table-badge success">Payé</span>
-                            {% elseif statutPaiement == 'partiellement_paye' %}
-                                <span class="table-badge warning">Partiellement payé</span>
-                            {% else %}
-                                <span class="table-badge pending">Impayé</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <div>{{ location.dateDebut|date('Y-m-d') }}</div>
-                        </td>
-                        <td>
-                            <div class="action-menu">
-                                <button class="action-btn">
-                                    <i class="bi bi-three-dots-vertical"></i>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                {% endfor %}
-            {% else %}
-                <tr>
-                    <td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-gray);">
-                        Aucune location enregistrée.
-                    </td>
-                </tr>
-            {% endif %}
-        </tbody>
-    </table>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state-activity">
+                        <i class="bi bi-inbox"></i>
+                        <p>Aucune activité récente</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
 </div>
 
+<!-- Section inférieure -->
+<div class="dashboard-bottom">
+    <!-- Locations finissant bientôt -->
+    <div class="dashboard-panel list-panel">
+        <div class="panel-header">
+            <div class="panel-title">
+                <i class="bi bi-hourglass-split"></i>
+                <h2>Fin proche (30 jours)</h2>
+            </div>
+            <a href="{{ path('app_location_index') }}" class="panel-link">
+                Voir tout
+                <i class="bi bi-arrow-right"></i>
+            </a>
+        </div>
+        <div class="panel-content">
+            {% if locationsFinissantBientot|length > 0 %}
+                <div class="expiring-list">
+                    {% for loc in locationsFinissantBientot|slice(0, 5) %}
+                        <a href="{{ path('app_location_show', { id: loc.id }) }}" class="expiring-item">
+                            <div class="expiring-info">
+                                <div class="expiring-face">{{ loc.face.nomComplet }}</div>
+                                <div class="expiring-client">{{ loc.client.nom }}</div>
+                            </div>
+                            <div class="expiring-date">
+                                <i class="bi bi-calendar-x"></i>
+                                {{ loc.dateFin|date('d/m/Y') }}
+                            </div>
+                        </a>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state-panel">
+                    <i class="bi bi-check-circle"></i>
+                    <p>Aucune location ne se termine prochainement</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Statistiques de statut -->
+    <div class="dashboard-panel stats-panel">
+        <div class="panel-header">
+            <div class="panel-title">
+                <i class="bi bi-pie-chart"></i>
+                <h2>Répartition des statuts</h2>
+            </div>
+            <a href="{{ path('app_location_index') }}" class="panel-link">
+                Voir tout
+                <i class="bi bi-arrow-right"></i>
+            </a>
+        </div>
+        <div class="panel-content">
+            {% set pendingCount = locationsFinissantBientot|length %}
+            {% set unpaidCount = locationsImpayees|length %}
+            {% set activeCount = facesOccupees %}
+            {% set totalLocations = pendingCount + unpaidCount + activeCount %}
+            {% set totalForPercent = totalLocations > 0 ? totalLocations : 1 %}
+
+            <div class="status-grid">
+                <a href="{{ path('app_location_index') }}" class="status-card">
+                    <div class="status-icon warning">
+                        <i class="bi bi-hourglass"></i>
+                    </div>
+                    <div class="status-content">
+                        <div class="status-value">{{ pendingCount }}</div>
+                        <div class="status-label">Finissant bientôt</div>
+                        <div class="status-percent">{{ pendingCount > 0 ? ((pendingCount / totalForPercent) * 100)|round : 0 }}%</div>
+                    </div>
+                </a>
+
+                <a href="{{ path('app_location_index', { statut: 'active' }) }}" class="status-card">
+                    <div class="status-icon success">
+                        <i class="bi bi-check-circle"></i>
+                    </div>
+                    <div class="status-content">
+                        <div class="status-value">{{ activeCount }}</div>
+                        <div class="status-label">Actives</div>
+                        <div class="status-percent">{{ activeCount > 0 ? ((activeCount / totalForPercent) * 100)|round : 0 }}%</div>
+                    </div>
+                </a>
+
+                <a href="{{ path('app_location_index', { estPaye: '0' }) }}" class="status-card">
+                    <div class="status-icon danger">
+                        <i class="bi bi-exclamation-triangle"></i>
+                    </div>
+                    <div class="status-content">
+                        <div class="status-value">{{ unpaidCount }}</div>
+                        <div class="status-label">Impayées</div>
+                        <div class="status-percent">{{ unpaidCount > 0 ? ((unpaidCount / totalForPercent) * 100)|round : 0 }}%</div>
+                    </div>
+                </a>
+
+                <a href="{{ path('app_panneau_index') }}" class="status-card">
+                    <div class="status-icon info">
+                        <i class="bi bi-circle"></i>
+                    </div>
+                    <div class="status-content">
+                        <div class="status-value">{{ facesDisponibles }}</div>
+                        <div class="status-label">Disponibles</div>
+                        <div class="status-percent">{{ totalFaces > 0 ? ((facesDisponibles / totalFacesCount) * 100)|round : 0 }}%</div>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Dernières locations -->
+<div class="dashboard-panel table-panel">
+    <div class="panel-header">
+        <div class="panel-title">
+            <i class="bi bi-list-ul"></i>
+            <h2>Dernières locations</h2>
+        </div>
+        <a href="{{ path('app_location_index') }}" class="btn-view-all">
+            Voir toutes les locations
+            <i class="bi bi-arrow-right"></i>
+        </a>
+    </div>
+    <div class="panel-content">
+        {% if dernieresLocations|length > 0 %}
+            <div class="locations-table-wrapper">
+                <table class="locations-table">
+                    <thead>
+                        <tr>
+                            <th>Référence</th>
+                            <th>Client</th>
+                            <th>Face</th>
+                            <th>Montant</th>
+                            <th>Paiement</th>
+                            <th>Date début</th>
+                            <th class="actions-col">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for location in dernieresLocations %}
+                            <tr class="location-row">
+                                <td>
+                                    <a href="{{ path('app_location_show', { id: location.id }) }}" class="location-ref">
+                                        LOC-{{ "%03d"|format(location.id) }}
+                                    </a>
+                                </td>
+                                <td>
+                                    <a href="{{ path('app_client_show', { id: location.client.id }) }}" class="location-client">
+                                        {{ location.client.nom }}
+                                    </a>
+                                </td>
+                                <td>
+                                    <a href="{{ path('app_face_locations', { id: location.face.id }) }}" class="location-face">
+                                        {{ location.face.nomComplet }}
+                                    </a>
+                                </td>
+                                <td class="location-amount">{{ location.montantMensuel|number_format(0, ',', ' ') }} FCFA</td>
+                                <td>
+                                    {% set statutPaiement = location.statutPaiement %}
+                                    {% if statutPaiement == 'paye' %}
+                                        <span class="payment-badge paid">Payé</span>
+                                    {% elseif statutPaiement == 'partiellement_paye' %}
+                                        <span class="payment-badge partial">Partiel</span>
+                                    {% else %}
+                                        <span class="payment-badge unpaid">Impayé</span>
+                                    {% endif %}
+                                </td>
+                                <td class="location-date">{{ location.dateDebut|date('d/m/Y') }}</td>
+                                <td class="actions-col">
+                                    <div class="table-actions">
+                                        <a href="{{ path('app_location_show', { id: location.id }) }}" class="action-icon" title="Voir">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a href="{{ path('app_location_edit', { id: location.id }) }}" class="action-icon" title="Modifier">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="empty-state-table">
+                <i class="bi bi-inbox"></i>
+                <h3>Aucune location</h3>
+                <p>Commencez par créer votre première location</p>
+                <a href="{{ path('app_location_new') }}" class="btn-hero-primary">
+                    <i class="bi bi-plus-lg"></i>
+                    <span>Créer une location</span>
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<link rel="stylesheet" href="{{ asset('css/dashboard.css') }}">
+
+
+<script src="{{ asset('js/dashboard.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Toggle des boutons de période
-    const periodButtons = document.querySelectorAll('.period-btn');
-    periodButtons.forEach(btn => {
-        btn.addEventListener('click', function() {
-            periodButtons.forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-        });
-    });
+    var ctx = document.getElementById('revenueChart');
+    if (ctx && typeof window.initDashboardChart === 'function') {
+        window.initDashboardChart(ctx, {{ chartLabels|json_encode|raw }}, {{ revenusEncaisses|json_encode|raw }}, {{ revenusPrevus|json_encode|raw }});
+    }
 });
 </script>
+{% endblock %}
+
+{% block javascripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 {% endblock %}

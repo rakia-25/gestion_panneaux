@@ -1,0 +1,51 @@
+{#
+    Sidebar formulaire paiement : Guide + optionnel résumé location.
+    Variable : location_obj (optionnel, pour afficher le résumé)
+#}
+<aside class="col-lg-4 paiement-sidebar">
+    <div class="section-card help-card sticky-help">
+        <div class="section-header">
+            <h2 class="section-title mb-0 h5"><i class="bi bi-lightbulb"></i> Guide</h2>
+        </div>
+        <div class="help-content">
+            <div class="help-section">
+                <h3 class="help-title"><i class="bi bi-cash-coin text-success"></i> Types de paiement</h3>
+                <ul class="help-list">
+                    <li><strong>Espèces</strong><p>Paiement en liquide reçu directement du client.</p></li>
+                    <li><strong>Virement</strong><p>Transfert bancaire effectué sur votre compte.</p></li>
+                    <li><strong>Chèque</strong><p>Paiement par chèque bancaire ou postal.</p></li>
+                </ul>
+            </div>
+            <div class="help-section">
+                <h3 class="help-title"><i class="bi bi-shield-check text-primary"></i> Validation</h3>
+                <p class="help-text">Le montant du paiement ne peut pas dépasser le montant restant à payer pour la location sélectionnée.</p>
+            </div>
+            <div class="help-section help-cta">
+                <div class="cta-icon"><i class="bi bi-receipt"></i></div>
+                <h3 class="cta-title">Suivi automatique</h3>
+                <p class="cta-text">Le statut de paiement de la location sera mis à jour automatiquement après l'enregistrement.</p>
+            </div>
+        </div>
+    </div>
+
+    {% if location_obj is defined and location_obj and not location_obj.isAnnulee %}
+    <div class="section-card summary-card">
+        <div class="section-header">
+            <h2 class="section-title mb-0 h5"><i class="bi bi-info-circle"></i> Résumé location</h2>
+        </div>
+        <div class="summary-content">
+            <div class="summary-item"><span class="summary-label">Face</span><span class="summary-value">{{ location_obj.face.nomComplet }}</span></div>
+            <div class="summary-item"><span class="summary-label">Client</span><span class="summary-value">{{ location_obj.client.nom }}</span></div>
+            <div class="summary-divider"></div>
+            <div class="summary-item"><span class="summary-label">Montant total</span><span class="summary-value">{{ location_obj.montantTotal|number_format(0, ',', ' ') }} FCFA</span></div>
+            <div class="summary-item success"><span class="summary-label">Déjà payé</span><span class="summary-value">{{ location_obj.montantTotalPaye|number_format(0, ',', ' ') }} FCFA</span></div>
+            <div class="summary-item highlight"><span class="summary-label">Restant</span><span class="summary-value">{{ location_obj.montantRestant|number_format(0, ',', ' ') }} FCFA</span></div>
+            <div class="summary-progress">
+                {% set pourcent = location_obj.montantTotal > 0 ? (location_obj.montantTotalPaye / location_obj.montantTotal * 100) : 0 %}
+                <div class="summary-progress-bar"><div class="summary-progress-fill" style="width: {{ pourcent }}%"></div></div>
+                <span class="summary-progress-label">{{ pourcent|number_format(0) }}% payé</span>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</aside>

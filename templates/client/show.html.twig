@@ -2,16 +2,52 @@
 
 {% block title %}Client {{ client.nom }}{% endblock %}
 
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" class="breadcrumb-nav mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Tableau de bord</a></li>
+            <li class="breadcrumb-item"><a href="{{ path('app_client_index') }}">Clients</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ client.nom }}</li>
+        </ol>
+    </nav>
+{% endblock %}
+
 {% block body %}
-<div class="page-header">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-        <div>
-            <h1 class="page-title">Client : {{ client.nom }}</h1>
-            <p class="page-description">Informations et historique des locations</p>
+<!-- En-tête client -->
+<div class="client-header-card">
+    <div class="client-header-content">
+        <div class="client-header-left">
+            <div class="client-avatar-hero">
+                {{ client.nom|first|upper }}
+            </div>
+            <div class="client-header-info">
+                <div class="client-header-badge">
+                    {% if client.type == 'entreprise' %}
+                        <span class="type-badge-hero entreprise">
+                            <i class="bi bi-building-fill"></i> Entreprise
+                        </span>
+                    {% else %}
+                        <span class="type-badge-hero personne">
+                            <i class="bi bi-person-fill"></i> Particulier
+                        </span>
+                    {% endif %}
+                </div>
+                <h1 class="client-name-hero">{{ client.nom }}</h1>
+                <div class="client-meta">
+                    {% if client.ville %}
+                        <span class="meta-item">
+                            <i class="bi bi-geo-alt"></i> {{ client.ville }}
+                        </span>
+                    {% endif %}
+                    <span class="meta-item">
+                        <i class="bi bi-calendar-check"></i> {{ client.locations|length }} location{{ client.locations|length > 1 ? 's' : '' }}
+                    </span>
+                </div>
+            </div>
         </div>
-        <div style="display: flex; gap: 0.75rem;">
+        <div class="client-header-actions">
             <a href="{{ path('app_location_new', {client_id: client.id}) }}" class="btn-primary-modern">
-                <i class="bi bi-plus"></i> Nouvelle location
+                <i class="bi bi-plus-lg"></i> Nouvelle location
             </a>
             <a href="{{ path('app_client_edit', {id: client.id}) }}" class="btn-secondary-modern">
                 <i class="bi bi-pencil"></i> Modifier
@@ -23,132 +59,339 @@
     </div>
 </div>
 
-<div class="row">
-    <div class="col-md-6">
-        <div class="section-card" style="margin-bottom: 1.5rem;">
-            <div class="section-header">
-                <h3 class="section-title">Informations générales</h3>
-            </div>
-            <table class="modern-table" style="margin: 0;">
-                <tbody>
-                    <tr>
-                        <th width="200" style="font-weight: 600; color: var(--text-gray);">Nom / Raison sociale</th>
-                        <td><strong>{{ client.nom }}</strong></td>
-                    </tr>
-                    <tr>
-                        <th>Type</th>
-                        <td>
-                            {% if client.type == 'entreprise' %}
-                                <span class="table-badge info">Entreprise</span>
-                            {% else %}
-                                <span class="table-badge warning">Personne</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% if client.email %}
-                    <tr>
-                        <th>Email</th>
-                        <td><a href="mailto:{{ client.email }}">{{ client.email }}</a></td>
-                    </tr>
-                    {% endif %}
-                    {% if client.telephone %}
-                    <tr>
-                        <th>Téléphone</th>
-                        <td><a href="tel:{{ client.telephone }}">{{ client.telephone }}</a></td>
-                    </tr>
-                    {% endif %}
-                    {% if client.adresse %}
-                    <tr>
-                        <th>Adresse</th>
-                        <td>{{ client.adresse }}</td>
-                    </tr>
-                    {% endif %}
-                    {% if client.ville %}
-                    <tr>
-                        <th>Ville</th>
-                        <td>{{ client.ville }}</td>
-                    </tr>
-                    {% endif %}
-                    {% if client.pays %}
-                    <tr>
-                        <th>Pays</th>
-                        <td>{{ client.pays }}</td>
-                    </tr>
-                    {% endif %}
-                    {% if client.notes %}
-                    <tr>
-                        <th>Notes</th>
-                        <td>{{ client.notes }}</td>
-                    </tr>
-                    {% endif %}
-                </tbody>
-            </table>
+<!-- Statistiques rapides -->
+<div class="client-stats-row">
+    {% set activeLocations = 0 %}
+    {% set totalRevenue = 0 %}
+    {% for location in client.locations %}
+        {% if location.isActive() and not location.isAnnulee %}
+            {% set activeLocations = activeLocations + 1 %}
+        {% endif %}
+        {% if not location.isAnnulee %}
+            {% set totalRevenue = totalRevenue + location.montantTotal %}
+        {% endif %}
+    {% endfor %}
+
+    <div class="stat-card">
+        <div class="stat-icon-mini success">
+            <i class="bi bi-circle-fill"></i>
+        </div>
+        <div class="stat-details">
+            <div class="stat-value-mini">{{ activeLocations }}</div>
+            <div class="stat-label-mini">En cours</div>
         </div>
     </div>
 
-    <div class="col-md-6">
-        <div class="table-card">
-            <div class="table-header">
-                <h3 class="table-title">Historique des locations</h3>
-                <span class="table-badge success">{{ client.locations|length }} location(s)</span>
+    <div class="stat-card">
+        <div class="stat-icon-mini primary">
+            <i class="bi bi-calendar-event"></i>
+        </div>
+        <div class="stat-details">
+            <div class="stat-value-mini">{{ client.locations|length }}</div>
+            <div class="stat-label-mini">Total locations</div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon-mini warning">
+            <i class="bi bi-cash-stack"></i>
+        </div>
+        <div class="stat-details">
+            <div class="stat-value-mini">{{ (totalRevenue / 1000)|number_format(0) }}K</div>
+            <div class="stat-label-mini">Chiffre d'affaires</div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon-mini info">
+            <i class="bi bi-percent"></i>
+        </div>
+        <div class="stat-details">
+            {% set paidLocations = 0 %}
+            {% for location in client.locations %}
+                {% if location.isCompletementPaye() and not location.isAnnulee %}
+                    {% set paidLocations = paidLocations + 1 %}
+                {% endif %}
+            {% endfor %}
+            {% set paymentRate = client.locations|length > 0 ? (paidLocations / client.locations|length * 100) : 0 %}
+            <div class="stat-value-mini">{{ paymentRate|number_format(0) }}%</div>
+            <div class="stat-label-mini">Taux paiement</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Informations du client -->
+    <div class="col-lg-5">
+        <div class="section-card info-card">
+            <div class="section-header-enhanced">
+                <div class="section-header-icon">
+                    <i class="bi bi-person-vcard"></i>
+                </div>
+                <div>
+                    <h2 class="section-title">Informations du client</h2>
+                    <p class="section-subtitle">Coordonnées et détails</p>
+                </div>
             </div>
+
+            <div class="info-grid">
+                <!-- Nom -->
+                <div class="info-item">
+                    <div class="info-icon">
+                        <i class="bi bi-person"></i>
+                    </div>
+                    <div class="info-content">
+                        <div class="info-label">Nom / Raison sociale</div>
+                        <div class="info-value highlight">{{ client.nom }}</div>
+                    </div>
+                </div>
+
+                <!-- Type -->
+                <div class="info-item">
+                    <div class="info-icon">
+                        <i class="bi bi-tag"></i>
+                    </div>
+                    <div class="info-content">
+                        <div class="info-label">Type</div>
+                        <div class="info-value">
+                            {% if client.type == 'entreprise' %}
+                                <span class="badge-info entreprise">
+                                    <i class="bi bi-building"></i> Entreprise
+                                </span>
+                            {% else %}
+                                <span class="badge-info personne">
+                                    <i class="bi bi-person"></i> Particulier
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                {% if client.email %}
+                <!-- Email -->
+                <div class="info-item">
+                    <div class="info-icon">
+                        <i class="bi bi-envelope"></i>
+                    </div>
+                    <div class="info-content">
+                        <div class="info-label">Email</div>
+                        <div class="info-value">
+                            <a href="mailto:{{ client.email }}" class="contact-link">
+                                {{ client.email }}
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if client.telephone %}
+                <!-- Téléphone -->
+                <div class="info-item">
+                    <div class="info-icon">
+                        <i class="bi bi-telephone"></i>
+                    </div>
+                    <div class="info-content">
+                        <div class="info-label">Téléphone</div>
+                        <div class="info-value">
+                            <a href="tel:{{ client.telephone }}" class="contact-link">
+                                {{ client.telephone }}
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if client.adresse %}
+                <!-- Adresse -->
+                <div class="info-item info-item-full">
+                    <div class="info-icon">
+                        <i class="bi bi-pin-map"></i>
+                    </div>
+                    <div class="info-content">
+                        <div class="info-label">Adresse</div>
+                        <div class="info-value">{{ client.adresse }}</div>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if client.ville %}
+                <!-- Ville -->
+                <div class="info-item">
+                    <div class="info-icon">
+                        <i class="bi bi-geo-alt"></i>
+                    </div>
+                    <div class="info-content">
+                        <div class="info-label">Ville</div>
+                        <div class="info-value">{{ client.ville }}</div>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if client.pays %}
+                <!-- Pays -->
+                <div class="info-item">
+                    <div class="info-icon">
+                        <i class="bi bi-globe"></i>
+                    </div>
+                    <div class="info-content">
+                        <div class="info-label">Pays</div>
+                        <div class="info-value">{{ client.pays }}</div>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if client.notes %}
+                <!-- Notes -->
+                <div class="info-item info-item-full">
+                    <div class="info-icon">
+                        <i class="bi bi-sticky"></i>
+                    </div>
+                    <div class="info-content">
+                        <div class="info-label">Notes</div>
+                        <div class="info-value notes-text">{{ client.notes }}</div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Actions rapides -->
+            <div class="info-actions">
+                <a href="{{ path('app_client_edit', {id: client.id}) }}" class="info-action-btn">
+                    <i class="bi bi-pencil"></i> Modifier les informations
+                </a>
+                {% if client.email %}
+                    <a href="mailto:{{ client.email }}" class="info-action-btn">
+                        <i class="bi bi-envelope"></i> Envoyer un email
+                    </a>
+                {% endif %}
+                {% if client.telephone %}
+                    <a href="tel:{{ client.telephone }}" class="info-action-btn">
+                        <i class="bi bi-telephone"></i> Appeler
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Historique des locations -->
+    <div class="col-lg-7">
+        <div class="section-card locations-card">
+            <div class="section-header-enhanced">
+                <div class="section-header-icon">
+                    <i class="bi bi-calendar-range"></i>
+                </div>
+                <div>
+                    <h2 class="section-title">Historique des locations</h2>
+                    <p class="section-subtitle">Toutes les locations de ce client</p>
+                </div>
+            </div>
+
             {% if client.locations|length > 0 %}
-                <table class="modern-table">
-                    <thead>
-                        <tr>
-                            <th>Face</th>
-                            <th>Période</th>
-                            <th>Montant</th>
-                            <th>Statut</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for location in client.locations %}
-                            <tr {% if location.isAnnulee %}style="opacity: 0.6;"{% endif %}>
-                                <td>
-                                    {{ location.face.nomComplet }}
-                                    {% if location.isAnnulee %}
-                                        <br><small class="text-danger">(Annulée)</small>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <small style="color: var(--text-gray);">{{ location.dateDebut|date('d/m/Y') }} - {{ location.dateFin|date('d/m/Y') }}</small>
-                                </td>
-                                <td>{{ location.montantMensuel|number_format(0, ',', ' ') }} FCFA</td>
-                                <td>
-                                    {% if location.isAnnulee %}
-                                        <span class="table-badge danger">Annulée</span>
-                                        {% if location.dateAnnulation %}
-                                            <br><small style="color: var(--text-gray); font-size: 0.7rem;">
-                                                Le {{ location.dateAnnulation|date('d/m/Y') }}
-                                            </small>
-                                        {% endif %}
-                                    {% else %}
-                                        {% set statutPaiement = location.statutPaiement %}
-                                        {% if statutPaiement == 'paye' %}
-                                            <span class="table-badge success">Payé</span>
-                                        {% elseif statutPaiement == 'partiellement_paye' %}
-                                            <span class="table-badge warning">Partiellement payé</span>
-                                        {% else %}
-                                            <span class="table-badge pending">Impayé</span>
-                                        {% endif %}
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <div class="action-menu">
-                                        <a href="{{ path('app_location_show', {id: location.id}) }}" class="action-btn" title="Voir">
-                                            <i class="bi bi-eye"></i>
-                                        </a>
+                <div class="locations-timeline">
+                    {% for location in client.locations|sort((a, b) => b.dateDebut <=> a.dateDebut) %}
+                        <div class="location-timeline-item {{ location.isAnnulee ? 'cancelled' : (location.isActive() ? 'active' : (location.isAVenir() ? 'future' : 'past')) }}">
+                            <div class="timeline-marker"></div>
+                            <div class="timeline-content-card">
+                                <div class="timeline-card-header">
+                                    <div class="timeline-card-title">
+                                        <strong>{{ location.face.nomComplet }}</strong>
+                                        <span class="timeline-panneau">{{ location.face.panneau.reference }}</span>
                                     </div>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                                    <div class="timeline-card-status">
+                                        {% if location.isAnnulee %}
+                                            <span class="status-badge-timeline cancelled">
+                                                <i class="bi bi-x-circle-fill"></i> Annulée
+                                            </span>
+                                        {% elseif location.isActive() %}
+                                            <span class="status-badge-timeline active">
+                                                <i class="bi bi-circle-fill pulse"></i> En cours
+                                            </span>
+                                        {% elseif location.isAVenir() %}
+                                            <span class="status-badge-timeline future">
+                                                <i class="bi bi-clock-fill"></i> À venir
+                                            </span>
+                                        {% else %}
+                                            <span class="status-badge-timeline past">
+                                                <i class="bi bi-check-circle-fill"></i> Terminée
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                <div class="timeline-card-body">
+                                    <div class="timeline-info-row">
+                                        <i class="bi bi-calendar-range"></i>
+                                        <span>{{ location.dateDebut|date('d/m/Y') }} → {{ location.dateFin|date('d/m/Y') }}</span>
+                                        <small class="timeline-duration">
+                                            {% set diff = date(location.dateFin).diff(date(location.dateDebut)) %}
+                                            ({{ diff.days }} jours)
+                                        </small>
+                                    </div>
+
+                                    <div class="timeline-info-row">
+                                        <i class="bi bi-cash"></i>
+                                        <span>{{ location.montantMensuel|number_format(0, ',', ' ') }} FCFA/mois</span>
+                                        <strong class="timeline-total">Total: {{ location.montantTotal|number_format(0, ',', ' ') }} FCFA</strong>
+                                    </div>
+
+                                    {% if not location.isAnnulee %}
+                                        <div class="timeline-info-row">
+                                            <i class="bi bi-credit-card"></i>
+                                            {% set statutPaiement = location.statutPaiement %}
+                                            {% if statutPaiement == 'paye' %}
+                                                <span class="payment-badge paid">
+                                                    <i class="bi bi-check-circle-fill"></i> Payé
+                                                </span>
+                                            {% elseif statutPaiement == 'partiellement_paye' %}
+                                                <span class="payment-badge partial">
+                                                    <i class="bi bi-exclamation-circle-fill"></i> Partiel
+                                                </span>
+                                            {% else %}
+                                                <span class="payment-badge unpaid">
+                                                    <i class="bi bi-x-circle-fill"></i> Impayé
+                                                </span>
+                                            {% endif %}
+                                            <small class="payment-details">
+                                                {{ location.montantTotalPaye|number_format(0, ',', ' ') }} / {{ location.montantTotal|number_format(0, ',', ' ') }} FCFA
+                                            </small>
+                                        </div>
+
+                                        <!-- Barre de progression paiement -->
+                                        <div class="payment-progress-bar">
+                                            {% set pourcent = location.montantTotal > 0 ? (location.montantTotalPaye / location.montantTotal * 100) : 0 %}
+                                            <div class="progress-track">
+                                                <div class="progress-fill" style="width: {{ pourcent }}%"></div>
+                                            </div>
+                                        </div>
+                                    {% else %}
+                                        {% if location.dateAnnulation %}
+                                            <div class="timeline-info-row">
+                                                <i class="bi bi-x-circle"></i>
+                                                <span class="text-danger">Annulée le {{ location.dateAnnulation|date('d/m/Y') }}</span>
+                                            </div>
+                                        {% endif %}
+                                    {% endif %}
+                                </div>
+
+                                <div class="timeline-card-actions">
+                                    <a href="{{ path('app_location_show', {id: location.id}) }}" class="timeline-action-btn">
+                                        <i class="bi bi-eye"></i> Voir détails
+                                    </a>
+                                    {% if not location.isAnnulee %}
+                                        <a href="{{ path('app_location_edit', {id: location.id}) }}" class="timeline-action-btn">
+                                            <i class="bi bi-pencil"></i> Modifier
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
             {% else %}
-                <div style="text-align: center; padding: 2rem; color: var(--text-gray);">
-                    <p style="margin-bottom: 1rem;">Aucune location pour ce client.</p>
+                <div class="empty-state-locations">
+                    <i class="bi bi-calendar-x"></i>
+                    <h3>Aucune location</h3>
+                    <p>Ce client n'a pas encore de location enregistrée</p>
                     <a href="{{ path('app_location_new', {client_id: client.id}) }}" class="btn-primary-modern">
                         <i class="bi bi-plus-circle"></i> Créer une location
                     </a>
@@ -157,4 +400,658 @@
         </div>
     </div>
 </div>
+
+<style>
+/* ========== En-tête client ========== */
+.client-header-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.2);
+}
+
+.client-header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 2rem;
+    flex-wrap: wrap;
+}
+
+.client-header-left {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    flex: 1;
+}
+
+.client-avatar-hero {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: white;
+    color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.client-header-info {
+    flex: 1;
+}
+
+.client-header-badge {
+    margin-bottom: 0.5rem;
+}
+
+.type-badge-hero {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.375rem 1rem;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    background: rgba(255, 255, 255, 0.25);
+    color: white;
+    backdrop-filter: blur(10px);
+}
+
+.client-name-hero {
+    font-size: 2.25rem;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 0.5rem;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.client-meta {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.meta-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.9375rem;
+}
+
+.meta-item i {
+    font-size: 1rem;
+}
+
+.client-header-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+/* ========== Statistiques compactes ========== */
+.client-stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.stat-icon-mini {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+.stat-icon-mini.success {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success-color);
+}
+
+.stat-icon-mini.primary {
+    background: rgba(99, 102, 241, 0.1);
+    color: var(--primary-color);
+}
+
+.stat-icon-mini.warning {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--warning-color);
+}
+
+.stat-icon-mini.info {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--info-color);
+}
+
+.stat-details {
+    flex: 1;
+}
+
+.stat-value-mini {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    line-height: 1;
+    margin-bottom: 0.25rem;
+}
+
+.stat-label-mini {
+    font-size: 0.8125rem;
+    color: var(--text-gray);
+    font-weight: 500;
+}
+
+/* ========== Carte d'informations ========== */
+.info-card {
+    height: 100%;
+}
+
+.section-header-enhanced {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.section-header-icon {
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+}
+
+.section-subtitle {
+    font-size: 0.875rem;
+    color: var(--text-gray);
+    margin: 0;
+}
+
+.info-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.info-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--bg-light);
+    border-radius: 10px;
+    transition: all 0.2s;
+}
+
+.info-item:hover {
+    background: #f1f5f9;
+}
+
+.info-item-full {
+    grid-column: 1 / -1;
+}
+
+.info-icon {
+    width: 40px;
+    height: 40px;
+    background: white;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary-color);
+    font-size: 1.125rem;
+    flex-shrink: 0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.info-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.info-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-gray);
+    margin-bottom: 0.375rem;
+}
+
+.info-value {
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: var(--text-dark);
+    word-wrap: break-word;
+}
+
+.info-value.highlight {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.notes-text {
+    line-height: 1.6;
+}
+
+.badge-info {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.badge-info.entreprise {
+    background: rgba(59, 130, 246, 0.1);
+    color: #1e40af;
+}
+
+.badge-info.personne {
+    background: rgba(245, 158, 11, 0.1);
+    color: #b45309;
+}
+
+.contact-link {
+    color: var(--primary-color);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.contact-link:hover {
+    text-decoration: underline;
+}
+
+.info-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.info-action-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: var(--bg-light);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-dark);
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.info-action-btn:hover {
+    background: white;
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.info-action-btn i {
+    font-size: 1rem;
+    color: var(--primary-color);
+}
+
+/* ========== Timeline des locations ========== */
+.locations-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.location-timeline-item {
+    display: flex;
+    gap: 1rem;
+    position: relative;
+}
+
+.location-timeline-item:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    left: 6px;
+    top: 24px;
+    bottom: -20px;
+    width: 2px;
+    background: var(--border-color);
+}
+
+.timeline-marker {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    margin-top: 0.25rem;
+    flex-shrink: 0;
+    border: 3px solid white;
+    box-shadow: 0 0 0 2px var(--border-color);
+}
+
+.location-timeline-item.active .timeline-marker {
+    background: var(--success-color);
+    box-shadow: 0 0 0 2px var(--success-color), 0 0 12px rgba(16, 185, 129, 0.4);
+    animation: pulse 2s infinite;
+}
+
+.location-timeline-item.future .timeline-marker {
+    background: var(--info-color);
+    box-shadow: 0 0 0 2px var(--info-color);
+}
+
+.location-timeline-item.past .timeline-marker {
+    background: var(--text-gray);
+    box-shadow: 0 0 0 2px var(--text-gray);
+}
+
+.location-timeline-item.cancelled .timeline-marker {
+    background: var(--danger-color);
+    box-shadow: 0 0 0 2px var(--danger-color);
+}
+
+.timeline-content-card {
+    flex: 1;
+    background: var(--bg-light);
+    border-radius: 12px;
+    padding: 1.25rem;
+    transition: all 0.3s;
+}
+
+.timeline-content-card:hover {
+    background: #f1f5f9;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.timeline-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+    gap: 1rem;
+}
+
+.timeline-card-title strong {
+    display: block;
+    font-size: 1rem;
+    color: var(--text-dark);
+    margin-bottom: 0.25rem;
+}
+
+.timeline-panneau {
+    font-size: 0.8125rem;
+    color: var(--text-gray);
+}
+
+.status-badge-timeline {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.status-badge-timeline.active {
+    background: rgba(16, 185, 129, 0.1);
+    color: #047857;
+}
+
+.status-badge-timeline.future {
+    background: rgba(59, 130, 246, 0.1);
+    color: #1e40af;
+}
+
+.status-badge-timeline.past {
+    background: rgba(100, 116, 139, 0.1);
+    color: #475569;
+}
+
+.status-badge-timeline.cancelled {
+    background: rgba(239, 68, 68, 0.1);
+    color: #b91c1c;
+}
+
+.timeline-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.timeline-info-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.875rem;
+    color: var(--text-dark);
+    flex-wrap: wrap;
+}
+
+.timeline-info-row i {
+    color: var(--text-gray);
+    width: 16px;
+}
+
+.timeline-duration,
+.payment-details {
+    font-size: 0.75rem;
+    color: var(--text-gray);
+}
+
+.timeline-total {
+    margin-left: auto;
+    color: var(--success-color);
+}
+
+.payment-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.25rem 0.625rem;
+    border-radius: 16px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.payment-badge.paid {
+    background: rgba(16, 185, 129, 0.1);
+    color: #047857;
+}
+
+.payment-badge.partial {
+    background: rgba(245, 158, 11, 0.1);
+    color: #b45309;
+}
+
+.payment-badge.unpaid {
+    background: rgba(239, 68, 68, 0.1);
+    color: #b91c1c;
+}
+
+.payment-progress-bar {
+    margin-top: 0.5rem;
+}
+
+.progress-track {
+    height: 6px;
+    background: white;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--success-color), #34d399);
+    transition: width 0.3s ease;
+    border-radius: 3px;
+}
+
+.timeline-card-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e2e8f0;
+}
+
+.timeline-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--text-dark);
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.timeline-action-btn:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    background: white;
+}
+
+/* ========== État vide ========== */
+.empty-state-locations {
+    padding: 4rem 2rem;
+    text-align: center;
+    color: var(--text-gray);
+}
+
+.empty-state-locations i {
+    font-size: 4rem;
+    opacity: 0.3;
+    margin-bottom: 1rem;
+}
+
+.empty-state-locations h3 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin-bottom: 0.5rem;
+}
+
+.empty-state-locations p {
+    margin-bottom: 1.5rem;
+}
+
+/* ========== Animation ========== */
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* ========== Responsive ========== */
+@media (max-width: 992px) {
+    .client-header-card {
+        padding: 1.5rem;
+    }
+
+    .client-avatar-hero {
+        width: 64px;
+        height: 64px;
+        font-size: 2rem;
+    }
+
+    .client-name-hero {
+        font-size: 1.75rem;
+    }
+
+    .client-stats-row {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .client-header-content {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .client-header-left {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .client-meta {
+        justify-content: center;
+    }
+
+    .client-header-actions {
+        width: 100%;
+    }
+
+    .client-header-actions .btn-primary-modern,
+    .client-header-actions .btn-secondary-modern {
+        flex: 1;
+    }
+
+    .client-stats-row {
+        grid-template-columns: 1fr;
+    }
+
+    .timeline-card-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .timeline-info-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    .timeline-total {
+        margin-left: 0;
+    }
+}
+</style>
 {% endblock %}

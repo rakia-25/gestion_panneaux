@@ -1,0 +1,70 @@
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var nomInput = document.querySelector('[name*="[nom]"]');
+    var typeSelect = document.querySelector('[name*="[type]"]');
+    var emailInput = document.querySelector('[name*="[email]"]');
+    var telephoneInput = document.querySelector('[name*="[telephone]"]');
+    var villeInput = document.querySelector('[name*="[ville]"]');
+    var previewName = document.getElementById('previewName');
+    var previewType = document.getElementById('previewType');
+    var previewEmail = document.getElementById('previewEmail');
+    var previewPhone = document.getElementById('previewPhone');
+    var previewCity = document.getElementById('previewCity');
+    var previewInitial = document.getElementById('previewInitial');
+
+    function escapeHtml(s) { var d = document.createElement('span'); d.textContent = s; return d.innerHTML; }
+    function updatePreview() {
+        if (nomInput && nomInput.value.trim()) {
+            var nom = nomInput.value.trim();
+            previewName.textContent = nom;
+            previewName.title = nom;
+            if (previewInitial) previewInitial.textContent = nom.charAt(0).toUpperCase();
+        } else {
+            previewName.textContent = 'Nom du client';
+            previewName.title = 'Nom du client';
+            if (previewInitial) previewInitial.textContent = '?';
+        }
+        if (typeSelect && typeSelect.value) {
+            var typeText = typeSelect.options[typeSelect.selectedIndex].text;
+            previewType.innerHTML = typeSelect.value === 'entreprise'
+                ? '<span class="badge-preview"><i class="bi bi-building me-1"></i>' + escapeHtml(typeText) + '</span>'
+                : '<span class="badge-preview"><i class="bi bi-person me-1"></i>' + escapeHtml(typeText) + '</span>';
+        } else {
+            previewType.innerHTML = '<span class="badge-preview">Type</span>';
+        }
+        if (emailInput && emailInput.value.trim()) {
+            previewEmail.innerHTML = '<i class="bi bi-envelope"></i><span>' + escapeHtml(emailInput.value) + '</span>';
+            previewEmail.classList.add('has-value');
+            previewEmail.title = emailInput.value;
+        } else {
+            previewEmail.innerHTML = '<i class="bi bi-envelope"></i><span>Email non renseigné</span>';
+            previewEmail.classList.remove('has-value');
+            previewEmail.title = 'Email non renseigné';
+        }
+        if (telephoneInput && telephoneInput.value.trim()) {
+            previewPhone.innerHTML = '<i class="bi bi-telephone"></i><span>' + escapeHtml(telephoneInput.value) + '</span>';
+            previewPhone.classList.add('has-value');
+            previewPhone.title = telephoneInput.value;
+        } else {
+            previewPhone.innerHTML = '<i class="bi bi-telephone"></i><span>Téléphone non renseigné</span>';
+            previewPhone.classList.remove('has-value');
+            previewPhone.title = 'Téléphone non renseigné';
+        }
+        if (villeInput && villeInput.value.trim()) {
+            previewCity.innerHTML = '<i class="bi bi-geo-alt"></i><span>' + escapeHtml(villeInput.value) + '</span>';
+            previewCity.classList.add('has-value');
+            previewCity.title = villeInput.value;
+        } else {
+            previewCity.innerHTML = '<i class="bi bi-geo-alt"></i><span>Ville non renseignée</span>';
+            previewCity.classList.remove('has-value');
+            previewCity.title = 'Ville non renseignée';
+        }
+    }
+    if (nomInput) nomInput.addEventListener('input', updatePreview);
+    if (typeSelect) typeSelect.addEventListener('change', updatePreview);
+    if (emailInput) emailInput.addEventListener('input', updatePreview);
+    if (telephoneInput) telephoneInput.addEventListener('input', updatePreview);
+    if (villeInput) villeInput.addEventListener('input', updatePreview);
+    updatePreview();
+});
+</script>

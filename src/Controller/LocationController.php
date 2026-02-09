@@ -13,6 +13,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\HttpFoundation\JsonResponse;
 
 #[Route('/location')]
 class LocationController extends AbstractController
@@ -81,7 +82,7 @@ class LocationController extends AbstractController
         $facePreselectionnee = (bool) $faceId;
         $facePreselectionneeObj = $faceId ? $faceRepository->find($faceId) : null;
         $clientPreselectionneObj = $clientId ? $clientRepository->find($clientId) : null;
-        
+
         $form = $this->createForm(LocationType::class, $location, [
             'face_preselectionnee' => $facePreselectionnee,
             'client_preselectionne' => $clientPreselectionne,
@@ -120,27 +121,27 @@ class LocationController extends AbstractController
                 // Vérifier s'il y a une location active ou future qui cause le conflit
                 $locationsConflit = $face->getLocationsActivesOuFutures();
                 $message = 'Cette face est déjà louée sur cette période.';
-                
+
                 if (!empty($locationsConflit)) {
                     // Trouver la location qui chevauche avec la période demandée
                     $dateDebutNormalisee = new \DateTime($location->getDateDebut()->format('Y-m-d'));
                     $dateFinNormalisee = new \DateTime($location->getDateFin()->format('Y-m-d'));
-                    
+
                     foreach ($locationsConflit as $locConflit) {
                         $locDateDebut = new \DateTime($locConflit->getDateDebut()->format('Y-m-d'));
                         $locDateFin = new \DateTime($locConflit->getDateFin()->format('Y-m-d'));
-                        
+
                         // Vérifier le chevauchement
                         if ($dateDebutNormalisee <= $locDateFin && $dateFinNormalisee >= $locDateDebut) {
                             $dateSuivante = (clone $locDateFin)->modify('+1 day');
-                            $message .= ' La face est occupée du ' . $locConflit->getDateDebut()->format('d/m/Y') . 
-                                       ' au ' . $locConflit->getDateFin()->format('d/m/Y') . 
+                            $message .= ' La face est occupée du ' . $locConflit->getDateDebut()->format('d/m/Y') .
+                                       ' au ' . $locConflit->getDateFin()->format('d/m/Y') .
                                        '. Vous pouvez réserver à partir du ' . $dateSuivante->format('d/m/Y') . '.';
                             break;
                         }
                     }
                 }
-                
+
                 $this->addFlash('error', $message);
                 return $this->render('location/new.html.twig', $this->getNewLocationContext($location, $form, $faceId, $clientId));
             }
@@ -161,19 +162,48 @@ class LocationController extends AbstractController
             $entityManager->flush();
 
             $this->addFlash('success', 'Location créée avec succès.');
-
-            // Rediriger vers la page d'origine si on vient d'un panneau ou d'un client
-            if ($faceId) {
-                $face = $location->getFace();
-                return $this->redirectToRoute('app_panneau_show', ['id' => $face->getPanneau()->getId()], Response::HTTP_SEE_OTHER);
-            } elseif ($clientId) {
-                return $this->redirectToRoute('app_client_show', ['id' => $clientId], Response::HTTP_SEE_OTHER);
-            }
-
-            return $this->redirectToRoute('app_location_index', [], Response::HTTP_SEE_OTHER);
+            return $this->redirectToRoute('app_location_show', ['id' => $location->getId()], Response::HTTP_SEE_OTHER);
         }
 
         return $this->render('location/new.html.twig', $this->getNewLocationContext($location, $form, $faceId, $clientId));
+    }
+
+    #[Route('/calendrier', name: 'app_location_calendar', methods: ['GET'])]
+    public function calendar(): Response
+    {
+        return $this->render('location/calendar.html.twig');
+    }
+
+    #[Route('/calendrier/events', name: 'app_location_calendar_events', methods: ['GET'])]
+    public function calendarEvents(Request $request, LocationRepository $locationRepository): JsonResponse
+    {
+        $start = $request->query->get('start');
+        $end = $request->query->get('end');
+        if (!$start || !$end) {
+            return $this->json(['error' => 'start and end required'], 400);
+        }
+        $startDt = new \DateTime($start);
+        $endDt = new \DateTime($end);
+        $locations = $locationRepository->findForCalendar($startDt, $endDt);
+        $events = [];
+        foreach ($locations as $loc) {
+            $color = $loc->isAnnulee() ? '#94a3b8' : ($loc->isActive() ? '#6366f1' : ($loc->isTerminee() ? '#64748b' : '#10b981'));
+            $events[] = [
+                'id' => $loc->getId(),
+                'title' => $loc->getFace()->getNomComplet() . ' — ' . $loc->getClient()->getNom(),
+                'start' => $loc->getDateDebut()->format('Y-m-d'),
+                'end' => (clone $loc->getDateFin())->modify('+1 day')->format('Y-m-d'),
+                'url' => $this->generateUrl('app_location_show', ['id' => $loc->getId()]),
+                'backgroundColor' => $color,
+                'borderColor' => $color,
+                'extendedProps' => [
+                    'client' => $loc->getClient()->getNom(),
+                    'face' => $loc->getFace()->getNomComplet(),
+                    'montant' => $loc->getMontantMensuel(),
+                ],
+            ];
+        }
+        return $this->json($events);
     }
 
     #[Route('/{id}', name: 'app_location_show', methods: ['GET'])]
@@ -255,7 +285,7 @@ class LocationController extends AbstractController
             $entityManager->flush();
 
             $this->addFlash('success', 'Location modifiée avec succès.');
-            return $this->redirectToRoute('app_location_index', [], Response::HTTP_SEE_OTHER);
+            return $this->redirectToRoute('app_location_show', ['id' => $location->getId()], Response::HTTP_SEE_OTHER);
         }
 
         return $this->render('location/edit.html.twig', [
@@ -286,7 +316,7 @@ class LocationController extends AbstractController
 
         if ($request->isMethod('POST')) {
             $raison = $request->request->get('raison');
-            
+
             if ($this->isCsrfTokenValid('annuler'.$location->getId(), $request->request->get('_token'))) {
                 $location->annuler($raison);
                 $entityManager->flush();
@@ -308,6 +338,24 @@ class LocationController extends AbstractController
         return $this->json([
             'prix' => $face->getPanneau()->getPrixMensuel(),
         ]);
+    }
+
+    /**
+     * API disponibilité : périodes occupées pour une face (pour calendrier de réservation).
+     */
+    #[Route('/face/{id}/disponibilite', name: 'app_location_face_disponibilite', methods: ['GET'])]
+    public function faceDisponibilite(Request $request, Face $face): JsonResponse
+    {
+        $locations = $face->getLocationsActivesOuFutures();
+        $periodes = [];
+        foreach ($locations as $loc) {
+            $periodes[] = [
+                'start' => $loc->getDateDebut()->format('Y-m-d'),
+                'end' => $loc->getDateFin()->format('Y-m-d'),
+                'client' => $loc->getClient()->getNom(),
+            ];
+        }
+        return $this->json(['periodes' => $periodes]);
     }
 
     /**

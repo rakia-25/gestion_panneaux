@@ -1,0 +1,49 @@
+{#
+    Alertes contextuelles (nouveau paiement avec location_obj).
+    Variable : location_obj
+#}
+{% if location_obj %}
+    {% if location_obj.isAnnulee %}
+        <div class="alert-modern alert-modern-danger">
+            <div class="alert-modern-icon"><i class="bi bi-x-circle-fill"></i></div>
+            <div class="alert-modern-content">
+                <h3 class="alert-modern-title">Location annulée</h3>
+                <p class="alert-modern-text">Cette location a été annulée. Vous ne pouvez pas créer de paiement pour une location annulée.</p>
+                {% if location_obj.dateAnnulation %}
+                    <p class="alert-modern-meta">Annulée le {{ location_obj.dateAnnulation|date('d/m/Y') }}{% if location_obj.raisonAnnulation %} — {{ location_obj.raisonAnnulation }}{% endif %}</p>
+                {% endif %}
+            </div>
+        </div>
+    {% elseif location_obj.isCompletementPaye %}
+        <div class="alert-modern alert-modern-warning">
+            <div class="alert-modern-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
+            <div class="alert-modern-content">
+                <h3 class="alert-modern-title">Location entièrement payée</h3>
+                <p class="alert-modern-text">Cette location est déjà entièrement payée. Vous ne pouvez pas créer un nouveau paiement.</p>
+                <div class="alert-modern-stats">
+                    <div class="alert-stat">
+                        <span class="alert-stat-label">Montant total</span>
+                        <span class="alert-stat-value">{{ location_obj.montantTotal|number_format(0, ',', ' ') }} FCFA</span>
+                    </div>
+                    <div class="alert-stat">
+                        <span class="alert-stat-label">Déjà payé</span>
+                        <span class="alert-stat-value success">{{ location_obj.montantTotalPaye|number_format(0, ',', ' ') }} FCFA</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="alert-modern alert-modern-info">
+            <div class="alert-modern-icon"><i class="bi bi-info-circle-fill"></i></div>
+            <div class="alert-modern-content">
+                <h3 class="alert-modern-title">Location pré-sélectionnée</h3>
+                <p class="alert-modern-text"><strong>{{ location_obj.face.nomComplet }}</strong> — {{ location_obj.client.nom }}</p>
+                <div class="alert-modern-stats">
+                    <div class="alert-stat"><span class="alert-stat-label">Total</span><span class="alert-stat-value">{{ location_obj.montantTotal|number_format(0, ',', ' ') }}</span></div>
+                    <div class="alert-stat"><span class="alert-stat-label">Payé</span><span class="alert-stat-value success">{{ location_obj.montantTotalPaye|number_format(0, ',', ' ') }}</span></div>
+                    <div class="alert-stat highlight"><span class="alert-stat-label">Restant</span><span class="alert-stat-value">{{ location_obj.montantRestant|number_format(0, ',', ' ') }} FCFA</span></div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+{% endif %}

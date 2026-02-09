@@ -1,0 +1,27 @@
+{#
+    Alertes contextuelles (nouvelle location).
+    Variables : face_obj (optionnel), client_obj (optionnel), form (optionnel, pour form.vars.valid)
+#}
+{% if face_obj is defined and face_obj %}
+    {% set locationActive = face_obj.getLocationActive() %}
+    {% set locationsFutures = face_obj.getLocationsActivesOuFutures() %}
+    <div class="alert alert-{{ locationActive ? 'warning' : 'info' }} mb-3">
+        <i class="bi bi-info-circle"></i> <strong>Face pré-sélectionnée :</strong> {{ face_obj.nomComplet }} ({{ face_obj.panneau.emplacement }})
+        {% if locationActive %}
+            <br><small>Cette face est occupée jusqu'au <strong>{{ locationActive.dateFin|date('d/m/Y') }}</strong>. Réservez à partir du lendemain.</small>
+        {% elseif locationsFutures|length > 0 %}
+            {% set prochaineLocation = locationsFutures[0] %}
+            <br><small>Réservée du <strong>{{ prochaineLocation.dateDebut|date('d/m/Y') }}</strong> au <strong>{{ prochaineLocation.dateFin|date('d/m/Y') }}</strong>.</small>
+        {% endif %}
+    </div>
+{% endif %}
+{% if client_obj is defined and client_obj %}
+    <div class="alert alert-info mb-3">
+        <i class="bi bi-person"></i> <strong>Client :</strong> {{ client_obj.nom }}
+    </div>
+{% endif %}
+{% if form is defined and form is not null and not form.vars.valid %}
+    <div class="alert alert-danger mb-3">
+        <i class="bi bi-exclamation-triangle"></i> Veuillez corriger les erreurs ci-dessous.
+    </div>
+{% endif %}

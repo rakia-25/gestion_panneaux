@@ -2,15 +2,60 @@
 
 {% block title %}Location #{{ location.id }}{% endblock %}
 
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" class="breadcrumb-nav mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Tableau de bord</a></li>
+            <li class="breadcrumb-item"><a href="{{ path('app_location_index') }}">Locations</a></li>
+            <li class="breadcrumb-item active" aria-current="page">LOC-{{ "%03d"|format(location.id) }}</li>
+        </ol>
+    </nav>
+{% endblock %}
+
 {% block body %}
-<div class="page-header">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-        <div>
-            <h1 class="page-title">Location #{{ location.id }}</h1>
-            <p class="page-description">{{ location.face.nomComplet }} - {{ location.client.nom }}</p>
+<!-- En-tête location -->
+<div class="location-header-card">
+    <div class="location-header-content">
+        <div class="location-header-left">
+            <div class="location-icon-hero">
+                <i class="bi bi-calendar-check"></i>
+            </div>
+            <div class="location-header-info">
+                <div class="location-header-badge">
+                    {% if location.isAnnulee %}
+                        <span class="status-badge-hero cancelled">
+                            <i class="bi bi-x-circle-fill"></i> Annulée
+                        </span>
+                    {% elseif location.isActive() %}
+                        <span class="status-badge-hero active">
+                            <i class="bi bi-circle-fill pulse"></i> En cours
+                        </span>
+                    {% elseif location.isTerminee() %}
+                        <span class="status-badge-hero finished">
+                            <i class="bi bi-check-circle-fill"></i> Terminée
+                        </span>
+                    {% else %}
+                        <span class="status-badge-hero future">
+                            <i class="bi bi-clock-fill"></i> À venir
+                        </span>
+                    {% endif %}
+                </div>
+                <h1 class="location-title-hero">Location LOC-{{ "%03d"|format(location.id) }}</h1>
+                <div class="location-meta">
+                    <span class="meta-item">
+                        <i class="bi bi-square"></i> {{ location.face.nomComplet }}
+                    </span>
+                    <span class="meta-item">
+                        <i class="bi bi-person"></i> {{ location.client.nom }}
+                    </span>
+                </div>
+            </div>
         </div>
-        <div style="display: flex; gap: 0.75rem;">
+        <div class="location-header-actions">
             {% if not location.isAnnulee %}
+                <a href="{{ path('app_paiement_new', {location_id: location.id}) }}" class="btn-primary-modern">
+                    <i class="bi bi-cash-coin"></i> Nouveau paiement
+                </a>
                 <a href="{{ path('app_location_edit', {id: location.id}) }}" class="btn-secondary-modern">
                     <i class="bi bi-pencil"></i> Modifier
                 </a>
@@ -25,223 +70,1351 @@
     </div>
 </div>
 
-<div class="row">
-    <div class="col-md-8">
-        <div class="section-card" style="margin-bottom: 1.5rem;">
-            <div class="section-header">
-                <h3 class="section-title">Informations de la location</h3>
-            </div>
-            <table class="modern-table" style="margin: 0;">
-                <tbody>
-                    <tr>
-                        <th width="200" style="font-weight: 600; color: var(--text-gray);">Face</th>
-                        <td>
-                            <strong>{{ location.face.nomComplet }}</strong><br>
-                            <small style="color: var(--text-gray); font-size: 0.75rem;">{{ location.face.panneau.emplacement }}</small>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>Client</th>
-                        <td>
-                            <strong>{{ location.client.nom }}</strong><br>
-                            {% if location.client.email %}
-                                <small style="color: var(--text-gray); font-size: 0.75rem;">{{ location.client.email }}</small>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>Période</th>
-                        <td>
-                            <strong>{{ location.dateDebut|date('d/m/Y') }}</strong> -
-                            <strong>{{ location.dateFin|date('d/m/Y') }}</strong><br>
-                            <small style="color: var(--text-gray); font-size: 0.75rem;">{{ location.nombreMois }} mois</small>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>Montant mensuel</th>
-                        <td><strong>{{ location.montantMensuel|number_format(0, ',', ' ') }} FCFA</strong></td>
-                    </tr>
-                    <tr>
-                        <th>Montant total</th>
-                        <td><strong style="color: var(--primary-color); font-size: 1.25rem;">{{ location.montantTotal|number_format(0, ',', ' ') }} FCFA</strong></td>
-                    </tr>
-                    <tr>
-                        <th>Statut de paiement</th>
-                        <td>
-                            {% set statutPaiement = location.statutPaiement %}
-                            {% if statutPaiement == 'paye' %}
-                                <span class="table-badge success" style="font-size: 0.875rem;">Payé</span>
-                            {% elseif statutPaiement == 'partiellement_paye' %}
-                                <span class="table-badge warning" style="font-size: 0.875rem;">Partiellement payé</span>
-                            {% else %}
-                                <span class="table-badge pending" style="font-size: 0.875rem;">Impayé</span>
-                            {% endif %}
-                            <br>
-                            <small style="color: var(--text-gray); margin-top: 0.5rem; display: block;">
-                                Payé: <strong>{{ location.montantTotalPaye|number_format(0, ',', ' ') }} FCFA</strong> |
-                                Restant: <strong>{{ location.montantRestant|number_format(0, ',', ' ') }} FCFA</strong>
-                            </small>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>Montant payé</th>
-                        <td><strong style="color: var(--success-color);">{{ location.montantTotalPaye|number_format(0, ',', ' ') }} FCFA</strong></td>
-                    </tr>
-                    <tr>
-                        <th>Montant restant</th>
-                        <td><strong style="color: var(--danger-color);">{{ location.montantRestant|number_format(0, ',', ' ') }} FCFA</strong></td>
-                    </tr>
-                    <tr>
-                        <th>Statut</th>
-                        <td>
-                            {% if location.isAnnulee %}
-                                <span class="table-badge danger">Annulée</span>
-                                {% if location.dateAnnulation %}
-                                    <br><small style="color: var(--text-gray); font-size: 0.75rem;">
-                                        Annulée le {{ location.dateAnnulation|date('d/m/Y à H:i') }}
-                                        {% if location.raisonAnnulation %}
-                                            <br>Raison: {{ location.raisonAnnulation }}
-                                        {% endif %}
-                                    </small>
-                                {% endif %}
-                            {% elseif location.isActive() %}
-                                <span class="table-badge success">En cours</span>
-                            {% elseif location.isTerminee() %}
-                                <span class="table-badge warning">Terminée</span>
-                            {% else %}
-                                <span class="table-badge info">À venir</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% if location.notes %}
-                    <tr>
-                        <th>Notes</th>
-                        <td>{{ location.notes }}</td>
-                    </tr>
-                    {% endif %}
-                </tbody>
-            </table>
+<!-- Indicateurs financiers -->
+<div class="financial-overview">
+    <div class="finance-card total">
+        <div class="finance-icon">
+            <i class="bi bi-cash-stack"></i>
+        </div>
+        <div class="finance-content">
+            <div class="finance-label">Montant total</div>
+            <div class="finance-value">{{ location.montantTotal|number_format(0, ',', ' ') }} FCFA</div>
+            <div class="finance-detail">{{ location.montantMensuel|number_format(0, ',', ' ') }} FCFA/mois × {{ location.nombreMois }} mois</div>
         </div>
     </div>
 
-    <div class="col-md-4">
-        <div class="section-card" style="margin-bottom: 1.5rem;">
-            <div class="section-header">
-                <h3 class="section-title">Informations du panneau</h3>
+    <div class="finance-card paid">
+        <div class="finance-icon">
+            <i class="bi bi-check-circle"></i>
+        </div>
+        <div class="finance-content">
+            <div class="finance-label">Montant payé</div>
+            <div class="finance-value">{{ location.montantTotalPaye|number_format(0, ',', ' ') }} FCFA</div>
+            {% set pourcent = location.montantTotal > 0 ? (location.montantTotalPaye / location.montantTotal * 100) : 0 %}
+            <div class="finance-detail">{{ pourcent|number_format(0) }}% du total</div>
+        </div>
+    </div>
+
+    <div class="finance-card remaining">
+        <div class="finance-icon">
+            <i class="bi bi-exclamation-circle"></i>
+        </div>
+        <div class="finance-content">
+            <div class="finance-label">Montant restant</div>
+            <div class="finance-value">{{ location.montantRestant|number_format(0, ',', ' ') }} FCFA</div>
+            <div class="finance-detail">
+                {% if location.montantRestant == 0 %}
+                    Entièrement payé
+                {% else %}
+                    À recouvrer
+                {% endif %}
             </div>
-            <div>
-                <p><strong>Référence:</strong> {{ location.face.panneau.reference }}</p>
-                <p><strong>Type:</strong>
-                    {% if location.face.panneau.type == 'double' %}
-                        <span class="table-badge info">Double</span>
-                    {% else %}
-                        <span class="table-badge warning">Simple</span>
+        </div>
+    </div>
+
+    <div class="finance-card status">
+        <div class="finance-icon">
+            <i class="bi bi-credit-card"></i>
+        </div>
+        <div class="finance-content">
+            <div class="finance-label">Statut paiement</div>
+            <div class="finance-value">
+                {% set statutPaiement = location.statutPaiement %}
+                {% if statutPaiement == 'paye' %}
+                    <span class="payment-status-badge paid">Payé</span>
+                {% elseif statutPaiement == 'partiellement_paye' %}
+                    <span class="payment-status-badge partial">Partiel</span>
+                {% else %}
+                    <span class="payment-status-badge unpaid">Impayé</span>
+                {% endif %}
+            </div>
+            <div class="finance-detail">{{ location.paiements|length }} paiement{{ location.paiements|length > 1 ? 's' : '' }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Barre de progression globale -->
+<div class="payment-progress-section">
+    <div class="progress-header">
+        <span class="progress-label">Progression des paiements</span>
+        <span class="progress-percentage">{{ pourcent|number_format(1) }}%</span>
+    </div>
+    <div class="progress-bar-large">
+        <div class="progress-fill-large" style="width: {{ pourcent }}%">
+            <span class="progress-amount">{{ location.montantTotalPaye|number_format(0, ',', ' ') }} FCFA</span>
+        </div>
+    </div>
+    <div class="progress-footer">
+        <span class="progress-start">0 FCFA</span>
+        <span class="progress-end">{{ location.montantTotal|number_format(0, ',', ' ') }} FCFA</span>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Informations principales -->
+    <div class="col-lg-8">
+        <!-- Détails de la location -->
+        <div class="section-card details-card">
+            <div class="section-header-enhanced">
+                <div class="section-header-icon">
+                    <i class="bi bi-info-circle"></i>
+                </div>
+                <div>
+                    <h2 class="section-title">Détails de la location</h2>
+                    <p class="section-subtitle">Informations complètes sur la location</p>
+                </div>
+            </div>
+
+            <div class="details-grid-location">
+                <!-- Face -->
+                <div class="detail-item-loc">
+                    <div class="detail-icon-loc">
+                        <i class="bi bi-square"></i>
+                    </div>
+                    <div class="detail-content-loc">
+                        <div class="detail-label-loc">Face publicitaire</div>
+                        <div class="detail-value-loc highlight">{{ location.face.nomComplet }}</div>
+                        <small class="detail-extra">{{ location.face.panneau.emplacement }}</small>
+                    </div>
+                </div>
+
+                <!-- Client -->
+                <div class="detail-item-loc">
+                    <div class="detail-icon-loc">
+                        <i class="bi bi-person"></i>
+                    </div>
+                    <div class="detail-content-loc">
+                        <div class="detail-label-loc">Client</div>
+                        <div class="detail-value-loc highlight">{{ location.client.nom }}</div>
+                        {% if location.client.email %}
+                            <small class="detail-extra">
+                                <a href="mailto:{{ location.client.email }}">{{ location.client.email }}</a>
+                            </small>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Période -->
+                <div class="detail-item-loc detail-item-full">
+                    <div class="detail-icon-loc">
+                        <i class="bi bi-calendar-range"></i>
+                    </div>
+                    <div class="detail-content-loc">
+                        <div class="detail-label-loc">Période de location</div>
+                        <div class="detail-value-loc">
+                            <div class="period-display">
+                                <div class="period-date">
+                                    <i class="bi bi-calendar-event"></i>
+                                    {{ location.dateDebut|date('d/m/Y') }}
+                                </div>
+                                <div class="period-arrow">→</div>
+                                <div class="period-date">
+                                    <i class="bi bi-calendar-check"></i>
+                                    {{ location.dateFin|date('d/m/Y') }}
+                                </div>
+                            </div>
+                        </div>
+                        <small class="detail-extra">Durée: {{ location.nombreMois }} mois</small>
+                    </div>
+                </div>
+
+                <!-- Montants -->
+                <div class="detail-item-loc">
+                    <div class="detail-icon-loc">
+                        <i class="bi bi-cash"></i>
+                    </div>
+                    <div class="detail-content-loc">
+                        <div class="detail-label-loc">Montant mensuel</div>
+                        <div class="detail-value-loc price">{{ location.montantMensuel|number_format(0, ',', ' ') }} FCFA</div>
+                    </div>
+                </div>
+
+                <div class="detail-item-loc">
+                    <div class="detail-icon-loc">
+                        <i class="bi bi-cash-stack"></i>
+                    </div>
+                    <div class="detail-content-loc">
+                        <div class="detail-label-loc">Montant total</div>
+                        <div class="detail-value-loc price-total">{{ location.montantTotal|number_format(0, ',', ' ') }} FCFA</div>
+                    </div>
+                </div>
+
+                <!-- Statut annulation si applicable -->
+                {% if location.isAnnulee and location.dateAnnulation %}
+                <div class="detail-item-loc detail-item-full alert-item">
+                    <div class="detail-icon-loc danger">
+                        <i class="bi bi-x-circle"></i>
+                    </div>
+                    <div class="detail-content-loc">
+                        <div class="detail-label-loc">Annulation</div>
+                        <div class="detail-value-loc">{{ location.dateAnnulation|date('d/m/Y à H:i') }}</div>
+                        {% if location.raisonAnnulation %}
+                            <small class="detail-extra">Raison: {{ location.raisonAnnulation }}</small>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Notes -->
+                {% if location.notes %}
+                <div class="detail-item-loc detail-item-full">
+                    <div class="detail-icon-loc">
+                        <i class="bi bi-sticky"></i>
+                    </div>
+                    <div class="detail-content-loc">
+                        <div class="detail-label-loc">Notes</div>
+                        <div class="detail-value-loc notes">{{ location.notes }}</div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Historique des paiements -->
+        <div class="section-card payments-card">
+            <div class="section-header-enhanced">
+                <div class="section-header-icon">
+                    <i class="bi bi-wallet2"></i>
+                </div>
+                <div>
+                    <h2 class="section-title">Historique des paiements</h2>
+                    <p class="section-subtitle">{{ location.paiements|length }} paiement{{ location.paiements|length > 1 ? 's' : '' }} enregistré{{ location.paiements|length > 1 ? 's' : '' }}</p>
+                </div>
+                {% if not location.isAnnulee and location.montantRestant > 0 %}
+                    <a href="{{ path('app_paiement_new', {location_id: location.id}) }}" class="btn-primary-modern ml-auto">
+                        <i class="bi bi-plus-lg"></i> Nouveau paiement
+                    </a>
+                {% endif %}
+            </div>
+
+            {% if location.paiements|length > 0 %}
+                <div class="payments-timeline">
+                    {% for paiement in location.paiements|sort((a, b) => b.datePaiement <=> a.datePaiement) %}
+                        <div class="payment-timeline-item {{ paiement.isAnnule ? 'cancelled' : 'active' }}">
+                            <div class="payment-marker">
+                                {% if paiement.isAnnule %}
+                                    <i class="bi bi-x-circle-fill"></i>
+                                {% else %}
+                                    <i class="bi bi-check-circle-fill"></i>
+                                {% endif %}
+                            </div>
+                            <div class="payment-content-card">
+                                <div class="payment-card-header">
+                                    <div class="payment-card-left">
+                                        <div class="payment-date">
+                                            <i class="bi bi-calendar-event"></i>
+                                            {{ paiement.datePaiement|date('d/m/Y') }}
+                                        </div>
+                                        <div class="payment-type">
+                                            <span class="type-badge-payment {{ paiement.isAnnule ? 'cancelled' : paiement.type }}">
+                                                {{ paiement.typeLibelle }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="payment-card-right">
+                                        <div class="payment-amount {{ paiement.isAnnule ? 'cancelled' : '' }}">
+                                            {{ paiement.montant|number_format(0, ',', ' ') }} FCFA
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {% if paiement.isAnnule %}
+                                    <div class="payment-cancelled-notice">
+                                        <i class="bi bi-exclamation-triangle"></i>
+                                        Paiement annulé le {{ paiement.dateAnnulation|date('d/m/Y') }}
+                                        {% if paiement.raisonAnnulation %}
+                                            — {{ paiement.raisonAnnulation }}
+                                        {% endif %}
+                                    </div>
+                                {% endif %}
+
+                                <div class="payment-card-actions">
+                                    <a href="{{ path('app_paiement_show', {id: paiement.id}) }}" class="payment-action-btn">
+                                        <i class="bi bi-eye"></i> Voir détails
+                                    </a>
+                                    {% if not paiement.isAnnule and not location.isAnnulee %}
+                                        <a href="{{ path('app_paiement_edit', {id: paiement.id}) }}" class="payment-action-btn">
+                                            <i class="bi bi-pencil"></i> Modifier
+                                        </a>
+                                        <a href="{{ path('app_paiement_annuler', {id: paiement.id}) }}"
+                                           class="payment-action-btn danger"
+                                           onclick="return confirm('Annuler ce paiement ?');">
+                                            <i class="bi bi-x-circle"></i> Annuler
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Total des paiements -->
+                <div class="payments-summary">
+                    <div class="summary-row">
+                        <span class="summary-label">Total des paiements</span>
+                        <span class="summary-value success">{{ location.montantTotalPaye|number_format(0, ',', ' ') }} FCFA</span>
+                    </div>
+                    <div class="summary-row">
+                        <span class="summary-label">Montant restant</span>
+                        <span class="summary-value {{ location.montantRestant > 0 ? 'danger' : 'success' }}">
+                            {{ location.montantRestant|number_format(0, ',', ' ') }} FCFA
+                        </span>
+                    </div>
+                </div>
+            {% else %}
+                <div class="empty-state-payments">
+                    <i class="bi bi-wallet2"></i>
+                    <h3>Aucun paiement</h3>
+                    <p>Aucun paiement n'a encore été enregistré pour cette location</p>
+                    {% if not location.isAnnulee %}
+                        <a href="{{ path('app_paiement_new', {location_id: location.id}) }}" class="btn-primary-modern">
+                            <i class="bi bi-plus-circle"></i> Enregistrer un paiement
+                        </a>
                     {% endif %}
-                </p>
-                <p><strong>Taille:</strong> {{ location.face.panneau.taille }}</p>
-                <p><strong>Prix mensuel:</strong> {{ location.face.panneau.prixMensuel|number_format(0, ',', ' ') }} FCFA</p>
-                <a href="{{ path('app_panneau_show', {id: location.face.panneau.id}) }}" class="btn-secondary-modern" style="width: 100%; margin-top: 1rem;">
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <aside class="col-lg-4">
+        <!-- Informations panneau -->
+        <div class="section-card sidebar-card sticky-sidebar">
+            <div class="section-header">
+                <h3 class="section-title">
+                    <i class="bi bi-grid"></i> Panneau publicitaire
+                </h3>
+            </div>
+            <div class="sidebar-content">
+                <div class="sidebar-item">
+                    <div class="sidebar-label">Référence</div>
+                    <div class="sidebar-value">{{ location.face.panneau.reference }}</div>
+                </div>
+                <div class="sidebar-item">
+                    <div class="sidebar-label">Type</div>
+                    <div class="sidebar-value">
+                        {% if location.face.panneau.type == 'double' %}
+                            <span class="badge-sidebar info">
+                                <i class="bi bi-layers"></i> Double face
+                            </span>
+                        {% else %}
+                            <span class="badge-sidebar warning">
+                                <i class="bi bi-square"></i> Simple face
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="sidebar-item">
+                    <div class="sidebar-label">Taille</div>
+                    <div class="sidebar-value">{{ location.face.panneau.taille }} m²</div>
+                </div>
+                <div class="sidebar-item">
+                    <div class="sidebar-label">Prix mensuel</div>
+                    <div class="sidebar-value price">{{ location.face.panneau.prixMensuel|number_format(0, ',', ' ') }} FCFA</div>
+                </div>
+                <a href="{{ path('app_panneau_show', {id: location.face.panneau.id}) }}" class="sidebar-action-btn">
                     <i class="bi bi-eye"></i> Voir le panneau
                 </a>
             </div>
         </div>
 
-        <div class="section-card" style="margin-bottom: 1.5rem;">
+        <!-- Informations client -->
+        <div class="section-card sidebar-card">
             <div class="section-header">
-                <h3 class="section-title">Informations du client</h3>
+                <h3 class="section-title">
+                    <i class="bi bi-person"></i> Client
+                </h3>
             </div>
-            <div>
-                <p><strong>Nom:</strong> {{ location.client.nom }}</p>
+            <div class="sidebar-content">
+                <div class="client-profile">
+                    <div class="client-avatar-sidebar">
+                        {{ location.client.nom|first|upper }}
+                    </div>
+                    <div class="client-name-sidebar">{{ location.client.nom }}</div>
+                </div>
+
                 {% if location.client.telephone %}
-                    <p><strong>Téléphone:</strong> {{ location.client.telephone }}</p>
+                <div class="sidebar-item">
+                    <div class="sidebar-label">Téléphone</div>
+                    <div class="sidebar-value">
+                        <a href="tel:{{ location.client.telephone }}" class="contact-link-sidebar">
+                            <i class="bi bi-telephone"></i> {{ location.client.telephone }}
+                        </a>
+                    </div>
+                </div>
                 {% endif %}
+
                 {% if location.client.email %}
-                    <p><strong>Email:</strong> {{ location.client.email }}</p>
+                <div class="sidebar-item">
+                    <div class="sidebar-label">Email</div>
+                    <div class="sidebar-value">
+                        <a href="mailto:{{ location.client.email }}" class="contact-link-sidebar">
+                            <i class="bi bi-envelope"></i> {{ location.client.email }}
+                        </a>
+                    </div>
+                </div>
                 {% endif %}
-                <a href="{{ path('app_client_show', {id: location.client.id}) }}" class="btn-secondary-modern" style="width: 100%; margin-top: 1rem;">
-                    <i class="bi bi-eye"></i> Voir le client
-                </a>
+
+                <div class="sidebar-actions">
+                    <a href="{{ path('app_client_show', {id: location.client.id}) }}" class="sidebar-action-btn">
+                        <i class="bi bi-eye"></i> Voir le client
+                    </a>
+                    {% if location.client.email %}
+                        <a href="mailto:{{ location.client.email }}" class="sidebar-action-btn-secondary">
+                            <i class="bi bi-envelope"></i> Envoyer un email
+                        </a>
+                    {% endif %}
+                </div>
             </div>
         </div>
 
-        <div class="table-card">
-            <div class="table-header">
-                <h3 class="table-title">Paiements</h3>
-                {% if location.isAnnulee %}
-                    <div class="alert alert-warning" style="margin: 0; padding: 0.5rem 1rem; font-size: 0.8125rem;">
-                        <i class="bi bi-x-circle"></i> Location annulée - Aucun paiement possible
-                    </div>
-                {% elseif location.isCompletementPaye %}
-                    <div class="alert alert-info" style="margin: 0; padding: 0.5rem 1rem; font-size: 0.8125rem;">
-                        <i class="bi bi-check-circle"></i> Location entièrement payée
-                    </div>
-                {% else %}
-                    <a href="{{ path('app_paiement_new', {location_id: location.id}) }}" class="btn-primary-modern" style="padding: 0.5rem 1rem; font-size: 0.8125rem;">
-                        <i class="bi bi-plus-circle"></i> Ajouter
-                    </a>
-                {% endif %}
+        <!-- Actions rapides -->
+        {% if not location.isAnnulee %}
+        <div class="section-card sidebar-card quick-actions-card">
+            <div class="section-header">
+                <h3 class="section-title">
+                    <i class="bi bi-lightning"></i> Actions rapides
+                </h3>
             </div>
-            {% if location.paiements|length > 0 %}
-                <table class="modern-table">
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Montant</th>
-                            <th>Type</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for paiement in location.paiements %}
-                            <tr {% if paiement.isAnnule %}style="opacity: 0.6;"{% endif %}>
-                                <td>
-                                    {{ paiement.datePaiement|date('d/m/Y') }}
-                                    {% if paiement.isAnnule %}
-                                        <br><small class="text-danger">(Annulé)</small>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <strong>{{ paiement.montant|number_format(0, ',', ' ') }} FCFA</strong>
-                                    {% if paiement.isAnnule %}
-                                        <br><small class="text-danger">Annulé le {{ paiement.dateAnnulation|date('d/m/Y') }}</small>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <span class="table-badge {% if paiement.isAnnule %}danger{% else %}info{% endif %}">
-                                        {{ paiement.typeLibelle }}
-                                    </span>
-                                </td>
-                                <td>
-                                    <div class="action-menu">
-                                        <a href="{{ path('app_paiement_show', {id: paiement.id}) }}" class="action-btn" title="Voir">
-                                            <i class="bi bi-eye"></i>
-                                        </a>
-                                        {% if not paiement.isAnnule and not location.isAnnulee %}
-                                            <a href="{{ path('app_paiement_edit', {id: paiement.id}) }}" class="action-btn" title="Modifier">
-                                                <i class="bi bi-pencil"></i>
-                                            </a>
-                                            <a href="{{ path('app_paiement_annuler', {id: paiement.id}) }}" class="action-btn text-danger" title="Annuler">
-                                                <i class="bi bi-x-circle"></i>
-                                            </a>
-                                        {% endif %}
-                                    </div>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                    <tfoot>
-                        <tr style="background: var(--bg-light);">
-                            <th>Total payé</th>
-                            <th colspan="3"><strong>{{ location.montantTotalPaye|number_format(0, ',', ' ') }} FCFA</strong></th>
-                        </tr>
-                    </tfoot>
-                </table>
-            {% else %}
-                <div style="text-align: center; padding: 2rem; color: var(--text-gray);">
-                    <i class="bi bi-info-circle"></i> Aucun paiement enregistré pour cette location.
-                </div>
-            {% endif %}
+            <div class="sidebar-content">
+                <a href="{{ path('app_paiement_new', {location_id: location.id}) }}" class="quick-action-item primary">
+                    <i class="bi bi-cash-coin"></i>
+                    <span>Nouveau paiement</span>
+                </a>
+                <a href="{{ path('app_location_edit', {id: location.id}) }}" class="quick-action-item">
+                    <i class="bi bi-pencil"></i>
+                    <span>Modifier la location</span>
+                </a>
+                <a href="{{ path('app_location_annuler', {id: location.id}) }}"
+                   class="quick-action-item danger"
+                   onclick="return confirm('Annuler cette location ?');">
+                    <i class="bi bi-x-circle"></i>
+                    <span>Annuler la location</span>
+                </a>
+            </div>
         </div>
-    </div>
+        {% endif %}
+    </aside>
 </div>
+
+<style>
+/* ========== En-tête location ========== */
+.location-header-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.2);
+}
+
+.location-header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 2rem;
+    flex-wrap: wrap;
+}
+
+.location-header-left {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    flex: 1;
+}
+
+.location-icon-hero {
+    width: 72px;
+    height: 72px;
+    border-radius: 16px;
+    background: white;
+    color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    flex-shrink: 0;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.location-header-info {
+    flex: 1;
+}
+
+.location-header-badge {
+    margin-bottom: 0.5rem;
+}
+
+.status-badge-hero {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.375rem 1rem;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    background: rgba(255, 255, 255, 0.25);
+    color: white;
+    backdrop-filter: blur(10px);
+}
+
+.status-badge-hero.active {
+    background: rgba(16, 185, 129, 0.3);
+}
+
+.status-badge-hero.cancelled {
+    background: rgba(239, 68, 68, 0.3);
+}
+
+.status-badge-hero.future {
+    background: rgba(59, 130, 246, 0.3);
+}
+
+.status-badge-hero.finished {
+    background: rgba(100, 116, 139, 0.3);
+}
+
+.location-title-hero {
+    font-size: 2rem;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 0.5rem;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.location-meta {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.meta-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.9375rem;
+}
+
+.location-header-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+/* ========== Aperçu financier ========== */
+.financial-overview {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.finance-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    transition: all 0.3s;
+    border-left: 4px solid transparent;
+}
+
+.finance-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.finance-card.total {
+    border-left-color: var(--primary-color);
+}
+
+.finance-card.paid {
+    border-left-color: var(--success-color);
+}
+
+.finance-card.remaining {
+    border-left-color: var(--danger-color);
+}
+
+.finance-card.status {
+    border-left-color: var(--info-color);
+}
+
+.finance-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.finance-card.total .finance-icon {
+    background: rgba(99, 102, 241, 0.1);
+    color: var(--primary-color);
+}
+
+.finance-card.paid .finance-icon {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success-color);
+}
+
+.finance-card.remaining .finance-icon {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger-color);
+}
+
+.finance-card.status .finance-icon {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--info-color);
+}
+
+.finance-content {
+    flex: 1;
+}
+
+.finance-label {
+    font-size: 0.8125rem;
+    color: var(--text-gray);
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+.finance-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin-bottom: 0.25rem;
+}
+
+.finance-detail {
+    font-size: 0.8125rem;
+    color: var(--text-gray);
+}
+
+.payment-status-badge {
+    padding: 0.375rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.payment-status-badge.paid {
+    background: rgba(16, 185, 129, 0.1);
+    color: #047857;
+}
+
+.payment-status-badge.partial {
+    background: rgba(245, 158, 11, 0.1);
+    color: #b45309;
+}
+
+.payment-status-badge.unpaid {
+    background: rgba(239, 68, 68, 0.1);
+    color: #b91c1c;
+}
+
+/* ========== Barre de progression ========== */
+.payment-progress-section {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.progress-label {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--text-dark);
+}
+
+.progress-percentage {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--success-color);
+}
+
+.progress-bar-large {
+    height: 32px;
+    background: var(--bg-light);
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 0.75rem;
+    position: relative;
+}
+
+.progress-fill-large {
+    height: 100%;
+    background: linear-gradient(90deg, var(--success-color), #34d399);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: width 0.5s ease;
+    min-width: 120px;
+}
+
+.progress-amount {
+    color: white;
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.progress-footer {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8125rem;
+    color: var(--text-gray);
+}
+
+/* ========== Détails location ========== */
+.section-header-enhanced {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.section-header-icon {
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+}
+
+.section-header-enhanced .ml-auto {
+    margin-left: auto;
+}
+
+.section-subtitle {
+    font-size: 0.875rem;
+    color: var(--text-gray);
+    margin: 0;
+}
+
+.details-grid-location {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+}
+
+.detail-item-loc {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--bg-light);
+    border-radius: 10px;
+    transition: all 0.2s;
+}
+
+.detail-item-loc:hover {
+    background: #f1f5f9;
+}
+
+.detail-item-full {
+    grid-column: 1 / -1;
+}
+
+.detail-item-loc.alert-item {
+    background: rgba(239, 68, 68, 0.05);
+    border-left: 3px solid var(--danger-color);
+}
+
+.detail-icon-loc {
+    width: 40px;
+    height: 40px;
+    background: white;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary-color);
+    font-size: 1.125rem;
+    flex-shrink: 0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.detail-icon-loc.danger {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger-color);
+}
+
+.detail-content-loc {
+    flex: 1;
+    min-width: 0;
+}
+
+.detail-label-loc {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-gray);
+    margin-bottom: 0.375rem;
+}
+
+.detail-value-loc {
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: var(--text-dark);
+    word-wrap: break-word;
+}
+
+.detail-value-loc.highlight {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.detail-value-loc.price {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--success-color);
+}
+
+.detail-value-loc.price-total {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--success-color);
+}
+
+.detail-value-loc.notes {
+    line-height: 1.6;
+}
+
+.detail-extra {
+    display: block;
+    font-size: 0.8125rem;
+    color: var(--text-gray);
+    margin-top: 0.25rem;
+}
+
+.period-display {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.period-date {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+}
+
+.period-arrow {
+    color: var(--text-gray);
+    font-weight: 700;
+}
+
+/* ========== Timeline paiements ========== */
+.payments-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+.payment-timeline-item {
+    display: flex;
+    gap: 1rem;
+}
+
+.payment-marker {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+    margin-top: 0.25rem;
+}
+
+.payment-timeline-item.active .payment-marker {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success-color);
+}
+
+.payment-timeline-item.cancelled .payment-marker {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger-color);
+}
+
+.payment-content-card {
+    flex: 1;
+    background: var(--bg-light);
+    border-radius: 12px;
+    padding: 1.25rem;
+    transition: all 0.3s;
+}
+
+.payment-content-card:hover {
+    background: #f1f5f9;
+}
+
+.payment-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+    gap: 1rem;
+}
+
+.payment-card-left {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.payment-date {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    color: var(--text-dark);
+}
+
+.type-badge-payment {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.25rem 0.625rem;
+    border-radius: 16px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.type-badge-payment.especes,
+.type-badge-payment.virement,
+.type-badge-payment.cheque {
+    background: rgba(59, 130, 246, 0.1);
+    color: #1e40af;
+}
+
+.type-badge-payment.cancelled {
+    background: rgba(239, 68, 68, 0.1);
+    color: #b91c1c;
+}
+
+.payment-amount {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--success-color);
+}
+
+.payment-amount.cancelled {
+    color: var(--danger-color);
+    text-decoration: line-through;
+}
+
+.payment-cancelled-notice {
+    padding: 0.75rem;
+    background: rgba(239, 68, 68, 0.05);
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+    color: var(--danger-color);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.payment-card-actions {
+    display: flex;
+    gap: 0.75rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e2e8f0;
+    flex-wrap: wrap;
+}
+
+.payment-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--text-dark);
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.payment-action-btn:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.payment-action-btn.danger:hover {
+    border-color: var(--danger-color);
+    color: var(--danger-color);
+    background: rgba(239, 68, 68, 0.05);
+}
+
+/* Résumé paiements */
+.payments-summary {
+    background: var(--bg-light);
+    border-radius: 12px;
+    padding: 1.25rem;
+}
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.summary-row:last-child {
+    border-bottom: none;
+}
+
+.summary-label {
+    font-weight: 600;
+    color: var(--text-dark);
+}
+
+.summary-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.summary-value.success {
+    color: var(--success-color);
+}
+
+.summary-value.danger {
+    color: var(--danger-color);
+}
+
+/* ========== Sidebar ========== */
+.sticky-sidebar {
+    position: sticky;
+    top: calc(var(--header-height) + 1rem);
+}
+
+.sidebar-card {
+    margin-bottom: 1.5rem;
+}
+
+.sidebar-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.sidebar-item {
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.sidebar-item:last-of-type {
+    border-bottom: none;
+}
+
+.sidebar-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-gray);
+    margin-bottom: 0.375rem;
+}
+
+.sidebar-value {
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: var(--text-dark);
+}
+
+.sidebar-value.price {
+    color: var(--success-color);
+    font-weight: 700;
+}
+
+.badge-sidebar {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.badge-sidebar.info {
+    background: rgba(59, 130, 246, 0.1);
+    color: #1e40af;
+}
+
+.badge-sidebar.warning {
+    background: rgba(245, 158, 11, 0.1);
+    color: #b45309;
+}
+
+.client-profile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 1rem 0;
+}
+
+.client-avatar-sidebar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.client-name-sidebar {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--text-dark);
+}
+
+.contact-link-sidebar {
+    color: var(--primary-color);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.875rem;
+}
+
+.contact-link-sidebar:hover {
+    text-decoration: underline;
+}
+
+.sidebar-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.sidebar-action-btn,
+.sidebar-action-btn-secondary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.sidebar-action-btn {
+    background: var(--primary-color);
+    color: white;
+    border: 1px solid var(--primary-color);
+}
+
+.sidebar-action-btn:hover {
+    background: var(--primary-dark);
+    color: white;
+}
+
+.sidebar-action-btn-secondary {
+    background: var(--bg-light);
+    color: var(--text-dark);
+    border: 1px solid var(--border-color);
+}
+
+.sidebar-action-btn-secondary:hover {
+    background: white;
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+/* Actions rapides */
+.quick-actions-card .sidebar-content {
+    gap: 0.5rem;
+}
+
+.quick-action-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem 1rem;
+    background: var(--bg-light);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-weight: 500;
+    color: var(--text-dark);
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.quick-action-item:hover {
+    background: white;
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.quick-action-item.primary {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+}
+
+.quick-action-item.primary:hover {
+    background: var(--primary-dark);
+    border-color: var(--primary-dark);
+    color: white;
+}
+
+.quick-action-item.danger:hover {
+    background: rgba(239, 68, 68, 0.05);
+    border-color: var(--danger-color);
+    color: var(--danger-color);
+}
+
+.quick-action-item i {
+    font-size: 1.125rem;
+}
+
+/* État vide */
+.empty-state-payments {
+    padding: 4rem 2rem;
+    text-align: center;
+    color: var(--text-gray);
+}
+
+.empty-state-payments i {
+    font-size: 4rem;
+    opacity: 0.3;
+    margin-bottom: 1rem;
+}
+
+.empty-state-payments h3 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin-bottom: 0.5rem;
+}
+
+.empty-state-payments p {
+    margin-bottom: 1.5rem;
+}
+
+/* Animation */
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+    .location-header-card {
+        padding: 1.5rem;
+    }
+
+    .location-icon-hero {
+        width: 56px;
+        height: 56px;
+        font-size: 1.5rem;
+    }
+
+    .location-title-hero {
+        font-size: 1.5rem;
+    }
+
+    .financial-overview {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .finance-value {
+        font-size: 1.25rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .location-header-content {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .location-header-left {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .location-meta {
+        justify-content: center;
+    }
+
+    .location-header-actions {
+        width: 100%;
+    }
+
+    .location-header-actions .btn-primary-modern,
+    .location-header-actions .btn-secondary-modern,
+    .location-header-actions .btn-danger-modern {
+        flex: 1;
+    }
+
+    .financial-overview {
+        grid-template-columns: 1fr;
+    }
+
+    .details-grid-location {
+        grid-template-columns: 1fr;
+    }
+
+    .period-display {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .payment-card-header {
+        flex-direction: column;
+    }
+
+    .sticky-sidebar {
+        position: static;
+    }
+}
+</style>
 {% endblock %}

@@ -1,0 +1,59 @@
+{#
+    Sidebar formulaire client (Conseils + Aperçu live).
+    Utilisé par new.html.twig et edit.html.twig.
+#}
+<aside class="col-lg-4 min-w-0 client-sidebar" role="complementary" aria-labelledby="aide-title">
+    <div class="section-card help-card overflow-hidden">
+        <div class="section-header">
+            <h2 id="aide-title" class="section-title mb-0 h5"><i class="bi bi-lightbulb"></i> Conseils</h2>
+        </div>
+        <div class="help-content">
+            <div class="help-section">
+                <h3 class="help-title"><i class="bi bi-info-circle text-primary"></i> Bon à savoir</h3>
+                <ul class="help-list">
+                    <li>
+                        <strong>Type de client</strong>
+                        <p>Choisissez "Entreprise" pour les sociétés ou "Particulier" pour les personnes physiques.</p>
+                    </li>
+                    <li>
+                        <strong>Coordonnées</strong>
+                        <p>Au moins un moyen de contact (email ou téléphone) est recommandé.</p>
+                    </li>
+                    <li>
+                        <strong>Notes</strong>
+                        <p>Utilisez ce champ pour ajouter des informations utiles (préférences, historique, etc.).</p>
+                    </li>
+                </ul>
+            </div>
+            <div class="help-section">
+                <h3 class="help-title"><i class="bi bi-shield-check text-success"></i> Confidentialité</h3>
+                <p class="help-text">Les informations du client sont sécurisées et ne seront utilisées que dans le cadre de la gestion de vos locations publicitaires.</p>
+            </div>
+            <div class="help-section help-cta">
+                <div class="cta-icon"><i class="bi bi-calendar-check"></i></div>
+                <h3 class="cta-title">{{ cta_title|default('Prochaine étape') }}</h3>
+                <p class="cta-text">{{ cta_text|default('Après avoir créé le client, vous pourrez immédiatement lui attribuer une location.') }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="section-card preview-card overflow-hidden">
+        <div class="section-header">
+            <h2 class="section-title mb-0 h5"><i class="bi bi-eye"></i> Aperçu</h2>
+        </div>
+        <div class="preview-content">
+            <div class="client-preview text-break" id="clientPreview">
+                <div class="preview-avatar">
+                    <span id="previewInitial">?</span>
+                </div>
+                <div class="preview-name text-truncate" id="previewName" title="Nom du client">Nom du client</div>
+                <div class="preview-type mb-2" id="previewType"><span class="badge-preview">Type</span></div>
+                <div class="preview-details">
+                    <div class="preview-item text-truncate" id="previewEmail" title="Email non renseigné"><i class="bi bi-envelope"></i><span>Email non renseigné</span></div>
+                    <div class="preview-item text-truncate" id="previewPhone" title="Téléphone non renseigné"><i class="bi bi-telephone"></i><span>Téléphone non renseigné</span></div>
+                    <div class="preview-item text-truncate" id="previewCity" title="Ville non renseignée"><i class="bi bi-geo-alt"></i><span>Ville non renseignée</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</aside>
